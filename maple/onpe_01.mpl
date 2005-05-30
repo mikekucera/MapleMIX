@@ -2,9 +2,12 @@
 # Only works on simple expressions
 
 OnPE := module()
+    description "simple online partial evaluator for a subset of Maple";
     export pe;
     global `index/dyn`;
-    local pe_main, onEnv, tblToList, replace, substitute, isVal, reduceBody, paramFilter, localFilter, subsVars;
+    local pe_main, onEnv, tblToList, replace, substitute, isVal, 
+          reduceBody, paramFilter, localFilter, subsVars,
+          getParams, getLocals, getStatSeq, getHeader, getVal;
 
 
 ##################################################################################
@@ -31,7 +34,7 @@ end proc;
 
 
 pe := proc(p, env::table)
-    if not whattype(eval(p)) = procedure then
+    if not type(eval(p), 'procedure') then
         error "Currently only partial evaluation of single procedures is supported";
     elif not op(op(1,env)) = dyn then
         error "Only index/dyn tables allowed!";
@@ -39,6 +42,7 @@ pe := proc(p, env::table)
 
     pe_main(p, env);
 end proc;
+
 
 # used for substitutions in the preprocess and postprocess
 subsVars := proc(sub, coll, f) 
@@ -53,19 +57,33 @@ subsVars := proc(sub, coll, f)
 end proc;
 
 
+# for extracting subexpressions from inert procedures
+getParams := proc(x) option inline; op(1,x) end proc;
+getLocals := proc(x) option inline; op(2,x) end proc;
+getStatSeq := proc(x) option inline; op(5,x) end proc;
+
+# for extracting subexpressions from inert statments
+getHeader := proc(x) option inline; op(0,x) end proc;
+getVal := proc(x) option inline; op(1,x) end proc;
+
+
 pe_main := proc(p, env::table)
-    local inert, body, newParamList, newLocalList;
+    local inert, body, params, locals,
+          newParamList, newLocalList;
 
     # copy the initial environment
     onEnv := copy(env);
     # get the inert form of the procedure
     inert := ToInert(eval(p));
-    body := op(5, inert);
+
+    params := getParams(inert);
+    locals := getLocals(inert);
+    body := getStatSeq(inert);
 
     # PREPROCESS
-    body := subsVars(body, op(1, inert), (i,v) -> _Inert_PARAM(i)=v);
-    body := subsVars(body, op(2, inert), (i,v) -> _Inert_LOCAL(i)=v);
-    newParamList := map(paramFilter, op(1,inert));
+    body := subsVars(body, params, (i,v) -> _Inert_PARAM(i)=v);
+    body := subsVars(body, locals, (i,v) -> _Inert_LOCAL(i)=v);
+    newParamList := select(x -> onEnv[op(1,x)]=Dyn, getParams(inert));
 
     # PARTIAL EVALUATION
     body := map(reduceBody, body);
@@ -73,7 +91,7 @@ pe_main := proc(p, env::table)
     # POSTPROCESS
     body := subsVars(body, newParamList, (i,v) -> v=_Inert_PARAM(i));
 
-    newLocalList := map(x -> localFilter(body,x), _Inert_LOCALSEQ(op(op(1,inert)),op(op(2,inert))));
+    newLocalList := select(x -> has(body,x), _Inert_LOCALSEQ(op(params),op(locals)) );
     body := subsVars(body, newLocalList, (i,v) -> v=_Inert_LOCAL(i));
 
     # unassign onEnv
@@ -83,48 +101,34 @@ pe_main := proc(p, env::table)
 end proc;
 
 
-# filters out parameters that are static
-paramFilter := proc(param)
-    if onEnv[op(1,param)] = Dyn then param
-    else NULL
-    end if; 
-end proc;
-
-
-# filters out unneeded locals
-localFilter := proc(body, loc)
-    if has(body, loc) then loc
-    else NULL
-    end if;
-end proc;
-
 
 # only supports assignemnts and some returns
 reduceBody := proc(stmt) 
-    local head, reduced, val;
+    local reduced, val;
 
-    head := op(0, stmt);
-
-    if isVal(head) then # implicit return of a value
+    if isVal(getHeader(stmt)) then # implicit return of a value
         stmt;
-    elif head = _Inert_NAME then # implicit return of a name
-        val := onEnv[op(1, stmt)];
+
+    elif typematch(stmt, _Inert_NAME('n'::string)) then
+        val := onEnv[n];
         if val = Dyn then stmt;
         else ToInert(val);
         end if;
-    elif head = _Inert_ASSIGN then         
-        reduced := substitute(op(2, stmt));
+
+    elif typematch(stmt, _Inert_ASSIGN(_Inert_NAME('n'::string), 'e'::anything)) then
+        reduced := substitute(e);
         if isVal(reduced) then
-            onEnv[op(1,op(1,stmt))] := op(1, reduced);
+            onEnv[n] := getVal(reduced);
             NULL;
         else
-            onEnv[op(1,op(1,stmt))] := Dyn;
-            _Inert_ASSIGN(op(1,stmt), reduced);
+            onEnv[n] := Dyn;
+            _Inert_ASSIGN(_Inert_NAME(n), reduced);
         end if;
     else
-        error cat(head, " not supported yet");
+        error "not supported yet";
     end if;
 end proc;
+
 
 
 # replaces variables by their static values then simplifies
@@ -139,7 +143,7 @@ end proc;
 
 
 isVal := proc(e) 
-    member(op(0, e), {_Inert_INTPOS, _Inert_INTNEG, _Inert_STRING, _Inert_Float, _Inert_RATIONAL});
+    member(op(0, e), {_Inert_INTPOS, _Inert_INTNEG, _Inert_STRING, _Inert_FLOAT, _Inert_RATIONAL});
 end proc;
 
 
