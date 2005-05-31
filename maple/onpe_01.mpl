@@ -5,9 +5,10 @@ OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
     export pe;
     global `index/dyn`;
-    local pe_main, onEnv, tblToList, replace, substitute, isVal, 
-          reduceBody, paramFilter, localFilter, subsVars,
-          getParams, getLocals, getStatSeq, getHeader, getVal;
+    local pe_main, tblToList, replace, reduceBySubst, isVal, 
+          reduceStmt, paramFilter, localFilter, subsVars,
+          getParams, getLocals, getStatSeq, getHeader, getVal,
+          EnvStack;
 
 
 ##################################################################################
@@ -44,6 +45,7 @@ pe := proc(p, env::table)
 end proc;
 
 
+
 # used for substitutions in the preprocess and postprocess
 subsVars := proc(sub, coll, f) 
     local s, c, var;
@@ -67,12 +69,14 @@ getHeader := proc(x) option inline; op(0,x) end proc;
 getVal := proc(x) option inline; op(1,x) end proc;
 
 
+
 pe_main := proc(p, env::table)
     local inert, body, params, locals,
           newParamList, newLocalList;
 
-    # copy the initial environment
-    onEnv := copy(env);
+    EnvStack := SimpleStack();
+    EnvStack:-push(copy(env));
+
     # get the inert form of the procedure
     inert := ToInert(eval(p));
 
@@ -83,10 +87,11 @@ pe_main := proc(p, env::table)
     # PREPROCESS
     body := subsVars(body, params, (i,v) -> _Inert_PARAM(i)=v);
     body := subsVars(body, locals, (i,v) -> _Inert_LOCAL(i)=v);
-    newParamList := select(x -> onEnv[op(1,x)]=Dyn, getParams(inert));
+
+    newParamList := select(x -> env[op(1,x)]=Dyn, params);
 
     # PARTIAL EVALUATION
-    body := map(reduceBody, body);
+    body := map(reduceStmt, body);
 
     # POSTPROCESS
     body := subsVars(body, newParamList, (i,v) -> v=_Inert_PARAM(i));
@@ -94,8 +99,7 @@ pe_main := proc(p, env::table)
     newLocalList := select(x -> has(body,x), _Inert_LOCALSEQ(op(params),op(locals)) );
     body := subsVars(body, newLocalList, (i,v) -> v=_Inert_LOCAL(i));
 
-    # unassign onEnv
-    onEnv := 'onEnv';
+    EnvStack := 'EnvStack';
 
     FromInert(subsop(1=newParamList, 2=newLocalList, 5=body, inert));
 end proc;
@@ -103,25 +107,30 @@ end proc;
 
 
 # only supports assignemnts and some returns
-reduceBody := proc(stmt) 
-    local reduced, val;
+reduceStmt := proc(stmt) 
+    local reduced, header, env;
 
-    if isVal(getHeader(stmt)) then # implicit return of a value
+    header := getHeader(stmt);
+    env := EnvStack:-top();
+
+    if isVal(header) then # implicit return of a value
         stmt;
 
+    #elif header = _Inert_IF then
+    #    reduceIf(stmt);
+
     elif typematch(stmt, _Inert_NAME('n'::string)) then
-        val := onEnv[n];
-        if val = Dyn then stmt;
-        else ToInert(val);
+        if env[n] = Dyn then stmt;
+        else ToInert(env[n]);
         end if;
 
     elif typematch(stmt, _Inert_ASSIGN(_Inert_NAME('n'::string), 'e'::anything)) then
-        reduced := substitute(e);
+        reduced := reduceBySubst(e, env);
         if isVal(reduced) then
-            onEnv[n] := getVal(reduced);
+            env[n] := getVal(reduced);
             NULL;
         else
-            onEnv[n] := Dyn;
+            env[n] := Dyn;
             _Inert_ASSIGN(_Inert_NAME(n), reduced);
         end if;
     else
@@ -130,16 +139,29 @@ reduceBody := proc(stmt)
 end proc;
 
 
+#reduceIf := proc(stmt) 
+#    local s;
+# 
+#    for s in stmt do
+#        header := getHeader(s);
+#        if header = _Inert_CONDPAIR then
+#            cond := reduceBySubst(
+#        else
+#        end if;
+#    end do;
+#
+#end proc;
 
 # replaces variables by their static values then simplifies
-substitute := proc(stmt) 
+reduceBySubst := proc(stmt, env) 
     local i, active;
     active := FromInert(stmt);
-    for i in indices(onEnv) do
-        active := subs([convert(i[1],name) = onEnv[i[1]]], active);
+    for i in indices(env) do
+        active := subs([convert(i[1],name) = env[i[1]]], active);
     end do;
-    ToInert(active);
+    ToInert(eval(active));
 end proc;
+
 
 
 isVal := proc(e) 
@@ -155,6 +177,8 @@ end proc;
 
 end module;
 
+
+env1 := table(dyn, ["x" = 5]);
 
 p1 := proc(x, y)
     local z;
@@ -182,6 +206,21 @@ p4 := proc(x, y)
     y;
 end proc;
 
+p5 := proc(x, y) local z; z := simplify(x, y); z := z + y; z; end proc;
 
 
-testEnv := table(dyn, ["x" = 5]);
+
+
+env2 := table(dyn, ["x"=5, "y"=10]);
+
+p6 := proc(x, y, z)
+    if x = y then
+        z;
+    elif x > y then
+        x - y;
+    else
+        y - x;
+    end if;
+end proc;
+
+
