@@ -11,21 +11,18 @@ OnPE := module()
           getParams, getLocals, getProcBody, getHeader, getVal, getCondition,
           EnvStack;
 
-
 ##################################################################################
 
 # indexing function for online binding environment
 # assigning a table entry to Dyn effectivley unassigns it
 
 `index/dyn` := proc(Idx::list, Tbl::table, Entry::list)
-    local op1;
     if nargs = 2 then
         if assigned(Tbl[op(Idx)]) then Tbl[op(Idx)];
         else Dyn;
         end if;
     elif Entry = [Dyn] then        
-	op1 := Idx[1];
-        Tbl[op1] := evaln(Tbl[op1]);
+        Tbl[op1] := evaln(Tbl[Idx[1]]);
     else
         Tbl[op(Idx)] := op(Entry);
     end if;
@@ -35,16 +32,13 @@ end proc;
 ##################################################################################
 
 
-pe := proc(p, env::table)
-    if not type(eval(p), 'procedure') then
-        error "Currently only partial evaluation of single procedures is supported";
-    elif not op(op(1,env)) = dyn then
+pe := proc(p::procedure, env::table)
+    if not op(op(1,env)) = dyn then
         error "Only index/dyn tables allowed!";
     end if;
 
     pe_main(p, env);
 end proc;
-
 
 
 # used for substitutions in the preprocess and postprocess
@@ -56,7 +50,7 @@ subsVars := proc(sub, coll, f)
         s := subs([f(c,var)], s);
         c := c + 1;
     end do;
-    return s;
+    s;
 end proc;
 
 
@@ -69,9 +63,7 @@ getProcBody := proc(x) option inline; op(5,x) end proc;
 getHeader := proc(x) option inline; op(0,x) end proc;
 getVal := proc(x) option inline; op(1,x) end proc;
 
-
-
-pe_main := proc(p, env::table)
+pe_main := proc(p::procedure, env::table)
     local inert, body, params, locals,
           newParamList, newLocalList;
 
@@ -97,12 +89,13 @@ pe_main := proc(p, env::table)
     # POSTPROCESS
     body := subsVars(body, newParamList, (i,v) -> v=_Inert_PARAM(i));
 
+                              # member??
     newLocalList := select(x -> has(body,x), _Inert_LOCALSEQ(op(params),op(locals)) );
     body := subsVars(body, newLocalList, (i,v) -> v=_Inert_LOCAL(i));
 
     EnvStack := 'EnvStack';
 
-    return FromInert(subsop(1=newParamList, 2=newLocalList, 5=body, inert));
+    FromInert(subsop(1=newParamList, 2=newLocalList, 5=body, inert));
 end proc;
 
 
@@ -240,7 +233,6 @@ reduceCondition := proc(stmt, env)
 end proc;
 
 
-
 isVal := proc(e) 
     member(op(0, e), {_Inert_INTPOS, _Inert_INTNEG, _Inert_STRING, _Inert_FLOAT, _Inert_RATIONAL});
 end proc;
@@ -251,9 +243,7 @@ tblToList := proc(tbl, s)
     op(op(tbl))[s];
 end proc;
 
-
 end module;
-
 
 env1 := table(dyn, ["x" = 5]);
 
@@ -286,8 +276,6 @@ end proc;
 p5 := proc(x, y) local z; z := simplify(x, y); z := z + y; z; end proc;
 
 
-
-
 env2 := table(dyn, ["x"=5, "y"=10]);
 env3 := table(dyn, ["x"=5]);
 
@@ -300,5 +288,3 @@ p6 := proc(x, y, z)
         return y - x;
     end if;
 end proc;
-
-
