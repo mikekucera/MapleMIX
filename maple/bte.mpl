@@ -1,5 +1,5 @@
 
-`type/bte` := '`module`(put, putList, get, list, clone, setDynamic, dynamic?, static?, display)';
+`type/bte` := '`module`(put, putList, get, list, clone, setDynamic, dynamic?, static?, display, has?, combine)';
 `type/equation` := anything=anything;
 
 
@@ -11,8 +11,8 @@ BTE := module()
         module()
             local bte;
             export put, putList, get,
-                   list, clone, setDynamic, 
-                   dynamic?, static?, display;
+                   list, clone, setDynamic, combine, 
+                   dynamic?, static?, display, has?;
 
             bte := table(eqnlst);
 
@@ -27,6 +27,7 @@ BTE := module()
                 bte[x] := evaln(bte[x]);
             end proc;
 
+            has? := x -> assigned(bte[x]);
             static? := x -> assigned(bte[x]);
             dynamic? := x -> not static?(x);
             list := () -> (op@@2)(bte);
@@ -41,6 +42,19 @@ BTE := module()
             
             display := proc()
                 print('BTE'(list()));
+            end proc;
+            
+            
+            combine := proc(bte2::bte)
+                local newbte, i;
+                newbte := NewBTE();                
+                for i in indices(bte) do                    
+                    i:=op(i);
+                    if bte2:-has?(i) and bte2:-get(i) = bte[i] then
+                        newbte:-put(i, bte[i]);
+                    end if;
+                end do;
+                newbte;
             end proc;
             
         end module;

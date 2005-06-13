@@ -10,7 +10,7 @@ OnPE := module()
           substitute, reduceCondition,
           reduceStmt, reduceIf, subsVars, isTrue, isFalse,
           getParams, getLocals, getProcBody, getHeader, getVal, getCondition,
-          EnvStack;
+          EnvStack, combineEnvs;
 
 
 ##################################################################################
@@ -112,7 +112,7 @@ reduceStmt := proc(stmt)
             _Inert_ASSIGN(_Inert_NAME(n), reduced);
         end if;
     else
-        error "not supported yet";
+        error cat("not supported yet: ", stmt);
     end if;
 end proc;
 
@@ -133,9 +133,9 @@ end proc;
 reduceIf := proc(stmt) 
     local red, env, coll, reducedIf, finished;
 
-    coll := SimpleStack();
     finished := false;
     env := EnvStack:-top();
+    coll := SimpleStack();
 
     red := proc(s) local branch, reducedCond;
         if finished then return NULL end if;
@@ -156,28 +156,44 @@ reduceIf := proc(stmt)
             else # dynamic conditional
                 #generate a condpair
                 EnvStack:-push(env:-clone());
-                branch := map(reduceStmt, op(2, s));
+                branch := map(reduceStmt, op(2, s));                
                 coll:-push(EnvStack:-pop());
-                return _Inert_CONDPAIR(reducedCond, branch);
+                `if`(branch = _Inert_STATSEQ(), NULL, _Inert_CONDPAIR(reducedCond, branch));
             end if;
         else
             EnvStack:-push(env:-clone());
             branch := map(reduceStmt, s);
             coll:-push(EnvStack:-pop());
-            return branch;
+            `if`(branch = _Inert_STATSEQ(), NULL, branch);
         end if;
     end proc;
 
-
     reducedIf := map(red, stmt);
+
+    EnvStack:-pop();
+    EnvStack:-push(combineEnvs(coll));
+    
 
     # collect environments and alter as neccessary
 
-    if not op(0, op(1, reducedIf)) = _Inert_CONDPAIR then #strip away unneccesary inertif
+    if reducedIf = _Inert_IF() then
+        NULL;
+    elif not op(0, op(1, reducedIf)) = _Inert_CONDPAIR then #strip away unneccesary inertif
         op(1, reducedIf);
     else
         reducedIf;
     end if;
+end proc;
+
+
+
+combineEnvs := proc(stack::Stack) 
+    local z;
+    z := stack:-pop();
+    while not stack:-empty() do
+        z := z:-combine(stack:-pop());
+    end do;
+    z;
 end proc;
 
 
@@ -218,7 +234,11 @@ end proc;
 
 
 isVal := proc(e) 
-    member(op(0, e), {_Inert_INTPOS, _Inert_INTNEG, _Inert_STRING, _Inert_FLOAT, _Inert_RATIONAL});
+    member(e, {_Inert_INTPOS, _Inert_INTNEG, _Inert_STRING, _Inert_FLOAT, _Inert_RATIONAL});
+end proc;
+
+isReturn := proc(e)
+    getHeader(e) = _Inert_RETURN;
 end proc;
 
 
@@ -272,3 +292,23 @@ p6 := proc(x, y, z)
         return y - x;
     end if;
 end proc;
+
+
+p7 := proc(a, b, c, d, s)
+    if a = b then
+        s := 5;
+        return s*Pi;
+    elif a > b then
+        if a=1 then
+            99;
+        else
+            40;
+        end if;
+    else
+        s := 5;
+    end if;
+    
+    return s * 10;
+end proc;
+
+env4 := BTE:-NewBTE(["a"=1, "c"=5]);
