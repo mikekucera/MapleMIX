@@ -158,13 +158,13 @@ reduceIf := proc(stmt)
                 EnvStack:-push(env:-clone());
                 branch := map(reduceStmt, op(2, s));                
                 coll:-push(EnvStack:-pop());
-                `if`(branch = _Inert_STATSEQ(), NULL, _Inert_CONDPAIR(reducedCond, branch));
+                _Inert_CONDPAIR(reducedCond, branch);
             end if;
         else
             EnvStack:-push(env:-clone());
             branch := map(reduceStmt, s);
             coll:-push(EnvStack:-pop());
-            `if`(branch = _Inert_STATSEQ(), NULL, branch);
+            branch;
         end if;
     end proc;
 
