@@ -36,13 +36,7 @@ ExprEval := module()
     
     
     un_op := proc(f, op)
-        proc(x)
-            if isInert(x) then
-                f(x);
-            else
-                op(x);
-            end if;
-        end proc;
+        x -> `if`(isInert(x), f(x), op(x))
     end proc;
     
     
@@ -55,13 +49,7 @@ ExprEval := module()
         local eval_name;
 
         eval_name := proc(f)
-            proc(x);
-                if env:-has?(x) then
-                    env:-get(x);
-                else
-                    f(x);
-                end if;
-            end proc;
+            x -> `if`(env:-has?(x), env:-get(x), f(x))
         end proc;
         
 
