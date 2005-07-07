@@ -6,7 +6,7 @@
 BTE := module()
     export NewBTE;
 
-    NewBTE := proc(eqnlst::list(equation) := [])
+    NewBTE := proc(eqnlst::list(equation))
 
         module()
             local bte;
