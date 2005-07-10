@@ -4,8 +4,8 @@
 # reduces to residual inert code when the expression is dynamic
 
 ExprEval := module()
-    export reduce_expr, isInert;
-    local complex, expseq, 
+    export reduce_expr, isInert, allStatic;
+    local complex, expseq, pure_func, make_expseq_dynamic,
           nary_op, bin_op, un_op, subs_list;
 
 
@@ -29,25 +29,30 @@ ExprEval := module()
         _Inert_INTNEG    = (x -> -x),
         _Inert_FLOAT     = ((x,y) -> FromInert(_Inert_FLOAT(ToInert(x),ToInert(y)))),
         _Inert_STRING    = (x -> x),
+        
         _Inert_COMPLEX   = complex,
-        _Inert_EXPSEQ    = expseq
+        _Inert_EXPSEQ    = expseq,
+        _Inert_FUNCTION  = pure_func
     ];
 
 
     # this function could also be named isDynamic
     isInert := proc(x) local res;
-        print("isInert", x);
         res := member(op(0, x), 
             {_Inert_SUM, _Inert_PROD,
              _Inert_POWER, _Inert_CATENATE, _Inert_EQUATION, _Inert_LESSEQ,
              _Inert_LESSTHAN, _Inert_IMPLIES, _Inert_AND, _Inert_OR, _Inert_XOR,
              _Inert_NOT, _Inert_INTPOS, _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING,
-             _Inert_NAME,_Inert_COMPLEX, _Inert_EXPSEQ
+             _Inert_NAME,_Inert_COMPLEX, _Inert_EXPSEQ, _Inert_FUNCTION,
+             _Tag_STATICEXPSEQ
             });
-        print(res);
         return res;
     end proc;
 
+
+    allStatic := proc(xs)
+        andmap(x -> not isInert(x), xs)
+    end proc;
 
     
     bin_op := proc(f, op)        
@@ -94,23 +99,44 @@ ExprEval := module()
     # Conservative temporary solution: treat all expression sequences that occur
     # as sub-expressions as dynamic.
     expseq := proc()
-        #if andmap(x -> not isInert(x), [args]) then
-	#    args;
-        #else # its dynamic
-            _Inert_EXPSEQ(op(map(x -> `if`(isInert(x), x, ToInert(x)), [args]))); 
-        #end if;
+        if allStatic([args]) then
+            _Tag_STATICEXPSEQ(args);
+        else
+            make_expseq_dynamic(args);            
+        end if;
+    end proc;
+    
+    
+    make_expseq_dynamic := proc()
+        _Inert_EXPSEQ(op(map(x -> `if`(isInert(x), x, ToInert(x)), [args]))); 
     end proc;
 
 
+    # it will receive a reduced expression sequence
+    pure_func := proc(f, expseq)
+        if op(0,expseq) = _Tag_STATICEXPSEQ then
+            apply(convert(op(f), name), op(expseq));
+        else
+            #residualize
+            _Inert_FUNCTION(f, expseq);
+        end if;
+        
+    end proc;
+
     reduce_expr := proc(exp, env::bte)
-        local eval_name;
+        local eval_name, residual;
+        
+        if not isInert(exp) then
+            error("reduce_expr only works on Inert code");
+        end if;
 
         eval_name := proc(f)
             x -> `if`(env:-has?(x), env:-get(x), f(x))
         end proc;
         
-        eval(exp, [op(subs_list), _Inert_NAME = eval_name(_Inert_NAME)]);           
-
+        residual := eval(exp, [op(subs_list), _Inert_NAME = eval_name(_Inert_NAME)]);
+        
+        return eval(residual, [_Tag_STATICEXPSEQ = make_expseq_dynamic]);
     end proc;
 
     
