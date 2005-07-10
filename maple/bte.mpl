@@ -47,7 +47,7 @@ BTE := module()
             
             combine := proc(bte2::bte)
                 local newbte, i;
-                newbte := NewBTE();                
+                newbte := NewBTE([]);                
                 for i in indices(bte) do                    
                     i:=op(i);
                     if bte2:-has?(i) and bte2:-get(i) = bte[i] then

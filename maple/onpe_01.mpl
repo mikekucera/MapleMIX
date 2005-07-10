@@ -6,8 +6,9 @@
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
     export pe;
-    local pe_main, tblToList, replace, reduceBySubst, isVal, 
-          substitute, reduceCondition,
+    local pe_main, tblToList, replace,
+          isDynamic, isStatic, isVal,
+          reduceExpr, reduceExprInert,
           reduceStmt, reduceIf, subsVars, isTrue, isFalse,
           getParams, getLocals, getProcBody, getHeader, getVal, getCondition,
           EnvStack, combineEnvs;
@@ -54,7 +55,7 @@ pe := proc(p::procedure, env::bte)
 
     params := getParams(inert);
     locals := getLocals(inert);
-    body := getProcBody(inert);
+    body   := getProcBody(inert);
 
     # PREPROCESS
     body := subsVars(body, params, (i,v) -> _Inert_PARAM(i)=v);
@@ -78,7 +79,12 @@ pe := proc(p::procedure, env::bte)
 end proc;
 
 
+isDynamic := x -> ExprEval:-isInert(x);
+isStatic  := x -> not isDynamic(x);
 
+isVal := proc(e) 
+    member(e, {_Inert_INTPOS, _Inert_INTNEG, _Inert_STRING, _Inert_FLOAT, _Inert_RATIONAL});
+end proc;
 
 # only supports assignemnts and some returns
 reduceStmt := proc(stmt) 
@@ -91,7 +97,7 @@ reduceStmt := proc(stmt)
         stmt;
     
     elif typematch(stmt, _Inert_RETURN('e'::anything)) then
-        reduced := reduceBySubst(e, env);
+        reduced := reduceExprInert(e, env);
         _Inert_RETURN(reduced);
 
     elif typematch(stmt, _Inert_NAME('n'::string)) then
@@ -103,9 +109,9 @@ reduceStmt := proc(stmt)
         reduceIf(stmt);
 
     elif typematch(stmt, _Inert_ASSIGN(_Inert_NAME('n'::string), 'e'::anything)) then
-        reduced := reduceBySubst(e, env);
-        if isVal(reduced) then
-            env:-put(n, getVal(reduced));
+        reduced := reduceExpr(e, env);
+        if isStatic(reduced) then
+            env:-put(n, reduced);
             NULL;
         else
             env:-setDynamic(n);
@@ -120,14 +126,15 @@ end proc;
 getCondition := proc(x) option inline; op(1,x); end proc;
 
 
-isTrue := proc(stmt) 
-    getHeader(stmt) = _Inert_NAME and getVal(stmt) = "true";
+reduceExpr := proc(x, env)
+    ExprEval:-reduce_expr(x, env);
 end proc;
 
-isFalse := proc(stmt) 
-    getHeader(stmt) = _Inert_NAME and getVal(stmt) = "false";
+reduceExprInert := proc(x, env)
+    local red;
+    red := reduceExpr(x, env);
+    `if`(isDynamic(red), red, ToInert(red));
 end proc;
-
 
 
 reduceIf := proc(stmt) 
@@ -142,23 +149,23 @@ reduceIf := proc(stmt)
 
         if getHeader(s) = _Inert_CONDPAIR then
             reducedCond := reduceCondition(getCondition(s), env); # reduce the condition
-
-            if isTrue(reducedCond) then
-                finished := true; #stop processing other branches
-                EnvStack:-push(env:-clone());                
-                branch := map(reduceStmt, op(2, s));
-                coll:-push(EnvStack:-pop());
-                return branch;
-
-            elif isFalse(reducedCond) then
-                return NULL;
-
-            else # dynamic conditional
+    
+            if isDynamic(reducedCond) then
                 #generate a condpair
                 EnvStack:-push(env:-clone());
                 branch := map(reduceStmt, op(2, s));                
                 coll:-push(EnvStack:-pop());
-                _Inert_CONDPAIR(reducedCond, branch);
+                _Inert_CONDPAIR(reducedCond, branch);                
+                
+            elif reducedCond then
+                finished := true; #stop processing other branches
+                EnvStack:-push(env:-clone());                
+                branch := map(reduceStmt, op(2, s));
+                coll:-push(EnvStack:-pop());
+                return branch;                
+                
+            else
+                return NULL;
             end if;
         else
             EnvStack:-push(env:-clone());
@@ -197,49 +204,10 @@ combineEnvs := proc(stack::Stack)
 end proc;
 
 
-
-# replaces variables by their static values then simplifies
-# takes and returns an active representation
-substitute := proc(active, env::bte)
-    local eq, a;
-    a := active;
-    for eq in env:-list() do
-        a := subs([convert(lhs(eq), name) = rhs(eq)], a);
-    end do;
-    return a;
+reduceCondition := proc(e, env::bte) 
+    evalb(reduceExpr(e, env));    
 end proc;
 
-
-# takes and returns an inert representation
-reduceBySubst := proc(stmt, env::bte) 
-    ToInert(eval(substitute(FromInert(stmt), env)));
-end proc;
-
-
-
-# need a better reducer for boolean conditions
-reduceCondition := proc(stmt, env::bte) 
-    local res, b;
-    res := (substitute(FromInert(stmt), env));
-
-    # this is bad because situations like x=x won't get reduced to true
-    b := evalb(res);
-    res := ToInert(res);
-    if has(res, _Inert_NAME) then
-        res;
-    else
-        ToInert(b);        
-    end if;
-end proc;
-
-
-isVal := proc(e) 
-    member(e, {_Inert_INTPOS, _Inert_INTNEG, _Inert_STRING, _Inert_FLOAT, _Inert_RATIONAL});
-end proc;
-
-isReturn := proc(e)
-    getHeader(e) = _Inert_RETURN;
-end proc;
 
 
 # converts a table into a list of equations
