@@ -3,8 +3,9 @@
 # reduces to a value when the expression is completely static
 # reduces to residual inert code when the expression is dynamic
 
-ExprEval := module()
-    export reduce_expr, isInert, allStatic;
+EvalExp := module()
+    description "online expression reducer for use with online partial evaluator";
+    export reduce, isInert, allStatic;
     local complex, expseq, pure_func, make_expseq_dynamic,
           nary_op, bin_op, un_op, subs_list;
 
@@ -123,7 +124,7 @@ ExprEval := module()
         
     end proc;
 
-    reduce_expr := proc(exp, env::bte)
+    reduce := proc(exp, env::bte)
         local eval_name, residual;
         
         if not isInert(exp) then

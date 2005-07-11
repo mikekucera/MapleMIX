@@ -5,18 +5,29 @@
 
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
-    export pe;
+    export pe, makeGenerator;
     local pe_main, tblToList, replace,
           isDynamic, isStatic, isVal,
-          reduceExpr, reduceExprInert,
+          reduceExpr, reduceExprInert, reduceCondition,
           reduceStmt, reduceIf, subsVars, isTrue, isFalse,
           getParams, getLocals, getProcBody, getHeader, getVal, getCondition,
-          EnvStack, combineEnvs;
+          EnvStack, combineEnvs,
+          gen;
 
 
 ##################################################################################
 
 
+# returns a closure that generates unique names (as strings);
+makeGenerator := proc() 
+    local val;
+    val := 0;
+    return proc()
+        val := val + 1;
+        "x_" || val;
+    end proc;
+end proc;
+        
 
 # used for substitutions in the preprocess and postprocess
 subsVars := proc(sub, coll, f) 
@@ -46,6 +57,8 @@ getVal := proc(x) option inline; op(1,x) end proc;
 pe := proc(p::procedure, env::bte)
     local inert, body, params, locals,
           newParamList, newLocalList;
+
+    gen := makeGenerator();
 
     EnvStack := SimpleStack();
     EnvStack:-push(env:-clone());
@@ -79,7 +92,7 @@ pe := proc(p::procedure, env::bte)
 end proc;
 
 
-isDynamic := x -> ExprEval:-isInert(x);
+isDynamic := x -> EvalExp:-isInert(x);
 isStatic  := x -> not isDynamic(x);
 
 isVal := proc(e) 
@@ -127,7 +140,8 @@ getCondition := proc(x) option inline; op(1,x); end proc;
 
 
 reduceExpr := proc(x, env)
-    ExprEval:-reduce_expr(x, env);
+    option inline;
+    EvalExp:-reduce(x, env);
 end proc;
 
 reduceExprInert := proc(x, env)
