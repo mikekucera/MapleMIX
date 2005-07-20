@@ -1,0 +1,70 @@
+{VERSION 6 0 "IBM INTEL NT" "6.0" }
+{USTYLETAB {CSTYLE "Maple Input" -1 0 "Courier" 0 1 255 0 0 1 0 1 0 0 
+1 0 0 0 0 1 }{CSTYLE "2D Math" -1 2 "Times" 0 1 0 0 0 0 0 0 2 0 0 0 0 
+0 0 1 }{CSTYLE "2D Output" 2 20 "" 0 1 0 0 255 1 0 0 0 0 0 0 0 0 0 1 }
+{PSTYLE "Normal" -1 0 1 {CSTYLE "" -1 -1 "" 0 1 0 0 0 0 0 0 0 0 0 0 0 
+0 0 0 }0 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }{PSTYLE "Maple Output" 0 11 1 
+{CSTYLE "" -1 -1 "" 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 }3 3 0 -1 -1 -1 0 
+0 0 0 0 0 -1 0 }{PSTYLE "" 11 12 1 {CSTYLE "" -1 -1 "" 0 1 0 0 0 0 0 
+0 0 0 0 0 0 0 0 0 }1 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }}
+{SECT 0 {EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}{EXCHG {PARA 0 "
+> " 0 "" {MPLTEXT 1 0 54 "read(\"/school/thesis/svn/maple/pe/current/O
+nENV.mpl\");" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#>%&OnENVG`6#%)NewOnENV
+Gb6#%+thismoduleG6\"F+6#%)NewOnENVGF+F+F+F+%,_m146310620G6\"" }}}
+{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 25 "env := OnENV:-NewOnENV();" }
+}{PARA 12 "" 1 "" {XPPMATH 20 "6#>%$envG`66%*setParamsG%*setLocalsG%)g
+etParamG%)getLocalG%'addValG%'putValG%(addTypeG%(putTypeG%*addValSetG%
++addTypeSetG%(getValsG%)getTypesG%+valIndicesG%,typeIndicesG%(static?G
+%)dynamic?G%&both?G%%has?G%+setDynamicG%(combineGb6#%+thismoduleG6)%'p
+aramsG%'localsG%'valEnvG%(typeEnvG%+getIndicesG%+addSetProcG%(addProcG
+6\"66%*setParamsG%*setLocalsG%)getParamG%)getLocalG%'addValG%'putValG%
+(addTypeG%(putTypeG%*addValSetG%+addTypeSetG%(getValsG%)getTypesG%+val
+IndicesG%,typeIndicesG%(static?G%)dynamic?G%&both?G%%has?G%+setDynamic
+G%(combineGFFFFFF6$%)NewOnENVG%)NewOnENVG%,_m146310660G6)%'paramsG%'lo
+calsG%'valEnvG%(typeEnvG%+getIndicesG%+addSetProcG%(addProcG" }}}
+{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 18 "env:-addVal(x, 1);" }}{PARA 
+11 "" 1 "" {XPPMATH 20 "6#<#\"\"\"" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 18 "env:-valIndices();" }}{PARA 11 "" 1 "" {XPPMATH 20 "6
+#7#%\"xG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 16 "env:-static?(x)
+;" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#%%trueG" }}}{EXCHG {PARA 0 "> " 
+0 "" {MPLTEXT 1 0 17 "env:-dynamic?(x);" }}{PARA 11 "" 1 "" {XPPMATH 
+20 "6#%&falseG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 14 "env:-both
+?(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#%&falseG" }}}{EXCHG {PARA 0 "
+> " 0 "" {MPLTEXT 1 0 13 "env:-has?(x);" }}{PARA 11 "" 1 "" {XPPMATH 
+20 "6#%%trueG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 17 "env:-addVa
+l(x,2);" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#<$\"\"\"\"\"#" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 16 "env:-getVals(x);" }}{PARA 11 "" 1 "
+" {XPPMATH 20 "6#<$\"\"\"\"\"#" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 
+1 0 16 "env:-static?(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#%&falseG" 
+}}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 17 "env:-dynamic?(x);" }}
+{PARA 11 "" 1 "" {XPPMATH 20 "6#%&falseG" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 14 "env:-both?(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#%%t
+rueG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 26 "env2 := OnENV:-NewO
+nENV();" }}{PARA 12 "" 1 "" {XPPMATH 20 "6#>%%env2G`66%*setParamsG%*se
+tLocalsG%)getParamG%)getLocalG%'addValG%'putValG%(addTypeG%(putTypeG%*
+addValSetG%+addTypeSetG%(getValsG%)getTypesG%+valIndicesG%,typeIndices
+G%(static?G%)dynamic?G%&both?G%%has?G%+setDynamicG%(combineGb6#%+thism
+oduleG6)%'paramsG%'localsG%'valEnvG%(typeEnvG%+getIndicesG%+addSetProc
+G%(addProcG6\"66%*setParamsG%*setLocalsG%)getParamG%)getLocalG%'addVal
+G%'putValG%(addTypeG%(putTypeG%*addValSetG%+addTypeSetG%(getValsG%)get
+TypesG%+valIndicesG%,typeIndicesG%(static?G%)dynamic?G%&both?G%%has?G%
++setDynamicG%(combineGFFFFFF6$%)NewOnENVG%)NewOnENVG%,_m146311160G6)%'
+paramsG%'localsG%'valEnvG%(typeEnvG%+getIndicesG%+addSetProcG%(addProc
+G" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 28 "env2:-addValSet(x, \{9
+, 10\});" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#<$\"\"*\"#5" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 24 "c := env:-combine(env2);" }}{PARA 
+12 "" 1 "" {XPPMATH 20 "6#>%\"cG`66%*setParamsG%*setLocalsG%)getParamG
+%)getLocalG%'addValG%'putValG%(addTypeG%(putTypeG%*addValSetG%+addType
+SetG%(getValsG%)getTypesG%+valIndicesG%,typeIndicesG%(static?G%)dynami
+c?G%&both?G%%has?G%+setDynamicG%(combineGb6#%+thismoduleG6)%'paramsG%'
+localsG%'valEnvG%(typeEnvG%+getIndicesG%+addSetProcG%(addProcG6\"66%*s
+etParamsG%*setLocalsG%)getParamG%)getLocalG%'addValG%'putValG%(addType
+G%(putTypeG%*addValSetG%+addTypeSetG%(getValsG%)getTypesG%+valIndicesG
+%,typeIndicesG%(static?G%)dynamic?G%&both?G%%has?G%+setDynamicG%(combi
+neGFFFFFF6$%)NewOnENVG%)NewOnENVG%,_m146311340G6)%'paramsG%'localsG%'v
+alEnvG%(typeEnvG%+getIndicesG%+addSetProcG%(addProcG" }}}{EXCHG {PARA 
+11 "" 1 "" {XPPMATH 20 "6#%%trueG" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 14 "c:-getVals(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#<&
+\"\"\"\"\"#\"\"*\"#5" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}
+}}{MARK "19 0 0" 0 }{VIEWOPTS 1 1 0 1 1 1803 1 1 1 1 }{PAGENUMBERS 0 
+1 2 33 1 1 }
