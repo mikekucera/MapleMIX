@@ -40,7 +40,45 @@ subs_list := [
 ];
 
 
+# replaces params and local indices with their names
+replace := proc(xs, f)
+    i -> f(op(op(i, xs)));
+end proc;
 
+# returns a closure that maps param names to their indices
+paramMap := proc(params)
+    local tbl, i, c;
+    tbl := table();
+    c := 1;
+    for i in params do
+        tbl[op(i)] := c;
+        c := c + 1;
+    end do;
+
+    return x -> _Inert_PARAM(tbl[x]);
+end proc;
+
+
+# returns two closures used to generate locals in the postprocess
+localMap := proc()
+    local tbl, rep, c, newLocals;
+    tbl := table();
+    c := 1;
+
+    rep := proc(x)
+        if not assigned(tbl[x]) then
+            tbl[x] := c;
+            c := c + 1;
+        end if;        
+        _Inert_LOCAL(tbl[x]);
+    end proc;
+
+    newLocals := proc()
+        _Inert_LOCALSEQ(op(map(x -> _Inert_NAME(lhs(x)), op(eval(tbl)))));
+    end proc;
+
+    return rep, newLocals;
+end proc;
 
 
 # called with a procedure and a list of equations
@@ -61,30 +99,31 @@ pe := proc(p::procedure, statlist::list(anything=anything))
 
     # get the inert form of the procedure
     inert := ToInert(eval(p));
-
-    env:-setParams(getParams(inert));
-    env:-setLocals(getLocals(inert));
-
+    params := getParams(inert);
+    locals := getLocals(inert);
     body   := getProcBody(inert);
 
-    newParamList := select(env:-dynamic?, getParams(inert));
-    print("newParamList", newParamList);
-    print(env:-dynamic?(x));
-    print(env:-dynamic?(y));
-
-    env:-display();
+    #PRE-PROCESS, replace variable indices with names
+    body := eval(body, [_Inert_PARAM = replace(params, _Inert_PARAM),
+                        _Inert_LOCAL = replace(locals, _Inert_LOCAL)]);
 
     # PARTIAL EVALUATION
     body := eval(body, subs_list);
 
-    # POSTPROCESS
-    #newLocalList := select(x -> has(body,x), _Inert_LOCALSEQ(op(params),op(locals)) );
+    # POST-PROCESS
+    newParamList := select((env:-dynamic? @ getVal), params);
+    paramReplace := paramMap(newParamList);
+    localReplace, newLocals := localMap();    
+
+    body := eval(body, [_Inert_PARAM = paramReplace, _Inert_LOCAL = localReplace]);
+    
+    newLocalList := newLocals();
 
     EnvStack := 'EnvStack';
 
-    #FromInert(subsop(1=newParamList, 2=newLocalList, 5=body, inert));
-    (subsop(1=newParamList, 5=body, inert));
+    (subsop(1=newParamList, 2=newLocalList, 5=body, inert));    
 end proc;
+
 
 
 pe_assign := proc(name, expr)

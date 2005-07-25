@@ -133,7 +133,7 @@ EvalExp := module()
         end if;
 
         eval_name := proc(f)
-            x -> `if`(env:-fullyStatic?(f(x)), env:-getVal(f(x)), f(x))
+            x -> `if`(env:-fullyStatic?(x), env:-getVal(x), f(x))
         end proc;
         
         residual := eval(exp, [op(subs_list), _Inert_PARAM = eval_name(_Inert_PARAM), _Inert_LOCAL = eval_name(_Inert_LOCAL)]);
