@@ -9,34 +9,61 @@ OnENV := module()
     
     NewOnENV := proc()
         module()
-            local params, locals, valEnv, typeEnv,
+            local params, locals, valEnv, typeEnv, getName,
                   getIndices, addSetProc, addProc;
             export setParams, setLocals, getParam, getLocal,
-                   addVal, putVal, addType, putType, addValSet, addTypeSet, getVals, getTypes, valIndices, typeIndices,
-                   static?, dynamic?, both?, has?,
-                   setDynamic, combine;
+                   addVal, putVal, addType, putType, addValSet, addTypeSet, getVals, getTypes, valIndices, typeIndices, 
+                   getVal,
+                   fullyStatic?, fullyDynamic?, dynamic?, has?,
+                   setDynamic, clone, combine, display;
             
             # initialize "instance" variables
             valEnv  := table();
             typeEnv := table();
         
+            getName := proc(x)
+                local head;
+                head := op(0, x);
+                if head = _Inert_PARAM then
+                    convert(getParam(op(1,x)), name);
+                elif head = _Inert_LOCAL then
+                    convert(getLocal(op(1,x)), name);
+                else
+                    x;
+                end if;
+            end proc;
         
+
             # environment can store mappings for a procedures params and locals
             setParams := proc(ps) params := ps end proc;
             setLocals := proc(ls) locals := ls end proc;
             
-            getParam := i -> op(i, params);
-            getLocal := i -> op(i, locals);
+            getParam := i -> op(op(i, params));
+            getLocal := i -> op(op(i, locals));
             
             
             # sets a value overwriting all previous ones
-            putVal  := proc(key, val) valEnv[key]  := {val} end proc;
-            putType := proc(key, typ) typeEnv[key] := {typ} end proc;
+            putVal  := proc(key, val) valEnv[getName(key)]  := {val} end proc;
+            putType := proc(key, typ) typeEnv[getName(key)] := {typ} end proc;
             
             # returns set of values for the given key
-            getVals  := key -> valEnv[key];
-            getTypes := key -> typeEnv[key];
+            getVals  := key -> valEnv[getName(key)];
+            getTypes := key -> typeEnv[getName(key)];
             
+            # gets a single value
+            getVal := proc(key)
+                local n;
+                n := getName(key);
+                if not assigned(valEnv[n]) then
+                    error("no value for " || key);
+                elif nops(valEnv[n]) > 1 then
+                    error("multiple values for " || key);
+                else
+                    op(valEnv[n]);
+                end if;
+            end proc;
+ 
+
             # returns indices
             valIndices  := () -> getIndices(valEnv);
             typeIndices := () -> getIndices(typeEnv);            
@@ -53,10 +80,12 @@ OnENV := module()
 
             addSetProc := proc(tbl)
                 proc(key, theSet::set)
-                    if assigned(tbl[key]) then
-                        tbl[key] := tbl[key] union theSet;
+                    local n;
+                    n := getName(key);
+                    if assigned(tbl[n]) then
+                        tbl[n] := tbl[n] union theSet;
                     else
-                        tbl[key] := theSet;
+                        tbl[n] := theSet;
                     end if;
                 end proc;
             end proc;
@@ -78,34 +107,46 @@ OnENV := module()
             
             
             # a variable is static if it is mapped to a single value and thats all
-            static? := key -> assigned(valEnv[key]) and nops(valEnv[key]) = 1 and not assigned(typeEnv[key]);            
+            fullyStatic? := key -> assigned(valEnv[getName(key)]) and nops(valEnv[getName(key)]) = 1 and not assigned(typeEnv[getName(key)]);            
             
             # a variable is completely dynamic if there is absolutley no information available           
-            dynamic? := key -> not (assigned(valEnv[key]) or assigned(typeEnv[key]));                
+            fullyDynamic? := key -> not (assigned(valEnv[getName(key)]) or assigned(typeEnv[getName(key)]));
+
+            # a variable has dynamic properties if it is not fully static
+            dynamic? := key -> not fullyStatic?(key);
                 
-            # does a variable have both static and dynamic properties?
-            both? := key -> not (static?(key) or dynamic?(key));
-            
             # returns true iff there exists a mapping for the given key
             has? := key -> not dynamic?(key);
             
             # deletes all information about the given variable
             setDynamic := proc(key)
-               valEnv[key]  := evaln(valEnv[key]);
-               typeEnv[key] := evaln(typeEnv[key]);
+               local n;
+               n := getName(key);
+               valEnv[n]  := evaln(valEnv[n]);
+               typeEnv[n] := evaln(typeEnv[n]);
             end proc;
 
-                        
-            combine := proc(onenv)
+
+            clone := proc()
                 local newenv, i;
                 newenv := NewOnENV();
-                
+
                 for i in valIndices() do
                     newenv:-addValSet(i, valEnv[i]);
                 end do;
                 for i in typeIndices() do
                     newenv:-addTypeSet(i, typeEnv[i]);
                 end do;
+
+                newenv:-setParams(params);
+                newenv:-setLocals(locals);
+                newenv;
+            end proc;
+                       
+ 
+            combine := proc(onenv)
+                local newenv, i;
+                newenv := clone();
                 
                 for i in onenv:-valIndices() do
                     newenv:-addValSet(i, onenv:-getVals(i));
@@ -113,13 +154,17 @@ OnENV := module()
                 for i in onenv:-typeIndices() do
                     newenv:-addTypeSet(i, onenv:-getTypes(i));
                 end do;
-                
-                newenv:-setParams(params);
-                newenv:-setLocals(locals);
-                
+                                
                 newenv;
             end proc;
+
             
+            display := proc()
+                print(op(valEnv));
+                print(op(typeEnv));
+                print(params);
+                print(locals);
+            end proc;
         
         end module;
     end proc;

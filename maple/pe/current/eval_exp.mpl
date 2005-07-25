@@ -45,6 +45,7 @@ EvalExp := module()
              _Inert_LESSTHAN, _Inert_IMPLIES, _Inert_AND, _Inert_OR, _Inert_XOR,
              _Inert_NOT, _Inert_INTPOS, _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING,
              _Inert_NAME,_Inert_COMPLEX, _Inert_EXPSEQ, _Inert_FUNCTION,
+             _Inert_PARAM, _Inert_LOCAL,
              _Tag_STATICEXPSEQ
             });
         return res;
@@ -124,7 +125,7 @@ EvalExp := module()
         
     end proc;
 
-    reduce := proc(exp, env::bte)
+    reduce := proc(exp, env)
         local eval_name, residual;
         
         if not isInert(exp) then
@@ -132,10 +133,10 @@ EvalExp := module()
         end if;
 
         eval_name := proc(f)
-            x -> `if`(env:-has?(x), env:-get(x), f(x))
+            x -> `if`(env:-fullyStatic?(f(x)), env:-getVal(f(x)), f(x))
         end proc;
         
-        residual := eval(exp, [op(subs_list), _Inert_NAME = eval_name(_Inert_NAME)]);
+        residual := eval(exp, [op(subs_list), _Inert_PARAM = eval_name(_Inert_PARAM), _Inert_LOCAL = eval_name(_Inert_LOCAL)]);
         
         return eval(residual, [_Tag_STATICEXPSEQ = make_expseq_dynamic]);
     end proc;

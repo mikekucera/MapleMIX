@@ -21,7 +21,6 @@ StripExp := module()
         # generation of table is a side effect of nested proc
         examine_func := proc(f)
             local newvar;
-            print(known_pure);
 
             if member(convert(op(f), name), known_pure) then
                 _Inert_FUNCTION(args);
