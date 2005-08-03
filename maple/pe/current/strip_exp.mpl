@@ -21,13 +21,13 @@ StripExp := module()
         # generation of table is a side effect of nested proc
         examine_func := proc(f)
             local newvar;
-
-            if member(convert(op(f), name), known_pure) then
+            
+            if member(convert(op(1, f), name), known_pure) then
                 _Inert_FUNCTION(args);
             else
                 newvar := gen();                
                 impure_funcs := [op(impure_funcs), newvar = _Inert_FUNCTION(args)];
-                _Inert_NAME(newvar);
+                _Inert_LOCAL(newvar);
             end if; 
         end proc;
 
