@@ -119,35 +119,6 @@ pe := proc(p::procedure, n::string, statlist::list(anything=anything))
 end proc;
 
 
-# create a module to hold the residual code, dosen't support recursion yet (because of exported function)
-build_module := proc(n)
-    inertModDef := ToInert('module() end module');
-    
-    mainProc := code[n];
-    #code[n] := evaln(code[n]); # remove from table
-
-    locals := map(_Inert_NAME, remove(x -> evalb(x=n), ListTools:-Flatten([indices(code)])));
-
-    # localIndexer is a function that replaces a reference to a function name with a reference to a local
-    localIndexer := paramMap([op(locals), n], _Inert_LEXICAL_LOCAL);
-    
-    i := 0;
-    assign := proc(eqn)
-        i := i + 1;
-        p := rhs(eqn);
-        body := eval(getProcBody(p), _Inert_NAME = localIndexer);
-        p := subsop(5=body, p);
-        _Inert_ASSIGN(_Inert_LOCAL(i), p);
-    end proc;
-    stmts := map(assign, op(op(code)));
-
-    #stmts := (op(stmts), _Inert_ASSIGN(_Inert_LOCAL(i+1), mainProc));
-    
-    inertModDef := subsop(2=_Inert_LOCALSEQ(op(locals)), 4=_Inert_EXPORTSEQ(_Inert_NAME(n)), 5=_Inert_STATSEQ(op(stmts)), inertModDef);
-    #return eval(FromInert(inertModDef));
-    return inertModDef;
-end proc;
-
 
 # takes inert code and assumes static variables are on top of EnvStack
 pe_specialize_proc := proc(inert, n::string)
@@ -231,6 +202,67 @@ pe_assign := proc(name, expr)
     else
        _Inert_STATSEQ(op(inertAssigns), _Inert_ASSIGN(name, reduced));
     end if;    
+end proc;
+
+
+#builds a modle definition that contains the residual code
+build_module := proc(n)
+    
+    # get a list of names of module locals
+    locals := remove(x -> evalb(x=n), ListTools:-Flatten([indices(code)]));
+
+    i := 0;
+    # will be mapped over each residualized procedure
+    processProc := proc(eqn)
+        procName = lhs(eqn);
+        
+        i := `if`(procName = n, i, i + 1);
+        
+        lexicalLocals := []; #list of lexical pairs(equations) of local name to index
+
+        # used to evaluate each name reference
+        
+        processLocal := proc(localName)
+            if localName = n then
+                localIndex := nops(lexicalLocals) + 1;
+            else
+                member(localName, locals, localIndex);
+            end if;
+            
+            if member(localName=localIndex, lexicalLocals, lexicalIndex) then
+                _Inert_LEXICAL_LOCAL(lexicalIndex);
+            else
+                lexicalLocals := [op(lexicalLocals), localName=localIndex];
+                _Inert_LEXICAL_LOCAL(nops(lexicalLocals));
+            end if;
+            
+        end proc;
+        
+        p := rhs(eqn);
+        body := eval(getProcBody(p), _Inert_NAME = processLocal);
+        
+        
+        f := proc(e)
+            _Inert_LEXICALPAIR(_Inert_NAME(lhs(e)),_Inert_LOCAL(rhs(e)));
+        end proc;
+
+        seq := map(f, lexicalLocals);
+        
+        lexicalLocals := _Inert_LEXICALSEQ( op(seq) );
+        p := subsop(5=body, 8=lexicalLocals, p);
+        
+        _Inert_ASSIGN(_Inert_LOCAL( `if`(procName = n, nops(locals) + 1, i) ) ,p);
+    end proc;
+
+    moduleStatseq := _Inert_STATSEQ(op(map(processProc, op(op(code)))));
+    locals := _Inert_LOCALSEQ(map(_Inert_NAME, op(locals)));
+    exports := _Inert_EXPORTSEQ(_Inert_NAME(n));
+    
+    # get a bare bones inert module then substitute
+    inertModDef := ToInert('module() end module');
+    inertModDef := subsop(2 = locals, 4 = exports, 5 = moduleStatseq, inertModDef);
+    return inertModDef;    
+
 end proc;
 
 
