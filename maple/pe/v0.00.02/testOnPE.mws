@@ -1,0 +1,67 @@
+{VERSION 6 0 "IBM INTEL NT" "6.0" }
+{USTYLETAB {CSTYLE "Maple Input" -1 0 "Courier" 0 1 255 0 0 1 0 1 0 0 
+1 0 0 0 0 1 }{CSTYLE "2D Math" -1 2 "Times" 0 1 0 0 0 0 0 0 2 0 0 0 0 
+0 0 1 }{CSTYLE "2D Output" 2 20 "" 0 1 0 0 255 1 0 0 0 0 0 0 0 0 0 1 }
+{PSTYLE "Normal" -1 0 1 {CSTYLE "" -1 -1 "" 0 1 0 0 0 0 0 0 0 0 0 0 0 
+0 0 0 }0 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }{PSTYLE "Maple Output" 0 11 1 
+{CSTYLE "" -1 -1 "" 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 }3 3 0 -1 -1 -1 0 
+0 0 0 0 0 -1 0 }{PSTYLE "" 11 12 1 {CSTYLE "" -1 -1 "" 0 1 0 0 0 0 0 
+0 0 0 0 0 0 0 0 0 }1 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }}
+{SECT 0 {EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 8 "restart;" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 23 "interface(warnlevel=1);" }}{PARA 
+11 "" 1 "" {XPPMATH 20 "6#\"\"$" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 
+1 0 18 "read(\"OnENV.mpl\");" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#>%&OnE
+NVG`6#%)NewOnENVGb6#%+thismoduleG6\"F+6#%)NewOnENVGF+6#Q=Online~knowle
+dge~environmentF+F+F+%,_m144747168G6\"" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 22 "read(\"strip_exp.mpl\");" }}{PARA 11 "" 1 "" 
+{XPPMATH 20 "6#>%)StripExpG`6#%&stripGb6#%+thismoduleG6#%+known_pureG6
+\"6#%&stripGF-6#QWstrips~impure~function~applications~out~of~expressio
+nsF-F-F-%,_m144747408G6#%+known_pureG" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 21 "read(\"eval_exp.mpl\");" }}{PARA 12 "" 1 "" {XPPMATH 
+20 "6#>%(EvalExpG`6%%'reduceG%(isInertG%*allStaticGb6#%+thismoduleG6*%
+(complexG%'expseqG%*pure_funcG%4make_expseq_dynamicG%(nary_opG%'bin_op
+G%&un_opG%*subs_listG6\"6%%'reduceG%(isInertG%*allStaticGF66#Qjnonline
+~expression~reducer~for~use~with~online~partial~evaluatorF6F6F6%,_m145
+819712G6*%(complexG%'expseqG%*pure_funcG%4make_expseq_dynamicG%(nary_o
+pG%'bin_opG%&un_opG%*subs_listG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 
+1 0 17 "read(\"onpe.mpl\");" }}{PARA 12 "" 1 "" {XPPMATH 20 "6#>%%OnPE
+G`6$%#peG%.makeGeneratorGb6#%+thismoduleG67%)EnvStackG%'genVarG%'genNu
+mG%%codeG%2makeNameGeneratorG%(tagNameG%*getParamsG%*getLocalsG%,getPr
+ocBodyG%*getHeaderG%'getValG%-isExpDynamicG%,isExpStaticG%*subs_listG%
+(replaceG%)paramMapG%)localMapG%3pe_specialize_procG%,pe_functionG%*pe
+_assignG%-build_moduleG6\"6$%#peG%.makeGeneratorGFB6#QVsimple~online~p
+artial~evaluator~for~a~subset~of~MapleFBFBFB%,_m145859488G67%)EnvStack
+G%'genVarG%'genNumG%%codeG%2makeNameGeneratorG%(tagNameG%*getParamsG%*
+getLocalsG%,getProcBodyG%*getHeaderG%'getValG%-isExpDynamicG%,isExpSta
+ticG%*subs_listG%(replaceG%)paramMapG%)localMapG%3pe_specialize_procG%
+,pe_functionG%*pe_assignG%-build_moduleG" }}{PARA 11 "" 1 "" {XPPMATH 
+20 "6#>%#p1Gf*6$%\"xG%\"yG6#%\"zG6\"F+C$>8$,&9$\"\"\"9%F1OF.F+F+F+" }}
+{PARA 11 "" 1 "" {XPPMATH 20 "6#>%#p2Gf*6$%\"xG%\"yG6#%\"zG6\"F+C$>8$,
+(9$\"\"\"-%#p1G6$F09%F1\"#5F1OF.F+F+F+" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 11 "with(OnPE);" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#7$%.ma
+keGeneratorG%#peG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}
+{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 28 "m := pe(p2, \"newp2\", [x=5]
+);" }}{PARA 12 "" 1 "" {XPPMATH 20 "6#>%\"mG-%._Inert_MODDEFG6+-%0_Ine
+rt_PARAMSEQG6#-%,_Inert_NAMEG6#Q+thismodule6\"-%0_Inert_LOCALSEQG6#-F,
+6#Q%p1_1F/-%1_Inert_OPTIONSEQGF/-%1_Inert_EXPORTSEQG6#-F,6#Q&newp2F/-%
+/_Inert_STATSEQG6$-%._Inert_ASSIGNG6$-%-_Inert_LOCALG6#\"\"\"-%,_Inert
+_PROCG6+-F)6#-F,6#Q\"yF/-F16#-F,6#Q\"zF/F6-%._Inert_EXPSEQGF/-F?6$-F?6
+#-FB6$FD-%+_Inert_SUMG6$-%._Inert_INTPOSG6#\"\"&-%-_Inert_PARAMGFF-%._
+Inert_RETURNG6#FD-%6_Inert_DESCRIPTIONSEQGF/-%1_Inert_GLOBALSEQGF/-%2_
+Inert_LEXICALSEQGF/-%+_Inert_EOPG6#-FV6#-F[o6#\"\"#-FB6$-FEF_p-FI6+FK-
+F16$FR-F,6#Q#x1F/F6FU-F?6$-F?6$-FB6$FD-%0_Inert_FUNCTIONG6$-%5_Inert_L
+EXICAL_LOCALGFF-FV6#F^o-FB6$Fcp-Fhn6$-Fhn6$FjnFD-F[o6#\"#5-Fao6#FcpFco
+Feo-Fho6#-%3_Inert_LEXICALPAIRG6$F3FDFioFcoFeoFgoFU" }}}{EXCHG {PARA 
+0 "" 0 "" {TEXT -1 0 "" }}{PARA 0 "> " 0 "" {MPLTEXT 1 0 18 "m := From
+Inert(m);" }}{PARA 11 "" 1 "" {XPPMATH 20 "6#>%\"mGb6#%+thismoduleG6#%
+%p1_1G6\"6#%&newp2GC$>8$f*6#%\"yG6#%\"zGF*F*C$>F/,&\"\"&\"\"\"9$F9OF/F
+*F*F*>8%f*F16$F4%#x1GF*F*C%>F/-T#6#F:>F=,&\"#:F9F/F9OF=F*F*6$F)F/F*F*F
+*F*" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 13 "m := eval(m);" }}
+{PARA 11 "" 1 "" {XPPMATH 20 "6#>%\"mG`6#%&newp2Gb6#%+thismoduleG6#%%p
+1_1G6\"6#%&newp2GF-F-F-F-%,_m146016220G6#%%p1_1G" }}}{EXCHG {PARA 0 ">
+ " 0 "" {MPLTEXT 1 0 12 "m:-newp2(4);" }}{PARA 11 "" 1 "" {XPPMATH 20 
+"6#\"#C" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 0 "" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}}
+{MARK "12 0 0" 0 }{VIEWOPTS 1 1 0 1 1 1803 1 1 1 1 }{PAGENUMBERS 0 1 
+2 33 1 1 }
