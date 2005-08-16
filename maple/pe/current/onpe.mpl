@@ -35,6 +35,8 @@ getProcBody := proc(x) option inline; op(5,x) end proc;
 # for extracting subexpressions from inert statments
 getHeader := proc(x) option inline; op(0,x) end proc;
 getVal := proc(x) option inline; op(1,x) end proc;
+getParamName := proc(x) `if`(op(0,x)=_Inert_DCOLON, op(op(1,x)), op(x)) end proc;
+
 
 isExpDynamic := x -> EvalExp:-isInert(x);
 isExpStatic  := x -> not isExpDynamic(x);
@@ -47,7 +49,7 @@ subs_list := [
 
 # replaces params and local indices with their names
 replace := proc(xs, f)
-    i -> f(op(op(i, xs)));
+    i -> (f @ getParamName @ op)(i, xs);
 end proc;
 
 # returns a closure that maps param names to their indices
@@ -56,7 +58,7 @@ paramMap := proc(params, f)
     tbl := table();
     c := 1;
     for i in params do
-        tbl[op(i)] := c;
+        tbl[getParamName(i)] := c;
         c := c + 1;
     end do;
 
@@ -84,6 +86,24 @@ localMap := proc()
 
     return rep, newLocals;
 end proc;
+
+
+# takes an environment and an inert param
+evalParamType := proc(env, param)
+    if op(0, param) = _Inert_DCOLON then
+        name := op(op(1, param));
+        typ  := FromInert(op(2, param));
+
+        if env:-fullyStatic?(name) then
+            if not type(env:-getVal(name), eval(typ)) then
+                error("Type assertion falure");
+            end if;
+        else
+            env:-addType(name, typ);
+        end if;
+    end if;
+end proc;
+
 
 
 # called with a procedure, name of residual proc, and a list of equations
@@ -131,13 +151,15 @@ pe_specialize_proc := proc(inert, n::string)
     body := eval(body, [_Inert_PARAM = replace(params, _Inert_PARAM),
                         _Inert_LOCAL = replace(locals, _Inert_LOCAL)]);
 
+    map( curry(evalParamType, env), params );
+
     # PARTIAL EVALUATION
     body := eval(body, subs_list);
 
     # POST-PROCESS
-    newParamList := select((env:-dynamic? @ getVal), params);
+    newParamList := select((env:-dynamic? @ getParamName), params);
     paramReplace := paramMap(newParamList, _Inert_PARAM);
-    localReplace, newLocals := localMap();    
+    localReplace, newLocals := localMap();
 
     body := eval(body, [_Inert_PARAM = paramReplace, _Inert_LOCAL = localReplace]);
     
@@ -226,7 +248,9 @@ build_module := proc(n)
             if localName = n then
                 localIndex := nops(lexicalLocals) + 1;
             else
-                member(localName, locals, localIndex);
+                if not member(localName, locals, localIndex) then
+                    error(cat(localName, " is not a module local"));
+                end if;                
             end if;
             
             if member(localName=localIndex, lexicalLocals, lexicalIndex) then
@@ -246,6 +270,7 @@ build_module := proc(n)
             _Inert_LEXICALPAIR(_Inert_NAME(lhs(e)),_Inert_LOCAL(rhs(e)));
         end proc;
 
+
         seq := map(f, lexicalLocals);
         
         lexicalLocals := _Inert_LEXICALSEQ( op(seq) );
@@ -255,7 +280,7 @@ build_module := proc(n)
     end proc;
 
     moduleStatseq := _Inert_STATSEQ(op(map(processProc, op(op(code)))));
-    locals := _Inert_LOCALSEQ(map(_Inert_NAME, op(locals)));
+    locals := _Inert_LOCALSEQ(op(map(_Inert_NAME, [op(locals)])));
     exports := _Inert_EXPORTSEQ(_Inert_NAME(n));
     
     # get a bare bones inert module then substitute
@@ -280,5 +305,12 @@ end proc;
 p2 := proc(x, y)
     local z;
     z := x + p1(x, y) + 10;
+    return z;
+end proc;
+
+
+p3 := proc(x, y::integer)
+    local z;
+    z := x + y;
     return z;
 end proc;
