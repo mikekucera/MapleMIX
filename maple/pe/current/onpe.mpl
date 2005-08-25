@@ -5,12 +5,13 @@
 
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
-    export pe, makeGenerator;
-    local EnvStack, genVar, genNum, code;
+    export pe, pe_if;
+    local EnvStack, genVar, genNum, code, makeGenerator;
 
 
 ##################################################################################
 
+# Section: bunch of utility functions (may be moved into separate modules or files)
 
 # returns a closure that generates unique names (as strings);
 makeNameGenerator := proc(n::string) 
@@ -41,10 +42,7 @@ getParamName := proc(x) `if`(op(0,x)=_Inert_DCOLON, op(op(1,x)), op(x)) end proc
 isExpDynamic := x -> EvalExp:-isInert(x);
 isExpStatic  := x -> not isExpDynamic(x);
 
-
-subs_list := [
-    _Inert_ASSIGN = pe_assign
-];
+##################################################################################
 
 
 # replaces params and local indices with their names
@@ -88,7 +86,9 @@ localMap := proc()
 end proc;
 
 
+
 # takes an environment and an inert param
+# returns the type expression of a function parameter type assertion
 evalParamType := proc(env, param)
     if op(0, param) = _Inert_DCOLON then
         name := op(op(1, param));
@@ -104,6 +104,14 @@ evalParamType := proc(env, param)
     end if;
 end proc;
 
+
+# if the argument is a procedure it is applied with no arguments
+applythunk := proc(p)
+    if type(p, procedure) then apply(p) end if;
+end proc;
+
+
+#############################################################################
 
 
 # called with a procedure, name of residual proc, and a list of equations
@@ -154,6 +162,7 @@ pe_specialize_proc := proc(inert, n::string)
     map( curry(evalParamType, env), params );
 
     # PARTIAL EVALUATION
+    subs_list := [_Inert_ASSIGN = pe_assign];
     body := eval(body, subs_list);
 
     # POST-PROCESS
@@ -169,6 +178,7 @@ pe_specialize_proc := proc(inert, n::string)
 
     code[n] := subsop(1=newParamList, 2=newLocalList, 5=body, inert);
 end proc; 
+
 
 
 # a function call
@@ -207,15 +217,11 @@ pe_function := proc(n)
 end proc;
 
 
+# partial evalutation of a single assignment statement
 pe_assign := proc(name, expr)
     local assigns, stripped, reduced, inertAssigns;
     assigns, stripped := StripExp:-strip(expr, genVar);
-    
-    # residualize all function calls for now
-    # process the inertAssigns (which are all function calls)
-    inertAssigns := map(x -> _Inert_ASSIGN(_Inert_LOCAL(lhs(x)), rhs(x)), assigns);
-
-    inertAssigns := eval(inertAssigns, _Inert_FUNCTION = pe_function);    
+    inertAssigns := pe_stripped_assigns(assigns);
 
     reduced := EvalExp:-reduce(stripped, EnvStack:-top());
     if isExpStatic(reduced) then
@@ -225,6 +231,54 @@ pe_assign := proc(name, expr)
        _Inert_STATSEQ(op(inertAssigns), _Inert_ASSIGN(name, reduced));
     end if;    
 end proc;
+
+
+# partial evaluation for the equations returned but the expression splitter
+pe_stripped_assigns := proc(assigns)
+    # resaidualize all function calls for now
+    # process the inertAssigns (which are all function calls)
+    inertAssigns := map(x -> _Inert_ASSIGN(_Inert_LOCAL(lhs(x)), rhs(x)), assigns);
+    eval(inertAssigns, _Inert_FUNCTION = pe_function);    
+end proc;
+
+
+# in progress
+pe_if := proc()
+    envColl := SimpleStack();    
+    finished := false;
+    outerArgs := args;
+
+    # proc that will return outer arguments in sequence
+    currentArg := 1;
+    nextArg := proc()
+        outerArgs[currentArg];
+        currentArg := currentArg + 1;
+    end proc;
+    hasNextArg() := () -> evalb(currentArg = nops(outerArgs));
+
+
+    pe_condpair := proc(stats)
+        env := EnvStack:-top():-clone();
+        envColl:-push(env);
+
+        if getHeader(stats) = _Inert_CONDPAIR then
+            cond := getCondition(stats);
+            assigns, strippedExpr := StripExp:-strip(cond, genVar);
+            
+
+        else
+            error("else coming soon");
+        end if;
+    end proc;
+
+    
+
+    res := pe_condpair(nextArg);        
+    #combine environments
+    return res;
+end proc;
+
+########################################################################################
 
 
 #builds a modle definition that contains the residual code
@@ -294,6 +348,7 @@ end proc;
 end module;
 
 
+######################################################################################
 
 
 p1 := proc(x, y)
