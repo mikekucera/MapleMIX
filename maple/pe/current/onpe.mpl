@@ -111,6 +111,16 @@ applythunk := proc(p)
 end proc;
 
 
+combineEnvs := proc(stack)
+    local x;
+    x := stack:-pop();
+    while not stack:-empty() do
+        x := x:-combine(stack:-pop());
+    end do;
+    x;
+end proc;
+
+
 #############################################################################
 
 
@@ -147,6 +157,13 @@ pe := proc(p::procedure, n::string, statlist::list(anything=anything))
 end proc;
 
 
+# partially evalutates a statement sequence
+pe_statseq := proc(statseq)
+    subs_list := [_Inert_ASSIGN = pe_assign, _Inert_IF = pe_if];
+    eval(statseq, subs_list);
+end proc;
+
+
 
 # takes inert code and assumes static variables are on top of EnvStack
 pe_specialize_proc := proc(inert, n::string)
@@ -162,8 +179,7 @@ pe_specialize_proc := proc(inert, n::string)
     map( curry(evalParamType, env), params );
 
     # PARTIAL EVALUATION
-    subs_list := [_Inert_ASSIGN = pe_assign];
-    body := eval(body, subs_list);
+    body := pe_statseq(body);
 
     # POST-PROCESS
     newParamList := select((env:-dynamic? @ getParamName), params);
@@ -186,6 +202,9 @@ end proc;
 pe_function := proc(n)
     # get the code for the actual function from the interpreter
     inert := (ToInert @ eval @ convert)(op(1, n), name);
+    if getHeader(inert) = _Inert_NAME then
+        error("only defined functions are supported");
+    end if;
     params := getParams(inert);
 
     env := OnENV:-NewOnENV();
@@ -244,6 +263,7 @@ end proc;
 
 # in progress
 pe_if := proc()
+    print("in pe_if");
     envColl := SimpleStack();    
     finished := false;
     outerArgs := args;
@@ -251,32 +271,61 @@ pe_if := proc()
     # proc that will return outer arguments in sequence
     currentArg := 1;
     nextArg := proc()
-        outerArgs[currentArg];
+        if not hasNextArg() then return NULL end if;
+        res := [outerArgs][currentArg];
         currentArg := currentArg + 1;
+        return res;
     end proc;
-    hasNextArg() := () -> evalb(currentArg = nops(outerArgs));
+    hasNextArg := () -> evalb(currentArg <= nops(outerArgs));
 
 
-    pe_condpair := proc(stats)
+    pe_ifbranch := proc(ifbranch)
+        print("ifbranch", ifbranch);
+
+        if finished or not hasNextArg() then return NULL end if;
         env := EnvStack:-top():-clone();
         envColl:-push(env);
-
-        if getHeader(stats) = _Inert_CONDPAIR then
-            cond := getCondition(stats);
+      
+        if getHeader(ifbranch) = _Inert_CONDPAIR then
+            print("its a condpair");
+            cond := op(1, ifbranch);
             assigns, strippedExpr := StripExp:-strip(cond, genVar);
-            
+            inertAssigns := pe_stripped_assigns(assigns);
+            env:-display();
+            reduced := EvalExp:-reduce(strippedExpr, env);
 
+            if isExpDynamic(reduced) then
+                print("dynamic condition", reduced);
+                ifbody := pe_statseq(op(2, ifbranch));
+                ifpart := _Inert_IF(_Inert_CONDPAIR(reduced, body), pe_ifbranch(nextArg()));
+                return _Inert_STATSEQ(op(inertAssigns), ifpart);
+            elif reduced then
+                print("condition static true");
+                ifbody := pe_statseq(op(2, ifbranch));
+                finished := true;
+                return _Inert_STATSEQ(op(inertAssigns), ifbody);
+            else
+                print("condition static false");
+                return _Inert_STATSEQ(op(inertAssigns));
+            end if;
+               
         else
-            error("else coming soon");
+            print("its not a condpair");
+            ifbody := pe_statseq(ifbranch);
+            return _Inert_STATSEQ(op(inertAssigns), ifbody);
         end if;
     end proc;
 
-    
+    print("about to run this biatch");
+    res := pe_ifbranch(nextArg());
+    EnvStack:-pop();
+    print("about to combine envs");
+    EnvStack:-push(combineEnvs(envColl));
 
-    res := pe_condpair(nextArg);        
     #combine environments
     return res;
 end proc;
+
 
 ########################################################################################
 
@@ -351,11 +400,13 @@ end module;
 ######################################################################################
 
 
+
 p1 := proc(x, y)
     local z;
     z := x + y;
     return z;
 end proc;
+
 
 p2 := proc(x, y)
     local z;
@@ -367,5 +418,13 @@ end proc;
 p3 := proc(x, y::integer)
     local z;
     z := x + y;
+    return z;
+end proc;
+
+
+p4 := proc(x, y, z)
+    if x = y then
+        return z;
+    end if;
     return z;
 end proc;

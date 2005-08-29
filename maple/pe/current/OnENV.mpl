@@ -116,14 +116,12 @@ OnENV := module()
                 newenv := NewOnENV();
 
                 for i in valIndices() do
-                    newenv:-addValSet(i, valEnv[i]);
+                    newenv:-addValSet(i, valEnv[op(i)]);
                 end do;
                 for i in typeIndices() do
                     newenv:-addTypeSet(i, typeEnv[i]);
                 end do;
 
-                newenv:-setParams(params);
-                newenv:-setLocals(locals);
                 newenv;
             end proc;
                        
@@ -146,8 +144,6 @@ OnENV := module()
             display := proc()
                 print(op(valEnv));
                 print(op(typeEnv));
-                print(params);
-                print(locals);
             end proc;
         
         end module;
