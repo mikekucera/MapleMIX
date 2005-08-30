@@ -36,11 +36,12 @@ OnENV := module()
             getVal := proc(key)
                 local n;
                 n := keyType(key);
-                if not assigned(valEnv[n]) then
+                if not assigned(evaln(valEnv[n])) then
                     error("no value for " || key);
                 elif nops(valEnv[n]) > 1 then
                     error("multiple values for " || key);
                 else
+                    print("returning", op(valEnv[n]));
                     op(valEnv[n]);
                 end if;
             end proc;
@@ -52,7 +53,7 @@ OnENV := module()
             
             getIndices := proc(tbl) local xs;
                 xs := indices(tbl);
-                `if`(xs = NULL, [], xs)
+                `if`(xs = NULL, [], ListTools:-Flatten([xs]))
             end proc;
                     
         
@@ -115,10 +116,10 @@ OnENV := module()
                 local newenv, i;
                 newenv := NewOnENV();
 
-                for i in valIndices() do
+                for i in op(valIndices()) do
                     newenv:-addValSet(i, valEnv[op(i)]);
                 end do;
-                for i in typeIndices() do
+                for i in op(typeIndices()) do
                     newenv:-addTypeSet(i, typeEnv[i]);
                 end do;
 
@@ -130,10 +131,10 @@ OnENV := module()
                 local newenv, i;
                 newenv := clone();
                 
-                for i in onenv:-valIndices() do
+                for i in op(onenv:-valIndices()) do
                     newenv:-addValSet(i, onenv:-getVals(i));
                 end do;
-                for i in onenv:-typeIndices() do
+                for i in op(onenv:-typeIndices()) do
                     newenv:-addTypeSet(i, onenv:-getTypes(i));
                 end do;
                                 
@@ -142,8 +143,7 @@ OnENV := module()
 
             
             display := proc()
-                print(op(valEnv));
-                print(op(typeEnv));
+                print(op(valEnv), op(typeEnv));
             end proc;
         
         end module;

@@ -263,28 +263,29 @@ end proc;
 
 # in progress
 pe_if := proc()
-    print("in pe_if");
     envColl := SimpleStack();    
     finished := false;
     outerArgs := args;
-
     # proc that will return outer arguments in sequence
+    
     currentArg := 1;
     nextArg := proc()
         if not hasNextArg() then return NULL end if;
         res := [outerArgs][currentArg];
         currentArg := currentArg + 1;
-        return res;
+        res;
     end proc;
-    hasNextArg := () -> evalb(currentArg <= nops(outerArgs));
+    hasNextArg := () -> evalb(currentArg <= nops([outerArgs]));    
 
 
     pe_ifbranch := proc(ifbranch)
-        print("ifbranch", ifbranch);
-
-        if finished or not hasNextArg() then return NULL end if;
+        print("peifbranch");
+        if finished then return NULL end if;
+        print("cloning env");
         env := EnvStack:-top():-clone();
         envColl:-push(env);
+        print("cloned");
+        env:-display();
       
         if getHeader(ifbranch) = _Inert_CONDPAIR then
             print("its a condpair");
@@ -297,7 +298,9 @@ pe_if := proc()
             if isExpDynamic(reduced) then
                 print("dynamic condition", reduced);
                 ifbody := pe_statseq(op(2, ifbranch));
-                ifpart := _Inert_IF(_Inert_CONDPAIR(reduced, body), pe_ifbranch(nextArg()));
+                ifpart := _Inert_IF(_Inert_CONDPAIR(reduced, ifbody), 
+                                    `if`(hasNextArg(), pe_ifbranch(nextArg()), NULL));
+
                 return _Inert_STATSEQ(op(inertAssigns), ifpart);
             elif reduced then
                 print("condition static true");
@@ -316,13 +319,12 @@ pe_if := proc()
         end if;
     end proc;
 
-    print("about to run this biatch");
     res := pe_ifbranch(nextArg());
     EnvStack:-pop();
-    print("about to combine envs");
-    EnvStack:-push(combineEnvs(envColl));
-
-    #combine environments
+    newenv := combineEnvs(envColl);
+    print("newenv");
+    newenv:-display();
+    EnvStack:-push(newenv);
     return res;
 end proc;
 
@@ -427,4 +429,14 @@ p4 := proc(x, y, z)
         return z;
     end if;
     return z;
+end proc;
+
+p5 := proc(x, y, z)
+    if x = y then
+        return x;
+    elif x < y then
+        return y;
+    else
+        return z;
+    end if;
 end proc;
