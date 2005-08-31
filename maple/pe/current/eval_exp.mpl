@@ -140,7 +140,5 @@ EvalExp := module()
         
         return eval(residual, [_Tag_STATICEXPSEQ = make_expseq_dynamic]);
     end proc;
-
     
 end module;
-

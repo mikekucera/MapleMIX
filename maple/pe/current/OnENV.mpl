@@ -41,7 +41,6 @@ OnENV := module()
                 elif nops(valEnv[n]) > 1 then
                     error("multiple values for " || key);
                 else
-                    print("returning", op(valEnv[n]));
                     op(valEnv[n]);
                 end if;
             end proc;

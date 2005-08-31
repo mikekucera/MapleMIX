@@ -38,9 +38,8 @@ getHeader := proc(x) option inline; op(0,x) end proc;
 getVal := proc(x) option inline; op(1,x) end proc;
 getParamName := proc(x) `if`(op(0,x)=_Inert_DCOLON, op(op(1,x)), op(x)) end proc;
 
-
-isExpDynamic := x -> EvalExp:-isInert(x);
-isExpStatic  := x -> not isExpDynamic(x);
+isExpDynamic := EvalExp:-isInert;
+isExpStatic  := `not` @ isExpDynamic;
 
 ##################################################################################
 
@@ -159,7 +158,7 @@ end proc;
 
 # partially evalutates a statement sequence
 pe_statseq := proc(statseq)
-    subs_list := [_Inert_ASSIGN = pe_assign, _Inert_IF = pe_if];
+    subs_list := [_Inert_ASSIGN = pe_assign, _Inert_IF = pe_if, _Inert_RETURN = pe_return];
     eval(statseq, subs_list);
 end proc;
 
@@ -228,7 +227,7 @@ pe_function := proc(n)
 
     EnvStack:-push(env);
     newName := cat(op(1,n), "_", genNum());
-    pe_specialize_proc(inert, newName);
+    pe_specialize_proc(inert, newName); 
     EnvStack:-pop();    
 
     # residualize call
@@ -239,10 +238,10 @@ end proc;
 # partial evalutation of a single assignment statement
 pe_assign := proc(name, expr)
     local assigns, stripped, reduced, inertAssigns;
-    assigns, stripped := StripExp:-strip(expr, genVar);
-    inertAssigns := pe_stripped_assigns(assigns);
 
-    reduced := EvalExp:-reduce(stripped, EnvStack:-top());
+    env := EnvStack:-top();
+    inertAssigns, reduced := pe_expression(expr, env);
+
     if isExpStatic(reduced) then
         env:-putVal(name, reduced);
         _Inert_STATSEQ(op(inertAssigns));
@@ -252,8 +251,26 @@ pe_assign := proc(name, expr)
 end proc;
 
 
+# pe for returns, all returns residualized for now
+pe_return := proc(expr)
+    inertAssigns, reduced := pe_expression(expr, EnvStack:-top());
+    reduced := `if`(isExpStatic(reduced), ToInert(reduced), reduced);
+    _Inert_STATSEQ(op(inertAssigns), _Inert_RETURN(reduced));    
+end proc;
+
+
+# takes an entire inert expression, including the header
+pe_expression := proc(expr, env)
+    #the expression stripper returns assigments as a list of equations
+    assigns, strippedExpr := StripExp:-strip(expr, genVar);
+    inertAssigns := pe_stripped_assigns(assigns);
+    reduced := EvalExp:-reduce(strippedExpr, env);
+    return inertAssigns, reduced;    
+end proc;
+
+
 # partial evaluation for the equations returned but the expression splitter
-pe_stripped_assigns := proc(assigns)
+pe_stripped_assigns := proc(assigns::list(anything=anything))
     # resaidualize all function calls for now
     # process the inertAssigns (which are all function calls)
     inertAssigns := map(x -> _Inert_ASSIGN(_Inert_LOCAL(lhs(x)), rhs(x)), assigns);
@@ -268,6 +285,7 @@ pe_if := proc()
     outerArgs := args;
     # proc that will return outer arguments in sequence
     
+    # the following code I want to pull out into its own module
     currentArg := 1;
     nextArg := proc()
         if not hasNextArg() then return NULL end if;
@@ -277,55 +295,43 @@ pe_if := proc()
     end proc;
     hasNextArg := () -> evalb(currentArg <= nops([outerArgs]));    
 
+    #env := EnvStack:-top();
 
     pe_ifbranch := proc(ifbranch)
-        print("peifbranch");
         if finished then return NULL end if;
-        print("cloning env");
-        env := EnvStack:-top():-clone();
-        envColl:-push(env);
-        print("cloned");
-        env:-display();
+        EnvStack:-push(EnvStack:-top():-clone());
       
         if getHeader(ifbranch) = _Inert_CONDPAIR then
-            print("its a condpair");
-            cond := op(1, ifbranch);
-            assigns, strippedExpr := StripExp:-strip(cond, genVar);
-            inertAssigns := pe_stripped_assigns(assigns);
-            env:-display();
-            reduced := EvalExp:-reduce(strippedExpr, env);
+            inertAssigns, reduced := pe_expression(op(1, ifbranch), EnvStack:-top());
 
             if isExpDynamic(reduced) then
-                print("dynamic condition", reduced);
                 ifbody := pe_statseq(op(2, ifbranch));
                 ifpart := _Inert_IF(_Inert_CONDPAIR(reduced, ifbody), 
                                     `if`(hasNextArg(), pe_ifbranch(nextArg()), NULL));
-
-                return _Inert_STATSEQ(op(inertAssigns), ifpart);
+                res := _Inert_STATSEQ(op(inertAssigns), ifpart);
             elif reduced then
-                print("condition static true");
                 ifbody := pe_statseq(op(2, ifbranch));
                 finished := true;
-                return _Inert_STATSEQ(op(inertAssigns), ifbody);
+                res := _Inert_STATSEQ(op(inertAssigns), ifbody);
             else
-                print("condition static false");
-                return _Inert_STATSEQ(op(inertAssigns));
+                res := _Inert_STATSEQ(op(inertAssigns));
             end if;
                
         else
-            print("its not a condpair");
             ifbody := pe_statseq(ifbranch);
-            return _Inert_STATSEQ(op(inertAssigns), ifbody);
+            res := ifbody;
         end if;
+  
+        envColl:-push(EnvStack:-pop());        
+        res;
     end proc;
 
-    res := pe_ifbranch(nextArg());
-    EnvStack:-pop();
+    newif := pe_ifbranch(nextArg());
+
     newenv := combineEnvs(envColl);
-    print("newenv");
-    newenv:-display();
+    EnvStack:-pop();
     EnvStack:-push(newenv);
-    return res;
+    return newif;
 end proc;
 
 
@@ -334,16 +340,17 @@ end proc;
 
 #builds a modle definition that contains the residual code
 build_module := proc(n)
-    
     # get a list of names of module locals
     locals := remove(x -> evalb(x=n), ListTools:-Flatten([indices(code)]));
+  
+    # each non exported proc will need a local index
+    procLocalIndex := 0;
 
-    i := 0;
     # will be mapped over each residualized procedure
     processProc := proc(eqn)
-        procName = lhs(eqn);
+        procName, p := lhs(eqn), rhs(eqn);
         
-        i := `if`(procName = n, i, i + 1);
+        procLocalIndex := procLocalIndex + `if`(procName = n, 0, 1);
         
         lexicalLocals := []; #list of lexical pairs(equations) of local name to index
 
@@ -367,21 +374,19 @@ build_module := proc(n)
             
         end proc;
         
-        p := rhs(eqn);
-        body := eval(getProcBody(p), _Inert_NAME = processLocal);
         
+        body := eval(getProcBody(p), _Inert_NAME = processLocal);        
         
         f := proc(e)
             _Inert_LEXICALPAIR(_Inert_NAME(lhs(e)),_Inert_LOCAL(rhs(e)));
         end proc;
-
 
         seq := map(f, lexicalLocals);
         
         lexicalLocals := _Inert_LEXICALSEQ( op(seq) );
         p := subsop(5=body, 8=lexicalLocals, p);
         
-        _Inert_ASSIGN(_Inert_LOCAL( `if`(procName = n, nops(locals) + 1, i) ) ,p);
+        _Inert_ASSIGN(_Inert_LOCAL( `if`(procName = n, nops(locals) + 1, procLocalIndex) ) ,p);
     end proc;
 
     moduleStatseq := _Inert_STATSEQ(op(map(processProc, op(op(code)))));
@@ -390,9 +395,7 @@ build_module := proc(n)
     
     # get a bare bones inert module then substitute
     inertModDef := ToInert('module() end module');
-    inertModDef := subsop(2 = locals, 4 = exports, 5 = moduleStatseq, inertModDef);
-    return inertModDef;    
-
+    subsop(2 = locals, 4 = exports, 5 = moduleStatseq, inertModDef);
 end proc;
 
 
@@ -434,9 +437,11 @@ end proc;
 p5 := proc(x, y, z)
     if x = y then
         return x;
-    elif x < y then
+    elif p1(x,y) > 10 then
         return y;
     else
         return z;
     end if;
 end proc;
+
+
