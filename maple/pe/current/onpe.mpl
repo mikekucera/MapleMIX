@@ -124,8 +124,7 @@ end proc;
 
 
 # called with a procedure, name of residual proc, and a list of equations
-pe := proc(p::procedure, n::string, statlist::list(anything=anything))
-
+pe := proc(p::procedure, statlist::list(anything=anything))
     # set up globals
     genVar := makeNameGenerator("x");
     genNum := makeNameGenerator("");
@@ -145,14 +144,12 @@ pe := proc(p::procedure, n::string, statlist::list(anything=anything))
     inert := ToInert(eval(p));
 
     # specialize
-    pe_specialize_proc(inert, n);
-
-    EnvStack := 'EnvStack';
-
-    # build a module from the global list of procs and return that
-
-    return build_module(n);
-    #return eval(code);
+    use procName = "ModuleApply" in
+        pe_specialize_proc(inert, procName);
+        EnvStack := 'EnvStack';
+        # build a module from the global list of procs and return that
+        return build_module("ModuleApply");
+    end use;
 end proc;
 
 
