@@ -1,20 +1,28 @@
-
 # Simple online partial evaluator for a subset of maple
 # Only works on simple expressions
 
 
+# I'm going to add mad type checking everywhere
+#`type/inert` := proc(x)
+#    evalb(type(x, function) and StringTools:-RegMatch("^_Inert_", op(0, x)));
+#end proc;
+
+
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
-    export pe, pe_if;
+    export PartiallyEvaluate;
     local EnvStack, genVar, genNum, code, makeGenerator;
 
+#################################################################################
+
+kernelopts(assertlevel=2);
 
 ##################################################################################
 
 # Section: bunch of utility functions (may be moved into separate modules or files)
 
-# returns a closure that generates unique names (as strings);
-makeNameGenerator := proc(n::string) 
+# returns a closure that generates unique names (as strings)
+makeNameGenerator := proc(n::string)::procedure;
     local val;
     val := 0;
     return proc()
@@ -41,7 +49,9 @@ getParamName := proc(x) `if`(op(0,x)=_Inert_DCOLON, op(op(1,x)), op(x)) end proc
 isExpDynamic := EvalExp:-isInert;
 isExpStatic  := `not` @ isExpDynamic;
 
+
 ##################################################################################
+
 
 
 # replaces params and local indices with their names
@@ -120,15 +130,30 @@ combineEnvs := proc(stack)
 end proc;
 
 
-#############################################################################
+############################################################################
+
+# partially evaluates an arbitrary inert code
+peInert := proc(inert)
+   local header;
+   header := getHeader(inert);
+   if assigned(pe[header]) then
+        pe[header](op(inert));
+   else
+        error(cat("not supported yet: ", op(0, inert)));
+   end if;
+end proc;
+
+pe[_Inert_BLAH] := proc()
+    print("BLAH", args);
+end proc;
 
 
 # called with a procedure, name of residual proc, and a list of equations
-pe := proc(p::procedure, statlist::list(anything=anything))
+# sets up the partial evaluation
+PartiallyEvaluate := proc(p::procedure, statlist::list(anything=anything))
     # set up globals
     genVar := makeNameGenerator("x");
     genNum := makeNameGenerator("");
-
     code := table();
 
     #create initial environment
@@ -145,24 +170,17 @@ pe := proc(p::procedure, statlist::list(anything=anything))
 
     # specialize
     use procName = "ModuleApply" in
-        pe_specialize_proc(inert, procName);
+        peSpecializeProc(inert, procName);
         EnvStack := 'EnvStack';
         # build a module from the global list of procs and return that
-        return build_module("ModuleApply");
+        return build_module(procName);
     end use;
-end proc;
-
-
-# partially evalutates a statement sequence
-pe_statseq := proc(statseq)
-    subs_list := [_Inert_ASSIGN = pe_assign, _Inert_IF = pe_if, _Inert_RETURN = pe_return];
-    eval(statseq, subs_list);
 end proc;
 
 
 
 # takes inert code and assumes static variables are on top of EnvStack
-pe_specialize_proc := proc(inert, n::string)
+peSpecializeProc := proc(inert, n::string)
     env := EnvStack:-top();
     params := getParams(inert);
     locals := getLocals(inert);
@@ -175,7 +193,7 @@ pe_specialize_proc := proc(inert, n::string)
     map( curry(evalParamType, env), params );
 
     # PARTIAL EVALUATION
-    body := pe_statseq(body);
+    body := peInert(body);
 
     # POST-PROCESS
     newParamList := select((env:-dynamic? @ getParamName), params);
@@ -186,16 +204,28 @@ pe_specialize_proc := proc(inert, n::string)
     
     newLocalList := newLocals();
 
-    # create a name for the new procedure and add it to the global list
-
     code[n] := subsop(1=newParamList, 2=newLocalList, 5=body, inert);
 end proc; 
 
 
+# takes an entire inert expression, including the header
+peExpression := proc(expr, env)
+    #the expression stripper returns assigments as a list of equations
+    assigns, strippedExpr := StripExp:-strip(expr, genVar);
+    inertAssigns := map(eqn -> _Inert_ASSIGN(_Inert_LOCAL(lhs(eqn)), peInert(rhs(eqn))), assigns);
+    reduced := EvalExp:-reduce(strippedExpr, env);
+    return inertAssigns, reduced;    
+end proc;
 
-# a function call
+
+
+pe[_Inert_STATSEQ] := proc()
+    _Inert_STATSEQ(op(map(peInert, [args])));
+end proc;
+
+
 # assumes nested function calls have already been stripped out of the argument expressions
-pe_function := proc(n)
+pe[_Inert_FUNCTION] := proc(n)
     # get the code for the actual function from the interpreter
     inert := (ToInert @ eval @ convert)(op(1, n), name);
     if getHeader(inert) = _Inert_NAME then
@@ -203,6 +233,7 @@ pe_function := proc(n)
     end if;
     params := getParams(inert);
 
+    # new environments for called function, will contain static arg values
     env := OnENV:-NewOnENV();
 
     i := 0;
@@ -210,6 +241,7 @@ pe_function := proc(n)
         i := i + 1;
         reduced := EvalExp:-reduce(argExp, EnvStack:-top());
         if isExpStatic(reduced) then
+            # put static argument value into environment
             env:-putVal(op(op(i, params)), reduced);
             NULL;
         else
@@ -224,20 +256,19 @@ pe_function := proc(n)
 
     EnvStack:-push(env);
     newName := cat(op(1,n), "_", genNum());
-    pe_specialize_proc(inert, newName); 
+    peSpecializeProc(inert, newName); 
     EnvStack:-pop();    
 
     # residualize call
+    # this is where decision to unfold would likely go
     _Inert_FUNCTION(_Inert_NAME(newName), newArgs);
 end proc;
 
 
 # partial evalutation of a single assignment statement
-pe_assign := proc(name, expr)
-    local assigns, stripped, reduced, inertAssigns;
-
+pe[_Inert_ASSIGN] := proc(name, expr)
     env := EnvStack:-top();
-    inertAssigns, reduced := pe_expression(expr, env);
+    inertAssigns, reduced := peExpression(expr, env);
 
     if isExpStatic(reduced) then
         env:-putVal(name, reduced);
@@ -249,34 +280,15 @@ end proc;
 
 
 # pe for returns, all returns residualized for now
-pe_return := proc(expr)
-    inertAssigns, reduced := pe_expression(expr, EnvStack:-top());
+pe[_Inert_RETURN] := proc(expr)
+    inertAssigns, reduced := peExpression(expr, EnvStack:-top());
     reduced := `if`(isExpStatic(reduced), ToInert(reduced), reduced);
     _Inert_STATSEQ(op(inertAssigns), _Inert_RETURN(reduced));    
 end proc;
 
 
-# takes an entire inert expression, including the header
-pe_expression := proc(expr, env)
-    #the expression stripper returns assigments as a list of equations
-    assigns, strippedExpr := StripExp:-strip(expr, genVar);
-    inertAssigns := pe_stripped_assigns(assigns);
-    reduced := EvalExp:-reduce(strippedExpr, env);
-    return inertAssigns, reduced;    
-end proc;
 
-
-# partial evaluation for the equations returned but the expression splitter
-pe_stripped_assigns := proc(assigns::list(anything=anything))
-    # resaidualize all function calls for now
-    # process the inertAssigns (which are all function calls)
-    inertAssigns := map(x -> _Inert_ASSIGN(_Inert_LOCAL(lhs(x)), rhs(x)), assigns);
-    eval(inertAssigns, _Inert_FUNCTION = pe_function);    
-end proc;
-
-
-# in progress
-pe_if := proc()
+pe[_Inert_IF] := proc()
     envColl := SimpleStack();    
     finished := false;
     outerArgs := args;
@@ -294,20 +306,20 @@ pe_if := proc()
 
     #env := EnvStack:-top();
 
-    pe_ifbranch := proc(ifbranch)
+    peIfBranch := proc(ifbranch)
         if finished then return NULL end if;
         EnvStack:-push(EnvStack:-top():-clone());
       
         if getHeader(ifbranch) = _Inert_CONDPAIR then
-            inertAssigns, reduced := pe_expression(op(1, ifbranch), EnvStack:-top());
+            inertAssigns, reduced := peExpression(op(1, ifbranch), EnvStack:-top());
 
             if isExpDynamic(reduced) then
-                ifbody := pe_statseq(op(2, ifbranch));
+                ifbody := peInert(op(2, ifbranch));
                 ifpart := _Inert_IF(_Inert_CONDPAIR(reduced, ifbody), 
-                                    `if`(hasNextArg(), pe_ifbranch(nextArg()), NULL));
+                                    `if`(hasNextArg(), peIfBranch(nextArg()), NULL));
                 res := _Inert_STATSEQ(op(inertAssigns), ifpart);
             elif reduced then
-                ifbody := pe_statseq(op(2, ifbranch));
+                ifbody := peInert(op(2, ifbranch));
                 finished := true;
                 res := _Inert_STATSEQ(op(inertAssigns), ifbody);
             else
@@ -315,7 +327,7 @@ pe_if := proc()
             end if;
                
         else
-            ifbody := pe_statseq(ifbranch);
+            ifbody := peInert(ifbranch);
             res := ifbody;
         end if;
   
@@ -323,7 +335,7 @@ pe_if := proc()
         res;
     end proc;
 
-    newif := pe_ifbranch(nextArg());
+    newif := peIfBranch(nextArg());
 
     newenv := combineEnvs(envColl);
     EnvStack:-pop();
@@ -442,3 +454,14 @@ p5 := proc(x, y, z)
 end proc;
 
 
+p6 := proc(x, y)
+    if p1(x,y) > 10 then
+        if p1(x, y) > 100 then
+            return "greater than 100";
+        else
+            return "less than 100";
+        end if;
+    else
+        return "no";
+    end if;
+end proc;
