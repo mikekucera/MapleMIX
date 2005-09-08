@@ -1,12 +1,11 @@
+
+read("types.mpl");
+read("OnENV.mpl");
+read("strip_exp.mpl");
+read("eval_exp.mpl");
+
+
 # Simple online partial evaluator for a subset of maple
-# Only works on simple expressions
-
-
-# I'm going to add mad type checking everywhere
-#`type/inert` := proc(x)
-#    evalb(type(x, function) and StringTools:-RegMatch("^_Inert_", op(0, x)));
-#end proc;
-
 
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
@@ -133,7 +132,7 @@ end proc;
 ############################################################################
 
 # partially evaluates an arbitrary inert code
-peInert := proc(inert)
+peInert := proc(inert::inert) # returns inert code or NULL
    local header;
    header := getHeader(inert);
    if assigned(pe[header]) then
@@ -143,14 +142,10 @@ peInert := proc(inert)
    end if;
 end proc;
 
-pe[_Inert_BLAH] := proc()
-    print("BLAH", args);
-end proc;
-
 
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p::procedure, statlist::list(anything=anything))
+PartiallyEvaluate := proc(p::procedure, vallist::list(equation))::Or(moduledefinition, inert);
     # set up globals
     genVar := makeNameGenerator("x");
     genNum := makeNameGenerator("");
@@ -158,7 +153,7 @@ PartiallyEvaluate := proc(p::procedure, statlist::list(anything=anything))
 
     #create initial environment
     env := OnENV:-NewOnENV();
-    for eqn in statlist do
+    for eqn in vallist do
         env:-addVal(lhs(eqn),rhs(eqn));
     end do;
 
@@ -180,7 +175,7 @@ end proc;
 
 
 # takes inert code and assumes static variables are on top of EnvStack
-peSpecializeProc := proc(inert, n::string)
+peSpecializeProc := proc(inert::inert, n::string) #void
     env := EnvStack:-top();
     params := getParams(inert);
     locals := getLocals(inert);
@@ -209,7 +204,7 @@ end proc;
 
 
 # takes an entire inert expression, including the header
-peExpression := proc(expr, env)
+peExpression := proc(expr::inert, env)
     #the expression stripper returns assigments as a list of equations
     assigns, strippedExpr := StripExp:-strip(expr, genVar);
     inertAssigns := map(eqn -> _Inert_ASSIGN(_Inert_LOCAL(lhs(eqn)), peInert(rhs(eqn))), assigns);
@@ -225,7 +220,7 @@ end proc;
 
 
 # assumes nested function calls have already been stripped out of the argument expressions
-pe[_Inert_FUNCTION] := proc(n)
+pe[_Inert_FUNCTION] := proc(n::inert(ASSIGNEDNAME))
     # get the code for the actual function from the interpreter
     inert := (ToInert @ eval @ convert)(op(1, n), name);
     if getHeader(inert) = _Inert_NAME then
@@ -266,7 +261,7 @@ end proc;
 
 
 # partial evalutation of a single assignment statement
-pe[_Inert_ASSIGN] := proc(name, expr)
+pe[_Inert_ASSIGN] := proc(name::inert(LOCAL), expr::inert)
     env := EnvStack:-top();
     inertAssigns, reduced := peExpression(expr, env);
 
@@ -280,7 +275,7 @@ end proc;
 
 
 # pe for returns, all returns residualized for now
-pe[_Inert_RETURN] := proc(expr)
+pe[_Inert_RETURN] := proc(expr::inert)
     inertAssigns, reduced := peExpression(expr, EnvStack:-top());
     reduced := `if`(isExpStatic(reduced), ToInert(reduced), reduced);
     _Inert_STATSEQ(op(inertAssigns), _Inert_RETURN(reduced));    
@@ -348,7 +343,7 @@ end proc;
 
 
 #builds a modle definition that contains the residual code
-build_module := proc(n)
+build_module := proc(n::string)::inert;
     # get a list of names of module locals
     locals := remove(x -> evalb(x=n), ListTools:-Flatten([indices(code)]));
   
