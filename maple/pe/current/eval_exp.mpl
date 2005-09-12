@@ -44,7 +44,8 @@ EvalExp := module()
              _Inert_POWER, _Inert_CATENATE, _Inert_EQUATION, _Inert_LESSEQ,
              _Inert_LESSTHAN, _Inert_IMPLIES, _Inert_AND, _Inert_OR, _Inert_XOR,
              _Inert_NOT, _Inert_INTPOS, _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING,
-             _Inert_NAME,_Inert_COMPLEX, _Inert_EXPSEQ, _Inert_FUNCTION,
+             _Inert_NAME,_Inert_COMPLEX, _Inert_EXPSEQ, _Inert_FUNCTION,        
+
              _Inert_PARAM, _Inert_LOCAL,
              _Tag_STATICEXPSEQ
             });
@@ -116,7 +117,7 @@ EvalExp := module()
 
     # it will receive a reduced expression sequence
     pure_func := proc(f, expseq)
-        if op(0,expseq) = _Tag_STATICEXPSEQ then
+        if op(0,expseq) = _Tag_STATICEXPSEQ then # if all arguments are static then call the pure func
             apply(convert(op(f), name), op(expseq));
         else
             #residualize

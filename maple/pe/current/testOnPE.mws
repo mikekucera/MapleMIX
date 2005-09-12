@@ -96,91 +96,189 @@ arnlevel=1):" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 52 "read(\"util
 s.mpl\"): read(\"onpe.mpl\"): with(OnPE);" }}{PARA 11 "" 1 "" 
 {XPPMATH 20 "7#I2PartiallyEvaluateG6\"" }}}{EXCHG {PARA 0 "> " 0 "" 
 {MPLTEXT 1 0 0 "" }}}{SECT 1 {PARA 3 "" 0 "" {TEXT 209 2 "p2" }}
-{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 9 "eval(p2);" }}{PARA 11 "" 1 ""
- {XPPMATH 20 "f*6$I\"xG6\"I\"yGF%6#I\"zGF%F%F%C$>F(,(F$\"\"\"-I#p1GF%F
-#F,\"#5F,OF(F%F%F%" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 35 "m2 :=
- PartiallyEvaluate(p2, [x=2]);" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I#m2G
-6\"-I._Inert_MODDEFGF$6+-I0_Inert_PARAMSEQGF$6#-I,_Inert_NAMEGF$6#Q+th
-ismoduleF$-I0_Inert_LOCALSEQGF$6#-F,6#Q%p1_1F$-I1_Inert_OPTIONSEQGF$F$
--I1_Inert_EXPORTSEQGF$6#-F,6#Q,ModuleApplyF$-I/_Inert_STATSEQGF$6$-I._
-Inert_ASSIGNGF$6$-I-_Inert_LOCALGF$6#\"\"#-I,_Inert_PROCGF$6+-F)6#-F,6
-#Q\"yF$-F06$-F,6#Q#x1F$-F,6#Q\"zF$F5-I._Inert_EXPSEQGF$F$-F>6$-F>6$-FA
-6$-FD6#\"\"\"-I0_Inert_FUNCTIONGF$6$-I5_Inert_LEXICAL_LOCALGF$Fjn-FX6#
--I-_Inert_PARAMGF$Fjn-FA6$FC-I+_Inert_SUMGF$6$-Fho6$-I._Inert_INTPOSGF
-$FEFin-F]p6#\"#5-F>6#-I._Inert_RETURNGF$6#FC-I6_Inert_DESCRIPTIONSEQGF
-$F$-I1_Inert_GLOBALSEQGF$F$-I2_Inert_LEXICALSEQGF$6#-I3_Inert_LEXICALP
-AIRGF$6$F2Fin-I+_Inert_EOPGF$6#-FX6#F\\p-FA6$Fin-FH6+FJ-F06#FTF5FW-F>6
-$-F>6#-FA6$Fin-Fho6$F\\pFco-F>6#-Fdp6#FinFfpFhp-F[qF$F`qFfpFhpFgrFW" }
-}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 20 "m2 := FromInert(m2);" }}
-{PARA 11 "" 1 "" {XPPMATH 20 ">I#m2G6\"b6#I+thismoduleGF$6#I%p1_1GF$F$
-6#I,ModuleApplyGF$C$>F+f*6#I\"yGF$6$I#x1GF$I\"zGF$F$F$C%>F2-F)F/>F3,&F
-2\"\"\"\"#7F9OF3F$F$6$F)8$>F)f*F/6#F3F$F$C$>F3,&\"\"#F9F0F9F;F$F$F$F$F
-$F$F$" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 15 "m2 := eval(m2);" }
-}{PARA 11 "" 1 "" {XPPMATH 20 ">I#m2G6\"`6#I,ModuleApplyGF$b6#I+thismo
-duleGF$6#I%p1_1GF$F$F&F$F$F$F$I,_m136362480GF$F+" }}}{EXCHG {PARA 0 ">
- " 0 "" {MPLTEXT 1 0 6 "m2(4);" }}{PARA 11 "" 1 "" {XPPMATH 20 "\"#=" 
-}}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 13 "printmod(m2);" }}{PARA 11
- "" 1 "" {XPPMATH 20 "6$Q,ModuleApply6\"f*6#I\"yGF$6$I#x1GF$I\"zGF$F$F
-$C%>F)-I%p1_1GF$F&>F*,&F)\"\"\"\"#7F1OF*F$F$6$F.F." }}{PARA 11 "" 1 ""
- {XPPMATH 20 "6$Q%p1_16\"f*6#I\"yGF$6#I\"zGF$F$F$C$>F),&\"\"#\"\"\"F'F
-.OF)F$F$F$" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}}{SECT 1 
-{PARA 3 "" 0 "" {TEXT 209 2 "p5" }}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 
-1 0 9 "eval(p5);" }}{PARA 11 "" 1 "" {XPPMATH 20 "f*6%I\"xG6\"I\"yGF%I
-\"zGF%F%F%F%@'/F$F&OF$2\"#5-I#p1GF%6$F$F&OF&OF'F%F%F%" }}}{EXCHG 
-{PARA 0 "> " 0 "" {MPLTEXT 1 0 38 "m := PartiallyEvaluate(p6, [\"x\"=1
-]);" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I\"mG6\"-I._Inert_MODDEFGF$6+-I0
-_Inert_PARAMSEQGF$6#-I,_Inert_NAMEGF$6#Q+thismoduleF$-I0_Inert_LOCALSE
-QGF$6$-F,6#Q%p1_2F$-F,6#Q%p1_1F$-I1_Inert_OPTIONSEQGF$F$-I1_Inert_EXPO
-RTSEQGF$6#-F,6#Q,ModuleApplyF$-I/_Inert_STATSEQGF$6%-I._Inert_ASSIGNGF
-$6$-I-_Inert_LOCALGF$6#\"\"$-I,_Inert_PROCGF$6+-F)6#-F,6#Q\"yF$-F06$-F
-,6#Q#x2F$-F,6#Q#x1F$F8-I._Inert_EXPSEQGF$F$-FA6#-FA6$-FD6$-FG6#\"\"\"-
-I0_Inert_FUNCTIONGF$6$-I5_Inert_LEXICAL_LOCALGF$F]o-Fen6#-I-_Inert_PAR
-AMGF$F]o-I*_Inert_IFGF$6$-I0_Inert_CONDPAIRGF$6$-I0_Inert_LESSTHANGF$6
-$-I._Inert_INTPOSGF$6#\"#5F\\o-FA6#-FA6$-FD6$-FG6#\"\"#-F`o6$-FcoF\\qF
-do-Fio6$-F\\p6$-F_p6$-Fbp6#\"$+\"F[q-FA6#-FA6#-I._Inert_RETURNGF$6#-I.
-_Inert_STRINGGF$6#Q1greater~than~100F$-FA6#-FA6#-F_r6#-Fbr6#Q.less~tha
-n~100F$-FA6#-FA6#-F_r6#-Fbr6#Q#noF$-I6_Inert_DESCRIPTIONSEQGF$F$-I1_In
-ert_GLOBALSEQGF$F$-I2_Inert_LEXICALSEQGF$6$-I3_Inert_LEXICALPAIRGF$6$F
-5F[q-F_t6$F2F\\o-I+_Inert_EOPGF$6#-Fen6#-FbpF\\q-FD6$F\\o-FK6+FM-F06#-
-F,6#Q\"zF$F8FZ-FA6$-FA6#-FD6$F\\o-I+_Inert_SUMGF$6$-FbpF]oFfo-FA6#-F_r
-6#F\\oFgsFis-F\\tF$Fct-FD6$F[qF[uFgsFisF`vFZ" }}}{EXCHG {PARA 0 "> " 0
- "" {MPLTEXT 1 0 18 "m := FromInert(m);" }}{PARA 11 "" 1 "" {XPPMATH 
-20 ">I\"mG6\"b6#I+thismoduleGF$6$I%p1_2GF$I%p1_1GF$F$6#I,ModuleApplyGF
-$C%>F,f*6#I\"yGF$6$I#x2GF$I#x1GF$F$F$C$>F3-F*F0@%2\"#5F3C$>F4-F)F0@%2
-\"$+\"F4OQ1greater~than~100F$OQ.less~than~100F$OQ#noF$F$F$6&F*8%F)8$>F
-)f*F06#I\"zGF$F$F$C$>FM,&F1\"\"\"FQFQOFMF$F$F$>F*FKF$F$F$F$" }}}
-{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 13 "m := eval(m);" }}{PARA 11 ""
- 1 "" {XPPMATH 20 ">I\"mG6\"`6#I,ModuleApplyGF$b6#I+thismoduleGF$6$I%p
-1_2GF$I%p1_1GF$F$F&F$F$F$F$I,_m136643312GF$F+" }}}{EXCHG {PARA 0 "> " 
-0 "" {MPLTEXT 1 0 0 "" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 12 "pr
-intmod(m);" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q,ModuleApply6\"f*6#I\"y
-GF$6$I#x2GF$I#x1GF$F$F$C$>F)-I%p1_1GF$F&@%2\"#5F)C$>F*-I%p1_2GF$F&@%2
-\"$+\"F*OQ1greater~than~100F$OQ.less~than~100F$OQ#noF$F$F$6&F.F.F5F5" 
-}}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q%p1_26\"f*6#I\"yGF$6#I\"zGF$F$F$C$>
-F),&F'\"\"\"F-F-OF)F$F$F$" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q%p1_16\"
-f*6#I\"yGF$6#I\"zGF$F$F$C$>F),&F'\"\"\"F-F-OF)F$F$F$" }}}{EXCHG {PARA 
-0 "> " 0 "" {MPLTEXT 1 0 7 "m(100);" }}{PARA 11 "" 1 "" {XPPMATH 20 "Q
-1greater~than~1006\"" }}}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 9 "eva
-l(p7);" }}{PARA 11 "" 1 "" {XPPMATH 20 "f*6#I\"xG6\"F%F%F%C$OF$F'F%F%F
-%" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 18 "ToInert(eval(p7));" }}
-{PARA 11 "" 1 "" {XPPMATH 20 "-I,_Inert_PROCG6\"6+-I0_Inert_PARAMSEQGF
-$6#-I,_Inert_NAMEGF$6#Q\"xF$-I0_Inert_LOCALSEQGF$F$-I1_Inert_OPTIONSEQ
-GF$F$-I._Inert_EXPSEQGF$F$-I/_Inert_STATSEQGF$6$-I._Inert_RETURNGF$6#-
-I-_Inert_PARAMGF$6#\"\"\"F6-I6_Inert_DESCRIPTIONSEQGF$F$-I1_Inert_GLOB
-ALSEQGF$F$-I2_Inert_LEXICALSEQGF$F$-I+_Inert_EOPGF$6#-F26#-I._Inert_IN
-TPOSGF$F;" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 34 "m := Partially
-Evaluate(p7, [x=1]);" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I\"mG6\"-I._Ine
-rt_MODDEFGF$6+-I0_Inert_PARAMSEQGF$6#-I,_Inert_NAMEGF$6#Q+thismoduleF$
--I0_Inert_LOCALSEQGF$F$-I1_Inert_OPTIONSEQGF$F$-I1_Inert_EXPORTSEQGF$6
-#-F,6#Q,ModuleApplyF$-I/_Inert_STATSEQGF$6#-I._Inert_ASSIGNGF$6$-I-_In
-ert_LOCALGF$6#\"\"\"-I,_Inert_PROCGF$6+-F)F$F/F1-I._Inert_EXPSEQGF$F$-
-F:6#-F:6#-I._Inert_RETURNGF$6#-I._Inert_INTPOSGF$FA-I6_Inert_DESCRIPTI
-ONSEQGF$F$-I1_Inert_GLOBALSEQGF$F$-I2_Inert_LEXICALSEQGF$F$-I+_Inert_E
-OPGF$6#-FHFOFRFTFVFG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 18 "m :
-= FromInert(m);" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I\"mG6\"b6#I+thismod
-uleGF$F$F$6#I,ModuleApplyGF$>F)f*F$F$F$F$O\"\"\"F$F$F$F$F$F$F$" }}}
-{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 4 "m();" }}{PARA 11 "" 1 "" 
-{XPPMATH 20 "\"\"\"" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}
-}
+{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}{EXCHG {PARA 0 "> " 0 ""
+ {MPLTEXT 1 0 35 "m2 := PartiallyEvaluate(p2, [x=2]);" }}{PARA 11 "" 1
+ "" {XPPMATH 20 "-I&TABLEG%*protectedG6#7$/Q%p1_16\"-I,_Inert_PROCGF)6
++-I0_Inert_PARAMSEQGF)6#-I,_Inert_NAMEGF)6#Q\"yF)-I0_Inert_LOCALSEQGF)
+6#-F16#Q\"zF)-I1_Inert_OPTIONSEQGF)F)-I._Inert_EXPSEQGF)F)-I/_Inert_ST
+ATSEQGF)6$-F?6#-I._Inert_ASSIGNGF)6$-I-_Inert_LOCALGF)6#\"\"\"-I+_Iner
+t_SUMGF)6$-I._Inert_INTPOSGF)6#\"\"#-I-_Inert_PARAMGF)FH-F?6#-I._Inert
+_RETURNGF)6#FF-I6_Inert_DESCRIPTIONSEQGF)F)-I1_Inert_GLOBALSEQGF)F)-I2
+_Inert_LEXICALSEQGF)F)-I+_Inert_EOPGF)6#-F=6#FM/Q,ModuleApplyF)-F+6+F-
+-F56$F7-F16#Q#x1F)F:F<-F?6$-F?6$-FD6$FF-I0_Inert_FUNCTIONGF)6$-F16#F(-
+F=6#FQ-FD6$-FGFO-FK6$-FK6$FMFF-FN6#\"#5-F?6#-FV6#FepFXFZFfnFhn" }}
+{PARA 11 "" 1 "" {XPPMATH 20 "%#%?G" }}{PARA 11 "" 1 "" {XPPMATH 20 "6
+$Q%what6\"-I,_Inert_NAMEGF$6#Q%p1_1F$" }}{PARA 11 "" 1 "" {XPPMATH 20 
+">I#m2G6\"-I._Inert_MODDEFGF$6+-I0_Inert_PARAMSEQGF$6#-I,_Inert_NAMEGF
+$6#Q+thismoduleF$-I0_Inert_LOCALSEQGF$6#-F,6#Q%p1_1F$-I1_Inert_OPTIONS
+EQGF$F$-I1_Inert_EXPORTSEQGF$6#-F,6#Q,ModuleApplyF$-I/_Inert_STATSEQGF
+$6$-I._Inert_ASSIGNGF$6$-I-_Inert_LOCALGF$6#\"\"\"-I,_Inert_PROCGF$6+-
+F)6#-F,6#Q\"yF$-F06#-F,6#Q\"zF$F5-I._Inert_EXPSEQGF$F$-F>6$-F>6#-FA6$F
+C-I+_Inert_SUMGF$6$-I._Inert_INTPOSGF$6#\"\"#-I-_Inert_PARAMGF$FE-F>6#
+-I._Inert_RETURNGF$6#FC-I6_Inert_DESCRIPTIONSEQGF$F$-I1_Inert_GLOBALSE
+QGF$F$-I2_Inert_LEXICALSEQGF$F$-I+_Inert_EOPGF$6#-FU6#Fin-FA6$-FDF[o-F
+H6+FJ-F06$FQ-F,6#Q#x1F$F5FT-F>6$-F>6$-FA6$FC-I0_Inert_FUNCTIONGF$6$-I5
+_Inert_LEXICAL_LOCALGF$FE-FU6#F]o-FA6$Fap-Fgn6$-Fgn6$FinFC-Fjn6#\"#5-F
+>6#-Fbo6#FapFdoFfo-Fio6#-I3_Inert_LEXICALPAIRGF$6$F2FCFjoFdoFfoFhoFT" 
+}}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 22 "InertForms:-Print(m2);" }
+}{PARA 6 "" 1 "" {TEXT 210 6 "MODDEF" }{TEXT 210 4 "\n  " }{TEXT 210 
+8 "PARAMSEQ" }{TEXT 210 6 "\n    " }{TEXT 210 4 "NAME" }{TEXT 210 8 "
+\n      " }{TEXT 210 14 "\"thismodule\"" }{TEXT 210 4 "\n  " }{TEXT 
+210 8 "LOCALSEQ" }{TEXT 210 6 "\n    " }{TEXT 210 4 "NAME" }{TEXT 210 
+8 "\n      " }{TEXT 210 8 "\"p1_1\"" }{TEXT 210 4 "\n  " }{TEXT 210 9 
+"OPTIONSEQ" }{TEXT 210 4 "\n  " }{TEXT 210 9 "EXPORTSEQ" }{TEXT 210 6 
+"\n    " }{TEXT 210 4 "NAME" }{TEXT 210 8 "\n      " }{TEXT 210 15 "\"
+ModuleApply\"" }{TEXT 210 4 "\n  " }{TEXT 210 7 "STATSEQ" }{TEXT 210 
+6 "\n    " }{TEXT 210 6 "ASSIGN" }{TEXT 210 8 "\n      " }{TEXT 210 5 
+"LOCAL" }{TEXT 210 10 "\n        " }{TEXT 210 1 "1" }{TEXT 210 8 "\n  \+
+    " }{TEXT 210 4 "PROC" }{TEXT 210 10 "\n        " }{TEXT 210 8 "PAR
+AMSEQ" }{TEXT 210 12 "\n          " }{TEXT 210 4 "NAME" }{TEXT 210 14 
+"\n            " }{TEXT 210 5 "\"y\"" }{TEXT 210 10 "\n        " }
+{TEXT 210 8 "LOCALSEQ" }{TEXT 210 12 "\n          " }{TEXT 210 4 "NAME
+" }{TEXT 210 14 "\n            " }{TEXT 210 5 "\"z\"" }{TEXT 210 10 "
+\n        " }{TEXT 210 9 "OPTIONSEQ" }{TEXT 210 10 "\n        " }{TEXT
+ 210 6 "EXPSEQ" }{TEXT 210 10 "\n        " }{TEXT 210 7 "STATSEQ" }
+{TEXT 210 12 "\n          " }{TEXT 210 7 "STATSEQ" }{TEXT 210 14 "\n  \+
+          " }{TEXT 210 6 "ASSIGN" }{TEXT 210 16 "\n              " }
+{TEXT 210 5 "LOCAL" }{TEXT 210 18 "\n                " }{TEXT 210 1 "1
+" }{TEXT 210 16 "\n              " }{TEXT 210 3 "SUM" }{TEXT 210 18 "
+\n                " }{TEXT 210 6 "INTPOS" }{TEXT 210 20 "\n           \+
+       " }{TEXT 210 1 "2" }{TEXT 210 18 "\n                " }{TEXT 
+210 5 "PARAM" }{TEXT 210 20 "\n                  " }{TEXT 210 1 "1" }
+{TEXT 210 12 "\n          " }{TEXT 210 7 "STATSEQ" }{TEXT 210 14 "\n  \+
+          " }{TEXT 210 6 "RETURN" }{TEXT 210 16 "\n              " }
+{TEXT 210 5 "LOCAL" }{TEXT 210 18 "\n                " }{TEXT 210 1 "1
+" }{TEXT 210 10 "\n        " }{TEXT 210 14 "DESCRIPTIONSEQ" }{TEXT 
+210 10 "\n        " }{TEXT 210 9 "GLOBALSEQ" }{TEXT 210 10 "\n        \+
+" }{TEXT 210 10 "LEXICALSEQ" }{TEXT 210 10 "\n        " }{TEXT 210 3 "
+EOP" }{TEXT 210 12 "\n          " }{TEXT 210 6 "EXPSEQ" }{TEXT 210 14 
+"\n            " }{TEXT 210 6 "INTPOS" }{TEXT 210 16 "\n              \+
+" }{TEXT 210 1 "2" }{TEXT 210 6 "\n    " }{TEXT 210 6 "ASSIGN" }{TEXT 
+210 8 "\n      " }{TEXT 210 5 "LOCAL" }{TEXT 210 10 "\n        " }
+{TEXT 210 1 "2" }{TEXT 210 8 "\n      " }{TEXT 210 4 "PROC" }{TEXT 
+210 10 "\n        " }{TEXT 210 8 "PARAMSEQ" }{TEXT 210 12 "\n         \+
+ " }{TEXT 210 4 "NAME" }{TEXT 210 14 "\n            " }{TEXT 210 5 "\"
+y\"" }{TEXT 210 10 "\n        " }{TEXT 210 8 "LOCALSEQ" }{TEXT 210 12 
+"\n          " }{TEXT 210 4 "NAME" }{TEXT 210 14 "\n            " }
+{TEXT 210 5 "\"z\"" }{TEXT 210 12 "\n          " }{TEXT 210 4 "NAME" }
+{TEXT 210 14 "\n            " }{TEXT 210 6 "\"x1\"" }{TEXT 210 10 "\n \+
+       " }{TEXT 210 9 "OPTIONSEQ" }{TEXT 210 10 "\n        " }{TEXT 
+210 6 "EXPSEQ" }{TEXT 210 10 "\n        " }{TEXT 210 7 "STATSEQ" }
+{TEXT 210 12 "\n          " }{TEXT 210 7 "STATSEQ" }{TEXT 210 14 "\n  \+
+          " }{TEXT 210 6 "ASSIGN" }{TEXT 210 16 "\n              " }
+{TEXT 210 5 "LOCAL" }{TEXT 210 18 "\n                " }{TEXT 210 1 "1
+" }{TEXT 210 16 "\n              " }{TEXT 210 8 "FUNCTION" }{TEXT 210 
+18 "\n                " }{TEXT 210 13 "LEXICAL_LOCAL" }{TEXT 210 20 "
+\n                  " }{TEXT 210 1 "1" }{TEXT 210 18 "\n              \+
+  " }{TEXT 210 6 "EXPSEQ" }{TEXT 210 20 "\n                  " }{TEXT 
+210 5 "PARAM" }{TEXT 210 22 "\n                    " }{TEXT 210 1 "1" 
+}{TEXT 210 14 "\n            " }{TEXT 210 6 "ASSIGN" }{TEXT 210 16 "\n
+              " }{TEXT 210 5 "LOCAL" }{TEXT 210 18 "\n                \+
+" }{TEXT 210 1 "2" }{TEXT 210 16 "\n              " }{TEXT 210 3 "SUM"
+ }{TEXT 210 18 "\n                " }{TEXT 210 3 "SUM" }{TEXT 210 20 "
+\n                  " }{TEXT 210 6 "INTPOS" }{TEXT 210 22 "\n         \+
+           " }{TEXT 210 1 "2" }{TEXT 210 20 "\n                  " }
+{TEXT 210 5 "LOCAL" }{TEXT 210 22 "\n                    " }{TEXT 210 
+1 "1" }{TEXT 210 18 "\n                " }{TEXT 210 6 "INTPOS" }{TEXT 
+210 20 "\n                  " }{TEXT 210 2 "10" }{TEXT 210 12 "\n     \+
+     " }{TEXT 210 7 "STATSEQ" }{TEXT 210 14 "\n            " }{TEXT 
+210 6 "RETURN" }{TEXT 210 16 "\n              " }{TEXT 210 5 "LOCAL" }
+{TEXT 210 18 "\n                " }{TEXT 210 1 "2" }{TEXT 210 10 "\n  \+
+      " }{TEXT 210 14 "DESCRIPTIONSEQ" }{TEXT 210 10 "\n        " }
+{TEXT 210 9 "GLOBALSEQ" }{TEXT 210 10 "\n        " }{TEXT 210 10 "LEXI
+CALSEQ" }{TEXT 210 12 "\n          " }{TEXT 210 11 "LEXICALPAIR" }
+{TEXT 210 14 "\n            " }{TEXT 210 4 "NAME" }{TEXT 210 16 "\n   \+
+           " }{TEXT 210 8 "\"p1_1\"" }{TEXT 210 14 "\n            " }
+{TEXT 210 5 "LOCAL" }{TEXT 210 16 "\n              " }{TEXT 210 1 "1" 
+}{TEXT 210 10 "\n        " }{TEXT 210 3 "EOP" }{TEXT 210 12 "\n       \+
+   " }{TEXT 210 6 "EXPSEQ" }{TEXT 210 14 "\n            " }{TEXT 210 
+6 "INTPOS" }{TEXT 210 16 "\n              " }{TEXT 210 1 "2" }{TEXT 
+210 4 "\n  " }{TEXT 210 14 "DESCRIPTIONSEQ" }{TEXT 210 4 "\n  " }{TEXT
+ 210 9 "GLOBALSEQ" }{TEXT 210 4 "\n  " }{TEXT 210 10 "LEXICALSEQ" }
+{TEXT 210 4 "\n  " }{TEXT 210 6 "EXPSEQ" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 20 "m2 := FromInert(m2);" }}{PARA 11 "" 1 "" {XPPMATH 20 
+">I#m2G6\"b6#I+thismoduleGF$6#I%p1_1GF$F$6#I,ModuleApplyGF$C$>F)f*6#I
+\"yGF$6#I\"zGF$F$F$C$>F2,&\"\"#\"\"\"F0F7OF2F$F$F$>F+f*F/6$F2I#x1GF$F$
+F$C%>F2-F)F/>F<,&F2F7\"#7F7OF<F$F$6$F)8$F$F$F$F$" }}}{EXCHG {PARA 0 ">
+ " 0 "" {MPLTEXT 1 0 15 "m2 := eval(m2);" }}{PARA 11 "" 1 "" {XPPMATH 
+20 ">I#m2G6\"`6#I,ModuleApplyGF$b6#I+thismoduleGF$6#I%p1_1GF$F$F&F$F$F
+$F$I,_m136507128GF$F+" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 6 "m2(
+4);" }}{PARA 11 "" 1 "" {XPPMATH 20 "\"#=" }}}{EXCHG {PARA 0 "> " 0 ""
+ {MPLTEXT 1 0 13 "printmod(m2);" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q,M
+oduleApply6\"f*6#I\"yGF$6$I\"zGF$I#x1GF$F$F$C%>F)-I%p1_1GF$F&>F*,&F)\"
+\"\"\"#7F1OF*F$F$6$F.F." }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q%p1_16\"f*
+6#I\"yGF$6#I\"zGF$F$F$C$>F),&\"\"#\"\"\"F'F.OF)F$F$F$" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}}{SECT 1 {PARA 3 "" 0 "" {TEXT 
+209 2 "p5" }}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 9 "eval(p5);" }}
+{PARA 11 "" 1 "" {XPPMATH 20 "f*6%I\"xG6\"I\"yGF%I\"zGF%F%F%F%@'/F$F&O
+F$2\"#5-I#p1GF%6$F$F&OF&OF'F%F%F%" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 38 "m := PartiallyEvaluate(p6, [\"x\"=1]);" }}{PARA 11 ""
+ 1 "" {XPPMATH 20 ">I\"mG6\"-I._Inert_MODDEFGF$6+-I0_Inert_PARAMSEQGF$
+6#-I,_Inert_NAMEGF$6#Q+thismoduleF$-I0_Inert_LOCALSEQGF$6$-F,6#Q%p1_2F
+$-F,6#Q%p1_1F$-I1_Inert_OPTIONSEQGF$F$-I1_Inert_EXPORTSEQGF$6#-F,6#Q,M
+oduleApplyF$-I/_Inert_STATSEQGF$6%-I._Inert_ASSIGNGF$6$-I-_Inert_LOCAL
+GF$6#\"\"$-I,_Inert_PROCGF$6+-F)6#-F,6#Q\"yF$-F06$-F,6#Q#x2F$-F,6#Q#x1
+F$F8-I._Inert_EXPSEQGF$F$-FA6#-FA6$-FD6$-FG6#\"\"\"-I0_Inert_FUNCTIONG
+F$6$-I5_Inert_LEXICAL_LOCALGF$F]o-Fen6#-I-_Inert_PARAMGF$F]o-I*_Inert_
+IFGF$6$-I0_Inert_CONDPAIRGF$6$-I0_Inert_LESSTHANGF$6$-I._Inert_INTPOSG
+F$6#\"#5F\\o-FA6#-FA6$-FD6$-FG6#\"\"#-F`o6$-FcoF\\qFdo-Fio6$-F\\p6$-F_
+p6$-Fbp6#\"$+\"F[q-FA6#-FA6#-I._Inert_RETURNGF$6#-I._Inert_STRINGGF$6#
+Q1greater~than~100F$-FA6#-FA6#-F_r6#-Fbr6#Q.less~than~100F$-FA6#-FA6#-
+F_r6#-Fbr6#Q#noF$-I6_Inert_DESCRIPTIONSEQGF$F$-I1_Inert_GLOBALSEQGF$F$
+-I2_Inert_LEXICALSEQGF$6$-I3_Inert_LEXICALPAIRGF$6$F5F[q-F_t6$F2F\\o-I
++_Inert_EOPGF$6#-Fen6#-FbpF\\q-FD6$F\\o-FK6+FM-F06#-F,6#Q\"zF$F8FZ-FA6
+$-FA6#-FD6$F\\o-I+_Inert_SUMGF$6$-FbpF]oFfo-FA6#-F_r6#F\\oFgsFis-F\\tF
+$Fct-FD6$F[qF[uFgsFisF`vFZ" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 
+18 "m := FromInert(m);" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I\"mG6\"b6#I+
+thismoduleGF$6$I%p1_2GF$I%p1_1GF$F$6#I,ModuleApplyGF$C%>F,f*6#I\"yGF$6
+$I#x2GF$I#x1GF$F$F$C$>F3-F*F0@%2\"#5F3C$>F4-F)F0@%2\"$+\"F4OQ1greater~
+than~100F$OQ.less~than~100F$OQ#noF$F$F$6&F*8%F)8$>F)f*F06#I\"zGF$F$F$C
+$>FM,&F1\"\"\"FQFQOFMF$F$F$>F*FKF$F$F$F$" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 13 "m := eval(m);" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I\"mG
+6\"`6#I,ModuleApplyGF$b6#I+thismoduleGF$6$I%p1_2GF$I%p1_1GF$F$F&F$F$F$
+F$I,_m136643312GF$F+" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}
+}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 12 "printmod(m);" }}{PARA 11 ""
+ 1 "" {XPPMATH 20 "6$Q,ModuleApply6\"f*6#I\"yGF$6$I#x2GF$I#x1GF$F$F$C$
+>F)-I%p1_1GF$F&@%2\"#5F)C$>F*-I%p1_2GF$F&@%2\"$+\"F*OQ1greater~than~10
+0F$OQ.less~than~100F$OQ#noF$F$F$6&F.F.F5F5" }}{PARA 11 "" 1 "" 
+{XPPMATH 20 "6$Q%p1_26\"f*6#I\"yGF$6#I\"zGF$F$F$C$>F),&F'\"\"\"F-F-OF)
+F$F$F$" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q%p1_16\"f*6#I\"yGF$6#I\"zGF
+$F$F$C$>F),&F'\"\"\"F-F-OF)F$F$F$" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 7 "m(100);" }}{PARA 11 "" 1 "" {XPPMATH 20 "Q1greater~tha
+n~1006\"" }}}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 9 "eval(p8);" }}
+{PARA 11 "" 1 "" {XPPMATH 20 "f*6#'I\"xG6\"I(integerG%*protectedGF&F&F
+&C$@$-I%typeGF(6$F%F'O\"\"\"O\"\"!F&F&F&" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 18 "ToInert(eval(p8));" }}{PARA 11 "" 1 "" {XPPMATH 20 "-
+I,_Inert_PROCG6\"6+-I0_Inert_PARAMSEQGF$6#-I._Inert_DCOLONGF$6$-I,_Ine
+rt_NAMEGF$6#Q\"xF$-F-6$Q(integerF$-I1_Inert_ATTRIBUTEGF$6#-F-6$Q*prote
+ctedF$-F46#-F-6#F8-I0_Inert_LOCALSEQGF$F$-I1_Inert_OPTIONSEQGF$F$-I._I
+nert_EXPSEQGF$F$-I/_Inert_STATSEQGF$6$-I*_Inert_IFGF$6#-I0_Inert_CONDP
+AIRGF$6$-I0_Inert_FUNCTIONGF$6$-I4_Inert_ASSIGNEDNAMEGF$6%Q%typeF$Q%PR
+OCF$F3-FB6$-I-_Inert_PARAMGF$6#\"\"\"F0-FD6#-I._Inert_RETURNGF$6#-I._I
+nert_INTPOSGF$FX-Fgn6#-Fjn6#\"\"!-I6_Inert_DESCRIPTIONSEQGF$F$-I1_Iner
+t_GLOBALSEQGF$F$-I2_Inert_LEXICALSEQGF$F$-I+_Inert_EOPGF$6#-FBFhn" }}}
+{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 34 "m := PartiallyEvaluate(p8, [
+x=1]);" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q&what?6\"-I4_Inert_ASSIGNED
+NAMEGF$6%Q%typeF$Q%PROCF$-I1_Inert_ATTRIBUTEGF$6#-I,_Inert_NAMEGF$6$Q*
+protectedF$-F+6#-F.6#F0" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I\"mG6\"-I._
+Inert_MODDEFGF$6+-I0_Inert_PARAMSEQGF$6#-I,_Inert_NAMEGF$6#Q+thismodul
+eF$-I0_Inert_LOCALSEQGF$F$-I1_Inert_OPTIONSEQGF$F$-I1_Inert_EXPORTSEQG
+F$6#-F,6#Q,ModuleApplyF$-I/_Inert_STATSEQGF$6#-I._Inert_ASSIGNGF$6$-I-
+_Inert_LOCALGF$6#\"\"\"-I,_Inert_PROCGF$6+-F)F$F/F1-I._Inert_EXPSEQGF$
+F$-F:6$-F:6#-I*_Inert_IFGF$6#-I0_Inert_CONDPAIRGF$6$-I0_Inert_FUNCTION
+GF$6$-I4_Inert_ASSIGNEDNAMEGF$6%Q%typeF$Q%PROCF$-I1_Inert_ATTRIBUTEGF$
+6#-F,6$Q*protectedF$-Ffn6#-F,6#Fjn-FH6$-I._Inert_INTPOSGF$FA-F,6$Q(int
+egerF$Fen-F:6#-F:6#-I._Inert_RETURNGF$6#Fao-F:6#-F[p6#-Fbo6#\"\"!-I6_I
+nert_DESCRIPTIONSEQGF$F$-I1_Inert_GLOBALSEQGF$F$-I2_Inert_LEXICALSEQGF
+$F$-I+_Inert_EOPGF$6#-FHF\\pFdpFfpFhpFG" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 18 "m := FromInert(m);" }}{PARA 11 "" 1 "" {XPPMATH 20 ">
+I\"mG6\"b6#I+thismoduleGF$F$F$6#I,ModuleApplyGF$>F)f*F$F$F$F$C$@$-I%ty
+peG%*protectedG6$\"\"\"I(integerGF0OF2O\"\"!F$F$F$F$F$F$F$" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 4 "m();" }}{PARA 11 "" 1 "" {XPPMATH 20
+ "\"\"\"" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 7 "x := 4;" }}
+{PARA 11 "" 1 "" {XPPMATH 20 ">I\"xG6\"\"\"%" }}}{EXCHG {PARA 0 "> " 0
+ "" {MPLTEXT 1 0 13 "ToInert('x');" }}{PARA 11 "" 1 "" {XPPMATH 20 "-I
+4_Inert_ASSIGNEDNAMEG6\"6$Q\"xF$Q'INTPOSF$" }}}{EXCHG {PARA 0 "> " 0 "
+" {MPLTEXT 1 0 0 "" }}}}
 {MARK "0 0 0" 0 }{VIEWOPTS 1 1 0 1 1 1803 1 1 1 1 }{PAGENUMBERS 0 1 2 
 33 1 1 }

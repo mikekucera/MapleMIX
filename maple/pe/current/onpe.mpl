@@ -134,7 +134,7 @@ end proc;
 
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p::procedure, vallist::list(equation))::Or(moduledefinition, inert);
+PartiallyEvaluate := proc(p::procedure, vallist::list(equation))#::moduledefinition;
     # set up globals
     genVar := makeNameGenerator("x");
     genNum := makeNameGenerator("");
@@ -158,6 +158,7 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(equation))::Or(moduledefin
         EnvStack := 'EnvStack';
         # build a module from the global list of procs and return that
         return build_module(procName);
+        #return op(code);
     end use;
 end proc;
 
@@ -372,26 +373,32 @@ build_module := proc(n::string)::inert;
 
         # used to evaluate each name reference
         
-        processLocal := proc(localName)
+        processFuncCall := proc(n)
+            print("what?", n);
+            if getHeader(n) = _Inert_ASSIGNEDNAME then
+                return _Inert_FUNCTION(args);
+            end if;
+
+            localName := op(1, n); # strip off the _Inert_NAME
             if localName = n then
                 localIndex := nops(lexicalLocals) + 1;
             else
                 if not member(localName, locals, localIndex) then
-                    error(cat(localName, " is not a module local"));
+                    error(cat("'", localName, "' is not a module local"));
                 end if;                
             end if;
             
             if member(localName=localIndex, lexicalLocals, lexicalIndex) then
-                _Inert_LEXICAL_LOCAL(lexicalIndex);
+                subsop(1=_Inert_LEXICAL_LOCAL(lexicalIndex), _Inert_FUNCTION(args));
             else
                 lexicalLocals := [op(lexicalLocals), localName=localIndex];
-                _Inert_LEXICAL_LOCAL(nops(lexicalLocals));
+                subsop(1=_Inert_LEXICAL_LOCAL(nops(lexicalLocals)), _Inert_FUNCTION(args));
             end if;
             
         end proc;
         
         
-        body := eval(getProcBody(p), _Inert_NAME = processLocal);        
+        body := eval(getProcBody(p), _Inert_FUNCTION = processFuncCall);        
         
         f := proc(e)
             _Inert_LEXICALPAIR(_Inert_NAME(lhs(e)),_Inert_LOCAL(rhs(e)));
@@ -479,4 +486,12 @@ end proc;
 p7 := proc(x)
     return x;
     return x;
+end proc;
+
+
+p8 := proc(x::integer)
+    if type(x, integer) then 
+        return 1;
+    end if;
+    return 0;
 end proc;
