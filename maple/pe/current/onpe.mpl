@@ -131,17 +131,6 @@ end proc;
 
 ############################################################################
 
-# partially evaluates an arbitrary inert code
-peInert := proc(inert::inert) # returns inert code or NULL
-   local header;
-   header := getHeader(inert);
-   if assigned(pe[header]) then
-        pe[header](op(inert));
-   else
-        error(cat("not supported yet: ", op(0, inert)));
-   end if;
-end proc;
-
 
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
@@ -173,13 +162,24 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(equation))::Or(moduledefin
 end proc;
 
 
+# partially evaluates an arbitrary inert code
+peInert := proc(inert::inert) # returns inert code or NULL
+   local header;
+   header := getHeader(inert);
+   if assigned(pe[header]) then
+        pe[header](op(inert));
+   else
+        error(cat("not supported yet: ", op(0, inert)));
+   end if;
+end proc;
+
 
 # takes inert code and assumes static variables are on top of EnvStack
 peSpecializeProc := proc(inert::inert, n::string) #void
     env := EnvStack:-top();
     params := getParams(inert);
     locals := getLocals(inert);
-    body   := getProcBody(inert);
+    body   := getProcBody(inert); #body must be a STATSEQ
 
     #PRE-PROCESS, replace variable indices with names
     body := eval(body, [_Inert_PARAM = replace(params, _Inert_PARAM),
@@ -213,9 +213,21 @@ peExpression := proc(expr::inert, env)
 end proc;
 
 
-
+# map over statement sequences
 pe[_Inert_STATSEQ] := proc()
-    _Inert_STATSEQ(op(map(peInert, [args])));
+    q := SimpleQueue();
+    for i from 1 to nops([args]) do
+        res := peInert([args][i]);
+        q:-enqueue(res);
+
+        # if a return is encountered then stop processing
+        # may need a better solution in the future
+        if getHeader(res) = _Inert_RETURN or
+           (getHeader(res) = _Inert_STATSEQ and getHeader(op(nops(res),res)) = _Inert_RETURN) then
+            break;
+        end if;
+    end do;
+    _Inert_STATSEQ(op(q:-toList()));
 end proc;
 
 
@@ -278,7 +290,7 @@ end proc;
 pe[_Inert_RETURN] := proc(expr::inert)
     inertAssigns, reduced := peExpression(expr, EnvStack:-top());
     reduced := `if`(isExpStatic(reduced), ToInert(reduced), reduced);
-    _Inert_STATSEQ(op(inertAssigns), _Inert_RETURN(reduced));    
+    _Inert_STATSEQ(op(inertAssigns), _Inert_RETURN(reduced));
 end proc;
 
 
@@ -449,6 +461,8 @@ p5 := proc(x, y, z)
 end proc;
 
 
+
+
 p6 := proc(x, y)
     if p1(x,y) > 10 then
         if p1(x, y) > 100 then
@@ -459,4 +473,10 @@ p6 := proc(x, y)
     else
         return "no";
     end if;
+end proc;
+
+
+p7 := proc(x)
+    return x;
+    return x;
 end proc;
