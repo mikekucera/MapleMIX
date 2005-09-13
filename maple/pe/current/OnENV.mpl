@@ -12,7 +12,7 @@ OnENV := module()
             local valEnv, typeEnv, keyType,
                   getIndices, addSetProc, addProc;
             export addVal, putVal, addType, putType, addValSet, addTypeSet, getVals, getTypes, valIndices, typeIndices, 
-                   getVal,
+                   getVal, hasTypeInfo?,
                    fullyStatic?, fullyDynamic?, dynamic?, has?,
                    setDynamic, clone, combine, display;
             
@@ -102,6 +102,9 @@ OnENV := module()
             # returns true iff there exists a mapping for the given key
             has? := key -> not dynamic?(key);
             
+            # returns true if there exists a type environment mapping
+            hasTypeInfo? := key -> assigned(typeEnv[keyType(key)]);
+
             # deletes all information about the given variable
             setDynamic := proc(key)
                local n;

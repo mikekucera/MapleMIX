@@ -1,5 +1,6 @@
 
 read("types.mpl");
+read("inert.mpl");
 read("OnENV.mpl");
 read("strip_exp.mpl");
 read("eval_exp.mpl");
@@ -35,22 +36,11 @@ tagName := proc(tag, f)
 end proc;
 
 
-# for extracting subexpressions from inert procedures
-getParams   := proc(x) option inline; op(1,x) end proc;
-getLocals   := proc(x) option inline; op(2,x) end proc;
-getProcBody := proc(x) option inline; op(5,x) end proc;
-
-# for extracting subexpressions from inert statments
-getHeader := proc(x) option inline; op(0,x) end proc;
-getVal := proc(x) option inline; op(1,x) end proc;
-getParamName := proc(x) `if`(op(0,x)=_Inert_DCOLON, op(op(1,x)), op(x)) end proc;
-
-isExpDynamic := EvalExp:-isDynamic;
+isExpDynamic := isInert;
 isExpStatic  := `not` @ isExpDynamic;
 
 
 ##################################################################################
-
 
 
 # replaces params and local indices with their names
@@ -134,7 +124,7 @@ end proc;
 
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p::procedure, vallist::list(equation))#::moduledefinition;
+PartiallyEvaluate := proc(p::procedure, vallist::list(equation) := []) #::moduledefinition;
     # set up globals
     genVar := makeNameGenerator("x");
     genNum := makeNameGenerator("");
@@ -178,6 +168,7 @@ end proc;
 # takes inert code and assumes static variables are on top of EnvStack
 peSpecializeProc := proc(inert::inert, n::string) #void
     env := EnvStack:-top();
+
     params := getParams(inert);
     locals := getLocals(inert);
     body   := getProcBody(inert); #body must be a STATSEQ
@@ -234,14 +225,17 @@ end proc;
 
 # assumes nested function calls have already been stripped out of the argument expressions
 pe[_Inert_FUNCTION] := proc(n::inert(ASSIGNEDNAME))
-    # get the code for the actual function from the interpreter
-    inert := (ToInert @ eval @ convert)(op(1, n), name);
+    # get the code for the actual function from the underlying interpreter
+    inert := (ToInert @ eval @ convert)(getVal(n), name);
+
     if getHeader(inert) = _Inert_NAME then
         error("only defined functions are supported");
     end if;
+
     params := getParams(inert);
 
-    # new environments for called function, will contain static arg values
+    top := EnvStack:-top();
+    # new environment for called function, will contain static arg values
     env := OnENV:-NewOnENV();
 
     i := 0;
@@ -252,6 +246,10 @@ pe[_Inert_FUNCTION] := proc(n::inert(ASSIGNEDNAME))
             # put static argument value into environment
             env:-putVal(op(op(i, params)), reduced);
             NULL;
+        # this needs to work with any expressions, not just single variables
+        elif isInertVariable(reduced) and top:-hasTypeInfo?(getVal(reduced)) then
+            env:-addTypeSet(getVal(reduced), top:-getTypes(getVal(reduced)));
+            reduced;
         else
             reduced;
         end if;
@@ -314,14 +312,12 @@ pe[_Inert_IF] := proc()
 
     #env := EnvStack:-top();
 
-    peIfBanch := proc(ifbranch)
+    peIfBranch := proc(ifbranch)
         if finished then return NULL end if;
         EnvStack:-push(EnvStack:-top():-clone());
       
         if getHeader(ifbranch) = _Inert_CONDPAIR then
-            print("not here");
             inertAssigns, reduced := peExpression(op(1, ifbranch), EnvStack:-top());
-            print("here");
             if isExpDynamic(reduced) then
                 ifbody := peInert(op(2, ifbranch));
                 ifpart := _Inert_IF(_Inert_CONDPAIR(reduced, ifbody), 
@@ -489,9 +485,13 @@ p7 := proc(x)
 end proc;
 
 
-p8 := proc(x::integer)
+p8 := proc(x)
     if type(x, integer) then 
         return 1;
     end if;
     return 0;
+end proc;
+
+p9 := proc(x::integer)
+    return p8(x);
 end proc;

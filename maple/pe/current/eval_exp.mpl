@@ -5,7 +5,7 @@
 
 EvalExp := module()
     description "online expression reducer for use with online partial evaluator";
-    export reduce, isDynamic, allStatic;
+    export reduce, isDynamic,isStatic, allStatic;
     local complex, expseq, pureFunc, makeExpseqDynamic,
           naryOp, binOp, unOp, subsList, evalName;
 
@@ -37,23 +37,12 @@ EvalExp := module()
     ];
 
 
-    # this function could also be named isDynamic
-    isDynamic := proc(x)
-        member(op(0, x), 
-            {_Inert_SUM, _Inert_PROD,
-             _Inert_POWER, _Inert_CATENATE, _Inert_EQUATION, _Inert_LESSEQ,
-             _Inert_LESSTHAN, _Inert_IMPLIES, _Inert_AND, _Inert_OR, _Inert_XOR,
-             _Inert_NOT, _Inert_INTPOS, _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING,
-             _Inert_NAME,_Inert_COMPLEX, _Inert_EXPSEQ, _Inert_FUNCTION,        
-             _Inert_PARAM, _Inert_LOCAL,
-             _Tag_STATICEXPSEQ
-            });        
+    isDynamic := proc(x) option inline;
+        evalb(isInert(x) or getHeader(x) = _Tag_STATICEXPSEQ);
     end proc;
-
-
-    allStatic := proc(xs)
-        andmap(`not` @ isDynamic, xs)
-    end proc;
+    
+    isStatic := `not` @ isDynamic;
+    allStatic := xs -> andmap(isStatic, xs);
 
     
     binOp := proc(f, op)        
@@ -111,16 +100,33 @@ EvalExp := module()
     pureFunc := proc(env)
         proc(n, expseq)
             # special case for call to typechecking function
-            #if op(0, n) = _Inert_ASSIGNEDNAME and op(1, n) = "type" then
-            #    print("call to type");
+            if getHeader(n) = _Inert_ASSIGNEDNAME and getVal(n) = "type" and nops(expseq) = 2 then
+
+                arg1 := op(1, expseq);
+                typeExpr := FromInert(op(2, expseq));
+
+                if isStatic(arg1) then                # if the variable already reduced to a static value
+                    return type(arg1, typeExpr);
+                elif isInertVariable(arg1) and env:-hasTypeInfo?(getVal(arg1)) then
+                    types := env:-getTypes(getVal(arg1));
+                    try
+                        if andmap(subtype, types, typeExpr) then
+                            return true;
+                        elif andmap(`not` @ curry(subtype,typeExpr), types) then
+                            return false;
+                        end if;
+                    catch "mapped procedure":  # subtype might return FAIL, in which case generate residual code
+                        print("subtype failed", lastexception);
+                    end try;
+                end if;
             
-            if op(0,expseq) = _Tag_STATICEXPSEQ then # if all arguments are static then call the pure func
-                apply(convert(op(n), name), op(expseq));
-            else
-                #residualize
-                # perhaps all function calls should be split out of expressions, for unfolding
-                _Inert_FUNCTION(n, expseq);
+            elif getHeader(expseq) = _Tag_STATICEXPSEQ then # if all arguments are static then call the pure func
+                return apply(convert(op(n), name), op(expseq));
             end if;
+
+            #residualize
+            # perhaps all function calls should be split out of expressions, for unfolding
+            _Inert_FUNCTION(n, expseq);
         end proc;
     end proc;
 
@@ -130,7 +136,7 @@ EvalExp := module()
 
 
     # exported expression reducing function
-    reduce := proc(exp::inert, env) local residual;                
+    reduce := proc(exp::inert, env) local residual;
         residual := eval(exp, [op(subsList), 
                                _Inert_PARAM = evalName(env, _Inert_PARAM), 
                                _Inert_LOCAL = evalName(env, _Inert_LOCAL),
