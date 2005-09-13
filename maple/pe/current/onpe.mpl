@@ -45,7 +45,7 @@ getHeader := proc(x) option inline; op(0,x) end proc;
 getVal := proc(x) option inline; op(1,x) end proc;
 getParamName := proc(x) `if`(op(0,x)=_Inert_DCOLON, op(op(1,x)), op(x)) end proc;
 
-isExpDynamic := EvalExp:-isInert;
+isExpDynamic := EvalExp:-isDynamic;
 isExpStatic  := `not` @ isExpDynamic;
 
 
@@ -314,13 +314,14 @@ pe[_Inert_IF] := proc()
 
     #env := EnvStack:-top();
 
-    peIfBranch := proc(ifbranch)
+    peIfBanch := proc(ifbranch)
         if finished then return NULL end if;
         EnvStack:-push(EnvStack:-top():-clone());
       
         if getHeader(ifbranch) = _Inert_CONDPAIR then
+            print("not here");
             inertAssigns, reduced := peExpression(op(1, ifbranch), EnvStack:-top());
-
+            print("here");
             if isExpDynamic(reduced) then
                 ifbody := peInert(op(2, ifbranch));
                 ifpart := _Inert_IF(_Inert_CONDPAIR(reduced, ifbody), 
@@ -374,7 +375,6 @@ build_module := proc(n::string)::inert;
         # used to evaluate each name reference
         
         processFuncCall := proc(n)
-            print("what?", n);
             if getHeader(n) = _Inert_ASSIGNEDNAME then
                 return _Inert_FUNCTION(args);
             end if;

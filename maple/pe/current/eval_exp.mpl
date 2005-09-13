@@ -5,26 +5,26 @@
 
 EvalExp := module()
     description "online expression reducer for use with online partial evaluator";
-    export reduce, isInert, allStatic;
-    local complex, expseq, pure_func, make_expseq_dynamic,
-          nary_op, bin_op, un_op, subs_list;
+    export reduce, isDynamic, allStatic;
+    local complex, expseq, pureFunc, makeExpseqDynamic,
+          naryOp, binOp, unOp, subsList, evalName;
 
 
-    subs_list := [
-        _Inert_SUM       = nary_op(_Inert_SUM,  `+`),
-        _Inert_PROD      = nary_op(_Inert_PROD, `*`),
+    subsList := [
+        _Inert_SUM       = naryOp(_Inert_SUM,  `+`),
+        _Inert_PROD      = naryOp(_Inert_PROD, `*`),
           
-        _Inert_POWER     = bin_op(_Inert_POWER,    `^`),
-        _Inert_CATENATE  = bin_op(_Inert_CATENATE, `||`),
-        _Inert_EQUATION  = bin_op(_Inert_EQUATION, `=`),
-        _Inert_LESSEQ    = bin_op(_Inert_LESSEQ,   `<=`),
-        _Inert_LESSTHAN  = bin_op(_Inert_LESSTHAN, `<`),
-        _Inert_IMPLIES   = bin_op(_Inert_IMPLIES,  `implies`),
-        _Inert_AND       = bin_op(_Inert_AND, `and`),
-        _Inert_OR        = bin_op(_Inert_OR,  `or`),
-        _Inert_XOR       = bin_op(_Inert_XOR, `xor`),
+        _Inert_POWER     = binOp(_Inert_POWER,    `^`),
+        _Inert_CATENATE  = binOp(_Inert_CATENATE, `||`),
+        _Inert_EQUATION  = binOp(_Inert_EQUATION, `=`),
+        _Inert_LESSEQ    = binOp(_Inert_LESSEQ,   `<=`),
+        _Inert_LESSTHAN  = binOp(_Inert_LESSTHAN, `<`),
+        _Inert_IMPLIES   = binOp(_Inert_IMPLIES,  `implies`),
+        _Inert_AND       = binOp(_Inert_AND, `and`),
+        _Inert_OR        = binOp(_Inert_OR,  `or`),
+        _Inert_XOR       = binOp(_Inert_XOR, `xor`),
                   
-        _Inert_NOT       = un_op(_Inert_NOT, `not`),           
+        _Inert_NOT       = unOp(_Inert_NOT, `not`),           
             
         _Inert_INTPOS    = (x -> x), 
         _Inert_INTNEG    = (x -> -x),
@@ -32,36 +32,33 @@ EvalExp := module()
         _Inert_STRING    = (x -> x),
         
         _Inert_COMPLEX   = complex,
-        _Inert_EXPSEQ    = expseq,
-        _Inert_FUNCTION  = pure_func
+        _Inert_EXPSEQ    = expseq
+        #_Inert_FUNCTION  = pureFunc
     ];
 
 
     # this function could also be named isDynamic
-    isInert := proc(x) local res;
-        res := member(op(0, x), 
+    isDynamic := proc(x)
+        member(op(0, x), 
             {_Inert_SUM, _Inert_PROD,
              _Inert_POWER, _Inert_CATENATE, _Inert_EQUATION, _Inert_LESSEQ,
              _Inert_LESSTHAN, _Inert_IMPLIES, _Inert_AND, _Inert_OR, _Inert_XOR,
              _Inert_NOT, _Inert_INTPOS, _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING,
              _Inert_NAME,_Inert_COMPLEX, _Inert_EXPSEQ, _Inert_FUNCTION,        
-
              _Inert_PARAM, _Inert_LOCAL,
              _Tag_STATICEXPSEQ
-            });
-        return res;
+            });        
     end proc;
 
 
     allStatic := proc(xs)
-        andmap(x -> not isInert(x), xs)
+        andmap(`not` @ isDynamic, xs)
     end proc;
 
     
-    bin_op := proc(f, op)        
-        proc(x, y)
-            local inx, iny;
-            inx, iny := isInert(x), isInert(y);
+    binOp := proc(f, op)        
+        proc(x, y) local inx, iny;
+            inx, iny := isDynamic(x), isDynamic(y);
 
             if inx and iny then
                 f(x,y)
@@ -76,15 +73,10 @@ EvalExp := module()
     end proc;
     
     
-    un_op := proc(f, op)
-        x -> `if`(isInert(x), f(x), op(x))
-    end proc;
+    unOp   := (f, op) -> x -> `if`(isDynamic(x), f(x), op(x));
     
-    
-    nary_op := proc(f, op)
-        () -> foldl(bin_op(f,op), args[1], args[2..nargs])
-    end proc;
-    
+    naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
+
 
     complex := proc()
         if nargs = 1 then
@@ -105,41 +97,47 @@ EvalExp := module()
         if allStatic([args]) then
             _Tag_STATICEXPSEQ(args);
         else
-            make_expseq_dynamic(args);            
+            makeExpseqDynamic(args);            
         end if;
     end proc;
     
     
-    make_expseq_dynamic := proc()
-        _Inert_EXPSEQ(op(map(x -> `if`(isInert(x), x, ToInert(x)), [args]))); 
+    makeExpseqDynamic := proc()
+        _Inert_EXPSEQ(op(map(x -> `if`(isDynamic(x), x, ToInert(x)), [args]))); 
     end proc;
 
 
     # it will receive a reduced expression sequence
-    pure_func := proc(f, expseq)
-        if op(0,expseq) = _Tag_STATICEXPSEQ then # if all arguments are static then call the pure func
-            apply(convert(op(f), name), op(expseq));
-        else
-            #residualize
-            _Inert_FUNCTION(f, expseq);
-        end if;
-        
+    pureFunc := proc(env)
+        proc(n, expseq)
+            # special case for call to typechecking function
+            #if op(0, n) = _Inert_ASSIGNEDNAME and op(1, n) = "type" then
+            #    print("call to type");
+            
+            if op(0,expseq) = _Tag_STATICEXPSEQ then # if all arguments are static then call the pure func
+                apply(convert(op(n), name), op(expseq));
+            else
+                #residualize
+                # perhaps all function calls should be split out of expressions, for unfolding
+                _Inert_FUNCTION(n, expseq);
+            end if;
+        end proc;
     end proc;
 
-    reduce := proc(exp, env)
-        local eval_name, residual;
-        
-        if not isInert(exp) then
-            error("reduce_expr only works on Inert code");
-        end if;
 
-        eval_name := proc(f)
-            x -> `if`(env:-fullyStatic?(x), env:-getVal(x), f(x))
-        end proc;
-        
-        residual := eval(exp, [op(subs_list), _Inert_PARAM = eval_name(_Inert_PARAM), _Inert_LOCAL = eval_name(_Inert_LOCAL)]);
-        
-        return eval(residual, [_Tag_STATICEXPSEQ = make_expseq_dynamic]);
+    # evaluates static variables
+    evalName := (env, f) -> x -> `if`(env:-fullyStatic?(x), env:-getVal(x), f(x));
+
+
+    # exported expression reducing function
+    reduce := proc(exp::inert, env) local residual;                
+        residual := eval(exp, [op(subsList), 
+                               _Inert_PARAM = evalName(env, _Inert_PARAM), 
+                               _Inert_LOCAL = evalName(env, _Inert_LOCAL),
+                               _Inert_FUNCTION = pureFunc(env)
+                              ]);
+
+        eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic]);
     end proc;
     
 end module;
