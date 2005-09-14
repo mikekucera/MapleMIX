@@ -205,19 +205,19 @@ peExpression := proc(expr::inert, env)
 end proc;
 
 
+endsWithReturn := proc(stat::inert)
+    header := getHeader(stat);
+    `if`(header = _Inert_STATSEQ, procname(op(-1,stat)), evalb(header = _Inert_RETURN));    
+end proc;
+
+
 # map over statement sequences
 pe[_Inert_STATSEQ] := proc()
     q := SimpleQueue();
     for i from 1 to nops([args]) do
         res := peInert([args][i]);
         q:-enqueue(res);
-
-        # if a return is encountered then stop processing
-        # may need a better solution in the future
-        if getHeader(res) = _Inert_RETURN or
-           (getHeader(res) = _Inert_STATSEQ and getHeader(op(nops(res),res)) = _Inert_RETURN) then
-            break;
-        end if;
+        if endsWithReturn(res) then break end if;
     end do;
     _Inert_STATSEQ(op(q:-toList()));
 end proc;

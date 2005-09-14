@@ -68,36 +68,37 @@ talic Small202204207" -1 203 "Times" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }
 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Help Underlined Bold" -1 41 "
 Times" 1 12 0 0 0 1 1 1 2 2 2 2 0 0 0 1 }{CSTYLE "Hyperlink" -1 17 "Ti
 mes" 1 12 0 128 128 1 2 2 1 2 2 2 0 0 0 1 }{CSTYLE "2D Math Symbol 2" 
--1 16 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Plot Text" -1
- 28 "Times" 1 8 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "2D Math Italic S
-mall201" -1 206 "Times" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help
- Italic" -1 42 "Times" 1 12 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Outp
-ut Labels" -1 29 "Times" 1 8 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Hel
-p Heading" -1 26 "Times" 1 14 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "He
-lp Normal" -1 30 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "2D
- Comment" -1 18 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Hel
-p Maple Name" -1 35 "Times" 1 12 104 64 92 1 2 1 2 2 2 2 0 0 0 1 }
-{CSTYLE "2D Output" -1 20 "Times" 1 12 0 0 255 1 2 2 2 2 2 2 0 0 0 1 }
-{CSTYLE "Dictionary Hyperlink" -1 45 "Times" 1 12 147 0 15 1 2 2 1 2 2
- 2 0 0 0 1 }{CSTYLE "Help Emphasized" -1 22 "Times" 1 12 0 0 0 1 1 2 2
- 2 2 2 0 0 0 1 }{CSTYLE "Help Italic Bold" -1 40 "Times" 1 12 0 0 0 1 
-1 2 2 2 2 2 0 0 0 1 }{CSTYLE "LaTeX" -1 32 "Times" 1 12 0 0 0 1 2 2 2 
-2 2 2 0 0 0 1 }{CSTYLE "Help Menus" -1 36 "Times" 1 12 0 0 0 1 2 1 2 2
- 2 2 0 0 0 1 }{CSTYLE "2D Math Italic Small202204206" -1 207 "Times" 1
- 1 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "2D Math Italic Small202204" 
--1 208 "Times" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Prompt" -1 1 
-"Courier" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Help Underlined" 
--1 44 "Times" 1 12 0 0 0 1 2 2 1 2 2 2 0 0 0 1 }{CSTYLE "Help Underlin
-ed Italic" -1 43 "Times" 1 12 0 0 0 1 1 2 1 2 2 2 0 0 0 1 }{CSTYLE "2D
- Math Italic Small201203" -1 209 "Times" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0
- 1 }{CSTYLE "2D Math Bold" -1 5 "Times" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0
- 1 }{CSTYLE "2D Math Italic" -1 3 "Times" 1 12 0 0 0 1 1 2 2 2 2 2 0 0
- 0 1 }}
+-1 16 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "2D Math Itali
+c Small202205" -1 206 "Times" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE
+ "Plot Text" -1 28 "Times" 1 8 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "2
+D Math Italic Small201" -1 207 "Times" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0 1
+ }{CSTYLE "Help Italic" -1 42 "Times" 1 12 0 0 0 1 1 2 2 2 2 2 0 0 0 1
+ }{CSTYLE "Output Labels" -1 29 "Times" 1 8 0 0 0 1 2 2 2 2 2 2 0 0 0 
+1 }{CSTYLE "Help Heading" -1 26 "Times" 1 14 0 0 0 1 2 1 2 2 2 2 0 0 0
+ 1 }{CSTYLE "Help Normal" -1 30 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0
+ 1 }{CSTYLE "2D Comment" -1 18 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 
+1 }{CSTYLE "Help Maple Name" -1 35 "Times" 1 12 104 64 92 1 2 1 2 2 2 
+2 0 0 0 1 }{CSTYLE "2D Output" -1 20 "Times" 1 12 0 0 255 1 2 2 2 2 2 
+2 0 0 0 1 }{CSTYLE "Dictionary Hyperlink" -1 45 "Times" 1 12 147 0 15 
+1 2 2 1 2 2 2 0 0 0 1 }{CSTYLE "Help Emphasized" -1 22 "Times" 1 12 0 
+0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Italic Bold" -1 40 "Times" 1 
+12 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "LaTeX" -1 32 "Times" 1 12 0 0
+ 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Menus" -1 36 "Times" 1 12 0 0 
+0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "2D Math Italic Small202204" -1 208 "
+Times" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "2D Math Italic Small2
+02204206" -1 209 "Times" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Pro
+mpt" -1 1 "Courier" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Help Un
+derlined" -1 44 "Times" 1 12 0 0 0 1 2 2 1 2 2 2 0 0 0 1 }{CSTYLE "Hel
+p Underlined Italic" -1 43 "Times" 1 12 0 0 0 1 1 2 1 2 2 2 0 0 0 1 }
+{CSTYLE "2D Math Italic Small201203" -1 210 "Times" 1 1 0 0 0 1 1 2 2 
+2 2 2 0 0 0 1 }{CSTYLE "2D Math Bold" -1 5 "Times" 1 12 0 0 0 1 2 1 2 
+2 2 2 0 0 0 1 }{CSTYLE "2D Math Italic" -1 3 "Times" 1 12 0 0 0 1 1 2 
+2 2 2 2 0 0 0 1 }}
 {SECT 0 {EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 32 "restart: interface(w
 arnlevel=1):" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 52 "read(\"util
 s.mpl\"): read(\"onpe.mpl\"): with(OnPE);" }}{PARA 11 "" 1 "" 
 {XPPMATH 20 "7#I2PartiallyEvaluateG6\"" }}}{EXCHG {PARA 0 "> " 0 "" 
-{MPLTEXT 1 0 0 "" }}}{SECT 1 {PARA 3 "" 0 "" {TEXT 210 2 "p2" }}
+{MPLTEXT 1 0 0 "" }}}{SECT 1 {PARA 3 "" 0 "" {TEXT 211 2 "p2" }}
 {EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}{EXCHG {PARA 0 "> " 0 ""
  {MPLTEXT 1 0 35 "m2 := PartiallyEvaluate(p2, [x=2]);" }}{PARA 11 "" 1
  "" {XPPMATH 20 ">I#m2G6\"-I._Inert_MODDEFGF$6+-I0_Inert_PARAMSEQGF$6#
@@ -112,105 +113,128 @@ _Inert_DESCRIPTIONSEQGF$F$-I1_Inert_GLOBALSEQGF$F$-I2_Inert_LEXICALSEQ
 GF$6#-I3_Inert_LEXICALPAIRGF$6$F2Fin-I+_Inert_EOPGF$6#-FX6#F\\p-FA6$Fi
 n-FH6+FJ-F06#FQF5FW-F>6$-F>6#-FA6$Fin-Fho6$F\\pFco-F>6#-Fdp6#FinFfpFhp
 -F[qF$F`qFfpFhpFgrFW" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 22 "Ine
-rtForms:-Print(m2):" }}{PARA 6 "" 1 "" {TEXT 211 6 "MODDEF" }{TEXT 
-211 4 "\n  " }{TEXT 211 8 "PARAMSEQ" }{TEXT 211 6 "\n    " }{TEXT 211 
-4 "NAME" }{TEXT 211 8 "\n      " }{TEXT 211 14 "\"thismodule\"" }{TEXT
- 211 4 "\n  " }{TEXT 211 8 "LOCALSEQ" }{TEXT 211 6 "\n    " }{TEXT 
-211 4 "NAME" }{TEXT 211 8 "\n      " }{TEXT 211 8 "\"p1_1\"" }{TEXT 
-211 4 "\n  " }{TEXT 211 9 "OPTIONSEQ" }{TEXT 211 4 "\n  " }{TEXT 211 
-9 "EXPORTSEQ" }{TEXT 211 6 "\n    " }{TEXT 211 4 "NAME" }{TEXT 211 8 "
-\n      " }{TEXT 211 15 "\"ModuleApply\"" }{TEXT 211 4 "\n  " }{TEXT 
-211 7 "STATSEQ" }{TEXT 211 6 "\n    " }{TEXT 211 6 "ASSIGN" }{TEXT 
-211 8 "\n      " }{TEXT 211 5 "LOCAL" }{TEXT 211 10 "\n        " }
-{TEXT 211 1 "2" }{TEXT 211 8 "\n      " }{TEXT 211 4 "PROC" }{TEXT 
-211 10 "\n        " }{TEXT 211 8 "PARAMSEQ" }{TEXT 211 12 "\n         \+
- " }{TEXT 211 4 "NAME" }{TEXT 211 14 "\n            " }{TEXT 211 5 "\"
-y\"" }{TEXT 211 10 "\n        " }{TEXT 211 8 "LOCALSEQ" }{TEXT 211 12 
-"\n          " }{TEXT 211 4 "NAME" }{TEXT 211 14 "\n            " }
-{TEXT 211 5 "\"z\"" }{TEXT 211 12 "\n          " }{TEXT 211 4 "NAME" }
-{TEXT 211 14 "\n            " }{TEXT 211 6 "\"x1\"" }{TEXT 211 10 "\n \+
-       " }{TEXT 211 9 "OPTIONSEQ" }{TEXT 211 10 "\n        " }{TEXT 
-211 6 "EXPSEQ" }{TEXT 211 10 "\n        " }{TEXT 211 7 "STATSEQ" }
-{TEXT 211 12 "\n          " }{TEXT 211 7 "STATSEQ" }{TEXT 211 14 "\n  \+
-          " }{TEXT 211 6 "ASSIGN" }{TEXT 211 16 "\n              " }
-{TEXT 211 5 "LOCAL" }{TEXT 211 18 "\n                " }{TEXT 211 1 "1
-" }{TEXT 211 16 "\n              " }{TEXT 211 8 "FUNCTION" }{TEXT 211 
-18 "\n                " }{TEXT 211 13 "LEXICAL_LOCAL" }{TEXT 211 20 "
-\n                  " }{TEXT 211 1 "1" }{TEXT 211 18 "\n              \+
-  " }{TEXT 211 6 "EXPSEQ" }{TEXT 211 20 "\n                  " }{TEXT 
-211 5 "PARAM" }{TEXT 211 22 "\n                    " }{TEXT 211 1 "1" 
-}{TEXT 211 14 "\n            " }{TEXT 211 6 "ASSIGN" }{TEXT 211 16 "\n
-              " }{TEXT 211 5 "LOCAL" }{TEXT 211 18 "\n                \+
-" }{TEXT 211 1 "2" }{TEXT 211 16 "\n              " }{TEXT 211 3 "SUM"
- }{TEXT 211 18 "\n                " }{TEXT 211 3 "SUM" }{TEXT 211 20 "
-\n                  " }{TEXT 211 6 "INTPOS" }{TEXT 211 22 "\n         \+
-           " }{TEXT 211 1 "2" }{TEXT 211 20 "\n                  " }
-{TEXT 211 5 "LOCAL" }{TEXT 211 22 "\n                    " }{TEXT 211 
-1 "1" }{TEXT 211 18 "\n                " }{TEXT 211 6 "INTPOS" }{TEXT 
-211 20 "\n                  " }{TEXT 211 2 "10" }{TEXT 211 12 "\n     \+
-     " }{TEXT 211 7 "STATSEQ" }{TEXT 211 14 "\n            " }{TEXT 
-211 6 "RETURN" }{TEXT 211 16 "\n              " }{TEXT 211 5 "LOCAL" }
-{TEXT 211 18 "\n                " }{TEXT 211 1 "2" }{TEXT 211 10 "\n  \+
-      " }{TEXT 211 14 "DESCRIPTIONSEQ" }{TEXT 211 10 "\n        " }
-{TEXT 211 9 "GLOBALSEQ" }{TEXT 211 10 "\n        " }{TEXT 211 10 "LEXI
-CALSEQ" }{TEXT 211 12 "\n          " }{TEXT 211 11 "LEXICALPAIR" }
-{TEXT 211 14 "\n            " }{TEXT 211 4 "NAME" }{TEXT 211 16 "\n   \+
-           " }{TEXT 211 8 "\"p1_1\"" }{TEXT 211 14 "\n            " }
-{TEXT 211 5 "LOCAL" }{TEXT 211 16 "\n              " }{TEXT 211 1 "1" 
-}{TEXT 211 10 "\n        " }{TEXT 211 3 "EOP" }{TEXT 211 12 "\n       \+
-   " }{TEXT 211 6 "EXPSEQ" }{TEXT 211 14 "\n            " }{TEXT 211 
-6 "INTPOS" }{TEXT 211 16 "\n              " }{TEXT 211 1 "2" }{TEXT 
-211 6 "\n    " }{TEXT 211 6 "ASSIGN" }{TEXT 211 8 "\n      " }{TEXT 
-211 5 "LOCAL" }{TEXT 211 10 "\n        " }{TEXT 211 1 "1" }{TEXT 211 
-8 "\n      " }{TEXT 211 4 "PROC" }{TEXT 211 10 "\n        " }{TEXT 
-211 8 "PARAMSEQ" }{TEXT 211 12 "\n          " }{TEXT 211 4 "NAME" }
-{TEXT 211 14 "\n            " }{TEXT 211 5 "\"y\"" }{TEXT 211 10 "\n  \+
-      " }{TEXT 211 8 "LOCALSEQ" }{TEXT 211 12 "\n          " }{TEXT 
-211 4 "NAME" }{TEXT 211 14 "\n            " }{TEXT 211 5 "\"z\"" }
-{TEXT 211 10 "\n        " }{TEXT 211 9 "OPTIONSEQ" }{TEXT 211 10 "\n  \+
-      " }{TEXT 211 6 "EXPSEQ" }{TEXT 211 10 "\n        " }{TEXT 211 7 
-"STATSEQ" }{TEXT 211 12 "\n          " }{TEXT 211 7 "STATSEQ" }{TEXT 
-211 14 "\n            " }{TEXT 211 6 "ASSIGN" }{TEXT 211 16 "\n       \+
-       " }{TEXT 211 5 "LOCAL" }{TEXT 211 18 "\n                " }
-{TEXT 211 1 "1" }{TEXT 211 16 "\n              " }{TEXT 211 3 "SUM" }
-{TEXT 211 18 "\n                " }{TEXT 211 6 "INTPOS" }{TEXT 211 20 
-"\n                  " }{TEXT 211 1 "2" }{TEXT 211 18 "\n             \+
-   " }{TEXT 211 5 "PARAM" }{TEXT 211 20 "\n                  " }{TEXT 
-211 1 "1" }{TEXT 211 12 "\n          " }{TEXT 211 7 "STATSEQ" }{TEXT 
-211 14 "\n            " }{TEXT 211 6 "RETURN" }{TEXT 211 16 "\n       \+
-       " }{TEXT 211 5 "LOCAL" }{TEXT 211 18 "\n                " }
-{TEXT 211 1 "1" }{TEXT 211 10 "\n        " }{TEXT 211 14 "DESCRIPTIONS
-EQ" }{TEXT 211 10 "\n        " }{TEXT 211 9 "GLOBALSEQ" }{TEXT 211 10 
-"\n        " }{TEXT 211 10 "LEXICALSEQ" }{TEXT 211 10 "\n        " }
-{TEXT 211 3 "EOP" }{TEXT 211 12 "\n          " }{TEXT 211 6 "EXPSEQ" }
-{TEXT 211 14 "\n            " }{TEXT 211 6 "INTPOS" }{TEXT 211 16 "\n \+
-             " }{TEXT 211 1 "2" }{TEXT 211 4 "\n  " }{TEXT 211 14 "DES
-CRIPTIONSEQ" }{TEXT 211 4 "\n  " }{TEXT 211 9 "GLOBALSEQ" }{TEXT 211 
-4 "\n  " }{TEXT 211 10 "LEXICALSEQ" }{TEXT 211 4 "\n  " }{TEXT 211 6 "
-EXPSEQ" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 20 "m2 := FromInert(m
-2);" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I#m2G6\"b6#I+thismoduleGF$6#I%p1
-_1GF$F$6#I,ModuleApplyGF$C$>F)f*6#I\"yGF$6#I\"zGF$F$F$C$>F2,&\"\"#\"\"
-\"F0F7OF2F$F$F$>F+f*F/6$I#x1GF$F2F$F$C%>F<-F)F/>F2,&F<F7\"#7F7F8F$F$6$
-F)8$F$F$F$F$" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 15 "m2 := eval(
-m2);" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I#m2G6\"`6#I,ModuleApplyGF$b6#I
-+thismoduleGF$6#I%p1_1GF$F$F&F$F$F$F$I,_m136359076GF$F+" }}}{EXCHG 
-{PARA 0 "> " 0 "" {MPLTEXT 1 0 6 "m2(4);" }}{PARA 11 "" 1 "" {XPPMATH 
-20 "\"#=" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 13 "printmod(m2);" 
-}}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q,ModuleApply6\"f*6#I\"yGF$6$I#x1GF$
-I\"zGF$F$F$C%>F)-I%p1_1GF$F&>F*,&F)\"\"\"\"#7F1OF*F$F$6$F.F." }}{PARA 
-11 "" 1 "" {XPPMATH 20 "6$Q%p1_16\"f*6#I\"yGF$6#I\"zGF$F$F$C$>F),&\"\"
-#\"\"\"F'F.OF)F$F$F$" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}
-}}{SECT 1 {PARA 3 "" 0 "" {TEXT 210 2 "p5" }}{EXCHG {PARA 0 "> " 0 "" 
-{MPLTEXT 1 0 9 "eval(p5);" }}{PARA 11 "" 1 "" {XPPMATH 20 "f*6%I\"xG6
-\"I\"yGF%I\"zGF%F%F%F%@'/F$F&OF$2\"#5-I#p1GF%6$F$F&OF&OF'F%F%F%" }}}
-{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 38 "m := PartiallyEvaluate(p6, [
-\"x\"=1]);" }}{PARA 11 "" 1 "" {XPPMATH 20 "Q)not~here6\"" }}{PARA 11 
-"" 1 "" {XPPMATH 20 "Q%here6\"" }}{PARA 11 "" 1 "" {XPPMATH 20 "Q)not~
-here6\"" }}{PARA 11 "" 1 "" {XPPMATH 20 "Q%here6\"" }}{PARA 11 "" 1 ""
- {XPPMATH 20 ">I\"mG6\"-I._Inert_MODDEFGF$6+-I0_Inert_PARAMSEQGF$6#-I,
-_Inert_NAMEGF$6#Q+thismoduleF$-I0_Inert_LOCALSEQGF$6$-F,6#Q%p1_2F$-F,6
-#Q%p1_1F$-I1_Inert_OPTIONSEQGF$F$-I1_Inert_EXPORTSEQGF$6#-F,6#Q,Module
-ApplyF$-I/_Inert_STATSEQGF$6%-I._Inert_ASSIGNGF$6$-I-_Inert_LOCALGF$6#
+rtForms:-Print(m2):" }}{PARA 6 "" 1 "" {TEXT 212 6 "MODDEF" }{TEXT 
+212 2 "\n" }{TEXT 212 2 "  " }{TEXT 212 8 "PARAMSEQ" }{TEXT 212 2 "\n"
+ }{TEXT 212 4 "    " }{TEXT 212 4 "NAME" }{TEXT 212 2 "\n" }{TEXT 212 
+6 "      " }{TEXT 212 14 "\"thismodule\"" }{TEXT 212 2 "\n" }{TEXT 
+212 2 "  " }{TEXT 212 8 "LOCALSEQ" }{TEXT 212 2 "\n" }{TEXT 212 4 "   \+
+ " }{TEXT 212 4 "NAME" }{TEXT 212 2 "\n" }{TEXT 212 6 "      " }{TEXT 
+212 8 "\"p1_1\"" }{TEXT 212 2 "\n" }{TEXT 212 2 "  " }{TEXT 212 9 "OPT
+IONSEQ" }{TEXT 212 2 "\n" }{TEXT 212 2 "  " }{TEXT 212 9 "EXPORTSEQ" }
+{TEXT 212 2 "\n" }{TEXT 212 4 "    " }{TEXT 212 4 "NAME" }{TEXT 212 2 
+"\n" }{TEXT 212 6 "      " }{TEXT 212 15 "\"ModuleApply\"" }{TEXT 212 
+2 "\n" }{TEXT 212 2 "  " }{TEXT 212 7 "STATSEQ" }{TEXT 212 2 "\n" }
+{TEXT 212 4 "    " }{TEXT 212 6 "ASSIGN" }{TEXT 212 2 "\n" }{TEXT 212 
+6 "      " }{TEXT 212 5 "LOCAL" }{TEXT 212 2 "\n" }{TEXT 212 8 "      \+
+  " }{TEXT 212 1 "2" }{TEXT 212 2 "\n" }{TEXT 212 6 "      " }{TEXT 
+212 4 "PROC" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }{TEXT 212 8 "P
+ARAMSEQ" }{TEXT 212 2 "\n" }{TEXT 212 10 "          " }{TEXT 212 4 "NA
+ME" }{TEXT 212 2 "\n" }{TEXT 212 12 "            " }{TEXT 212 5 "\"y\"
+" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }{TEXT 212 8 "LOCALSEQ" }
+{TEXT 212 2 "\n" }{TEXT 212 10 "          " }{TEXT 212 4 "NAME" }{TEXT
+ 212 2 "\n" }{TEXT 212 12 "            " }{TEXT 212 5 "\"z\"" }{TEXT 
+212 2 "\n" }{TEXT 212 10 "          " }{TEXT 212 4 "NAME" }{TEXT 212 
+2 "\n" }{TEXT 212 12 "            " }{TEXT 212 6 "\"x1\"" }{TEXT 212 
+2 "\n" }{TEXT 212 8 "        " }{TEXT 212 9 "OPTIONSEQ" }{TEXT 212 2 "
+\n" }{TEXT 212 8 "        " }{TEXT 212 6 "EXPSEQ" }{TEXT 212 2 "\n" }
+{TEXT 212 8 "        " }{TEXT 212 7 "STATSEQ" }{TEXT 212 2 "\n" }{TEXT
+ 212 10 "          " }{TEXT 212 7 "STATSEQ" }{TEXT 212 2 "\n" }{TEXT 
+212 12 "            " }{TEXT 212 6 "ASSIGN" }{TEXT 212 2 "\n" }{TEXT 
+212 14 "              " }{TEXT 212 5 "LOCAL" }{TEXT 212 2 "\n" }{TEXT 
+212 16 "                " }{TEXT 212 1 "1" }{TEXT 212 2 "\n" }{TEXT 
+212 14 "              " }{TEXT 212 8 "FUNCTION" }{TEXT 212 2 "\n" }
+{TEXT 212 16 "                " }{TEXT 212 13 "LEXICAL_LOCAL" }{TEXT 
+212 2 "\n" }{TEXT 212 18 "                  " }{TEXT 212 1 "1" }{TEXT 
+212 2 "\n" }{TEXT 212 16 "                " }{TEXT 212 6 "EXPSEQ" }
+{TEXT 212 2 "\n" }{TEXT 212 18 "                  " }{TEXT 212 5 "PARA
+M" }{TEXT 212 2 "\n" }{TEXT 212 20 "                    " }{TEXT 212 
+1 "1" }{TEXT 212 2 "\n" }{TEXT 212 12 "            " }{TEXT 212 6 "ASS
+IGN" }{TEXT 212 2 "\n" }{TEXT 212 14 "              " }{TEXT 212 5 "LO
+CAL" }{TEXT 212 2 "\n" }{TEXT 212 16 "                " }{TEXT 212 1 "
+2" }{TEXT 212 2 "\n" }{TEXT 212 14 "              " }{TEXT 212 3 "SUM"
+ }{TEXT 212 2 "\n" }{TEXT 212 16 "                " }{TEXT 212 3 "SUM"
+ }{TEXT 212 2 "\n" }{TEXT 212 18 "                  " }{TEXT 212 6 "IN
+TPOS" }{TEXT 212 2 "\n" }{TEXT 212 20 "                    " }{TEXT 
+212 1 "2" }{TEXT 212 2 "\n" }{TEXT 212 18 "                  " }{TEXT 
+212 5 "LOCAL" }{TEXT 212 2 "\n" }{TEXT 212 20 "                    " }
+{TEXT 212 1 "1" }{TEXT 212 2 "\n" }{TEXT 212 16 "                " }
+{TEXT 212 6 "INTPOS" }{TEXT 212 2 "\n" }{TEXT 212 18 "                \+
+  " }{TEXT 212 2 "10" }{TEXT 212 2 "\n" }{TEXT 212 10 "          " }
+{TEXT 212 7 "STATSEQ" }{TEXT 212 2 "\n" }{TEXT 212 12 "            " }
+{TEXT 212 6 "RETURN" }{TEXT 212 2 "\n" }{TEXT 212 14 "              " 
+}{TEXT 212 5 "LOCAL" }{TEXT 212 2 "\n" }{TEXT 212 16 "                \+
+" }{TEXT 212 1 "2" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }{TEXT 
+212 14 "DESCRIPTIONSEQ" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }
+{TEXT 212 9 "GLOBALSEQ" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }
+{TEXT 212 10 "LEXICALSEQ" }{TEXT 212 2 "\n" }{TEXT 212 10 "          "
+ }{TEXT 212 11 "LEXICALPAIR" }{TEXT 212 2 "\n" }{TEXT 212 12 "        \+
+    " }{TEXT 212 4 "NAME" }{TEXT 212 2 "\n" }{TEXT 212 14 "           \+
+   " }{TEXT 212 8 "\"p1_1\"" }{TEXT 212 2 "\n" }{TEXT 212 12 "        \+
+    " }{TEXT 212 5 "LOCAL" }{TEXT 212 2 "\n" }{TEXT 212 14 "          \+
+    " }{TEXT 212 1 "1" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }
+{TEXT 212 3 "EOP" }{TEXT 212 2 "\n" }{TEXT 212 10 "          " }{TEXT 
+212 6 "EXPSEQ" }{TEXT 212 2 "\n" }{TEXT 212 12 "            " }{TEXT 
+212 6 "INTPOS" }{TEXT 212 2 "\n" }{TEXT 212 14 "              " }{TEXT
+ 212 1 "2" }{TEXT 212 2 "\n" }{TEXT 212 4 "    " }{TEXT 212 6 "ASSIGN"
+ }{TEXT 212 2 "\n" }{TEXT 212 6 "      " }{TEXT 212 5 "LOCAL" }{TEXT 
+212 2 "\n" }{TEXT 212 8 "        " }{TEXT 212 1 "1" }{TEXT 212 2 "\n" 
+}{TEXT 212 6 "      " }{TEXT 212 4 "PROC" }{TEXT 212 2 "\n" }{TEXT 
+212 8 "        " }{TEXT 212 8 "PARAMSEQ" }{TEXT 212 2 "\n" }{TEXT 212 
+10 "          " }{TEXT 212 4 "NAME" }{TEXT 212 2 "\n" }{TEXT 212 12 " \+
+           " }{TEXT 212 5 "\"y\"" }{TEXT 212 2 "\n" }{TEXT 212 8 "    \+
+    " }{TEXT 212 8 "LOCALSEQ" }{TEXT 212 2 "\n" }{TEXT 212 10 "       \+
+   " }{TEXT 212 4 "NAME" }{TEXT 212 2 "\n" }{TEXT 212 12 "            \+
+" }{TEXT 212 5 "\"z\"" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }
+{TEXT 212 9 "OPTIONSEQ" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }
+{TEXT 212 6 "EXPSEQ" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }{TEXT 
+212 7 "STATSEQ" }{TEXT 212 2 "\n" }{TEXT 212 10 "          " }{TEXT 
+212 7 "STATSEQ" }{TEXT 212 2 "\n" }{TEXT 212 12 "            " }{TEXT 
+212 6 "ASSIGN" }{TEXT 212 2 "\n" }{TEXT 212 14 "              " }{TEXT
+ 212 5 "LOCAL" }{TEXT 212 2 "\n" }{TEXT 212 16 "                " }
+{TEXT 212 1 "1" }{TEXT 212 2 "\n" }{TEXT 212 14 "              " }
+{TEXT 212 3 "SUM" }{TEXT 212 2 "\n" }{TEXT 212 16 "                " }
+{TEXT 212 6 "INTPOS" }{TEXT 212 2 "\n" }{TEXT 212 18 "                \+
+  " }{TEXT 212 1 "2" }{TEXT 212 2 "\n" }{TEXT 212 16 "                \+
+" }{TEXT 212 5 "PARAM" }{TEXT 212 2 "\n" }{TEXT 212 18 "              \+
+    " }{TEXT 212 1 "1" }{TEXT 212 2 "\n" }{TEXT 212 10 "          " }
+{TEXT 212 7 "STATSEQ" }{TEXT 212 2 "\n" }{TEXT 212 12 "            " }
+{TEXT 212 6 "RETURN" }{TEXT 212 2 "\n" }{TEXT 212 14 "              " 
+}{TEXT 212 5 "LOCAL" }{TEXT 212 2 "\n" }{TEXT 212 16 "                \+
+" }{TEXT 212 1 "1" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }{TEXT 
+212 14 "DESCRIPTIONSEQ" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }
+{TEXT 212 9 "GLOBALSEQ" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }
+{TEXT 212 10 "LEXICALSEQ" }{TEXT 212 2 "\n" }{TEXT 212 8 "        " }
+{TEXT 212 3 "EOP" }{TEXT 212 2 "\n" }{TEXT 212 10 "          " }{TEXT 
+212 6 "EXPSEQ" }{TEXT 212 2 "\n" }{TEXT 212 12 "            " }{TEXT 
+212 6 "INTPOS" }{TEXT 212 2 "\n" }{TEXT 212 14 "              " }{TEXT
+ 212 1 "2" }{TEXT 212 2 "\n" }{TEXT 212 2 "  " }{TEXT 212 14 "DESCRIPT
+IONSEQ" }{TEXT 212 2 "\n" }{TEXT 212 2 "  " }{TEXT 212 9 "GLOBALSEQ" }
+{TEXT 212 2 "\n" }{TEXT 212 2 "  " }{TEXT 212 10 "LEXICALSEQ" }{TEXT 
+212 2 "\n" }{TEXT 212 2 "  " }{TEXT 212 6 "EXPSEQ" }}}{EXCHG {PARA 0 "
+> " 0 "" {MPLTEXT 1 0 20 "m2 := FromInert(m2);" }}{PARA 11 "" 1 "" 
+{XPPMATH 20 ">I#m2G6\"b6#I+thismoduleGF$6#I%p1_1GF$F$6#I,ModuleApplyGF
+$C$>F)f*6#I\"yGF$6#I\"zGF$F$F$C$>F2,&\"\"#\"\"\"F0F7OF2F$F$F$>F+f*F/6$
+I#x1GF$F2F$F$C%>F<-F)F/>F2,&F<F7\"#7F7F8F$F$6$F)8$F$F$F$F$" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 15 "m2 := eval(m2);" }}{PARA 11 "" 1 ""
+ {XPPMATH 20 ">I#m2G6\"`6#I,ModuleApplyGF$b6#I+thismoduleGF$6#I%p1_1GF
+$F$F&F$F$F$F$I,_m136359076GF$F+" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 
+1 0 6 "m2(4);" }}{PARA 11 "" 1 "" {XPPMATH 20 "\"#=" }}}{EXCHG {PARA 0
+ "> " 0 "" {MPLTEXT 1 0 13 "printmod(m2);" }}{PARA 11 "" 1 "" 
+{XPPMATH 20 "6$Q,ModuleApply6\"f*6#I\"yGF$6$I#x1GF$I\"zGF$F$F$C%>F)-I%
+p1_1GF$F&>F*,&F)\"\"\"\"#7F1OF*F$F$6$F.F." }}{PARA 11 "" 1 "" 
+{XPPMATH 20 "6$Q%p1_16\"f*6#I\"yGF$6#I\"zGF$F$F$C$>F),&\"\"#\"\"\"F'F.
+OF)F$F$F$" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}}{SECT 1 
+{PARA 3 "" 0 "" {TEXT 211 2 "p5" }}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 
+1 0 9 "eval(p5);" }}{PARA 11 "" 1 "" {XPPMATH 20 "f*6%I\"xG6\"I\"yGF%I
+\"zGF%F%F%F%@'/F$F&OF$2\"#5-I#p1GF%6$F$F&OF&OF'F%F%F%" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 38 "m := PartiallyEvaluate(p6, [\"x\"=1
+]);" }}{PARA 11 "" 1 "" {XPPMATH 20 "Q)not~here6\"" }}{PARA 11 "" 1 ""
+ {XPPMATH 20 "Q%here6\"" }}{PARA 11 "" 1 "" {XPPMATH 20 "Q)not~here6\"
+" }}{PARA 11 "" 1 "" {XPPMATH 20 "Q%here6\"" }}{PARA 11 "" 1 "" 
+{XPPMATH 20 ">I\"mG6\"-I._Inert_MODDEFGF$6+-I0_Inert_PARAMSEQGF$6#-I,_
+Inert_NAMEGF$6#Q+thismoduleF$-I0_Inert_LOCALSEQGF$6$-F,6#Q%p1_2F$-F,6#
+Q%p1_1F$-I1_Inert_OPTIONSEQGF$F$-I1_Inert_EXPORTSEQGF$6#-F,6#Q,ModuleA
+pplyF$-I/_Inert_STATSEQGF$6%-I._Inert_ASSIGNGF$6$-I-_Inert_LOCALGF$6#
 \"\"\"-I,_Inert_PROCGF$6+-F)6#-F,6#Q\"yF$-F06#-F,6#Q\"zF$F8-I._Inert_E
 XPSEQGF$F$-FA6$-FA6#-FD6$FF-I+_Inert_SUMGF$6$-I._Inert_INTPOSGF$FH-I-_
 Inert_PARAMGF$FH-FA6#-I._Inert_RETURNGF$6#FF-I6_Inert_DESCRIPTIONSEQGF
@@ -253,17 +277,81 @@ UNCTIONGF$6$-I5_Inert_LEXICAL_LOCALGF$Fgo-F_o6#-I-_Inert_PARAMGF$Fgo-I
 ._Inert_RETURNGF$6#Ffo-I6_Inert_DESCRIPTIONSEQGF$F$-I1_Inert_GLOBALSEQ
 GF$F$-I2_Inert_LEXICALSEQGF$6#-I3_Inert_LEXICALPAIRGF$6$F2Ffo-I+_Inert
 _EOPGF$6#-F_o6#-I._Inert_INTPOSGF$Fgo-FA6$Ffo-FH6+-F)6#FO-F0F$F5F^o-F>
-6$-F>6#-F>6#-F>6#-FcpFcq-F>6#-Fcp6#-Feq6#\"\"!FepFgp-FjpF$F_qFepFgpF]s
-F^o" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 22 "#InertForms:-Print(m
-);" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 18 "m := FromInert(m);" }
-}{PARA 11 "" 1 "" {XPPMATH 20 ">I\"mG6\"b6#I+thismoduleGF$6#I%p8_1GF$F
-$6#I,ModuleApplyGF$C$>F+f*6#'I\"xGF$I(integerG%*protectedG6#I#x1GF$F$F
-$C$>F5-F)6#F1OF5F$F$6$F)8$>F)f*F9F$F$F$C$O\"\"\"O\"\"!F$F$F$F$F$F$F$" 
-}}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 18 "printmod(eval(m));" }}
-{PARA 11 "" 1 "" {XPPMATH 20 "6$Q,ModuleApply6\"f*6#'I\"xGF$I(integerG
-%*protectedG6#I#x1GF$F$F$C$>F,-I%p8_1GF$6#F(OF,F$F$6$F0F0" }}{PARA 11 
-"" 1 "" {XPPMATH 20 "6$Q%p8_16\"f*6#I\"xGF$F$F$F$C$O\"\"\"O\"\"!F$F$F$
-" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}{EXCHG {PARA 0 "> "
- 0 "" {MPLTEXT 1 0 0 "" }}}}
+6#-F>6#-F>6#-F>6#-FcpFcqFepFgp-FjpF$F_qFepFgpFfrF^o" }}}{EXCHG {PARA 0
+ "> " 0 "" {MPLTEXT 1 0 21 "InertForms:-Print(m);" }}{PARA 6 "" 1 "" 
+{TEXT 212 6 "MODDEF" }{TEXT 212 4 "\n  " }{TEXT 212 8 "PARAMSEQ" }
+{TEXT 212 6 "\n    " }{TEXT 212 4 "NAME" }{TEXT 212 8 "\n      " }
+{TEXT 212 14 "\"thismodule\"" }{TEXT 212 4 "\n  " }{TEXT 212 8 "LOCALS
+EQ" }{TEXT 212 6 "\n    " }{TEXT 212 4 "NAME" }{TEXT 212 8 "\n      " 
+}{TEXT 212 8 "\"p8_1\"" }{TEXT 212 4 "\n  " }{TEXT 212 9 "OPTIONSEQ" }
+{TEXT 212 4 "\n  " }{TEXT 212 9 "EXPORTSEQ" }{TEXT 212 6 "\n    " }
+{TEXT 212 4 "NAME" }{TEXT 212 8 "\n      " }{TEXT 212 15 "\"ModuleAppl
+y\"" }{TEXT 212 4 "\n  " }{TEXT 212 7 "STATSEQ" }{TEXT 212 6 "\n    " 
+}{TEXT 212 6 "ASSIGN" }{TEXT 212 8 "\n      " }{TEXT 212 5 "LOCAL" }
+{TEXT 212 10 "\n        " }{TEXT 212 1 "2" }{TEXT 212 8 "\n      " }
+{TEXT 212 4 "PROC" }{TEXT 212 10 "\n        " }{TEXT 212 8 "PARAMSEQ" 
+}{TEXT 212 12 "\n          " }{TEXT 212 6 "DCOLON" }{TEXT 212 14 "\n  \+
+          " }{TEXT 212 4 "NAME" }{TEXT 212 16 "\n              " }
+{TEXT 212 5 "\"x\"" }{TEXT 212 14 "\n            " }{TEXT 212 4 "NAME"
+ }{TEXT 212 16 "\n              " }{TEXT 212 11 "\"integer\"" }{TEXT 
+212 16 "\n              " }{TEXT 212 9 "ATTRIBUTE" }{TEXT 212 18 "\n  \+
+              " }{TEXT 212 4 "NAME" }{TEXT 212 20 "\n                 \+
+ " }{TEXT 212 13 "\"protected\"" }{TEXT 212 20 "\n                  " 
+}{TEXT 212 9 "ATTRIBUTE" }{TEXT 212 22 "\n                    " }{TEXT
+ 212 4 "NAME" }{TEXT 212 24 "\n                      " }{TEXT 212 13 "
+\"protected\"" }{TEXT 212 10 "\n        " }{TEXT 212 8 "LOCALSEQ" }
+{TEXT 212 12 "\n          " }{TEXT 212 4 "NAME" }{TEXT 212 14 "\n     \+
+       " }{TEXT 212 6 "\"x1\"" }{TEXT 212 10 "\n        " }{TEXT 212 
+9 "OPTIONSEQ" }{TEXT 212 10 "\n        " }{TEXT 212 6 "EXPSEQ" }{TEXT 
+212 10 "\n        " }{TEXT 212 7 "STATSEQ" }{TEXT 212 12 "\n          \+
+" }{TEXT 212 7 "STATSEQ" }{TEXT 212 14 "\n            " }{TEXT 212 6 "
+ASSIGN" }{TEXT 212 16 "\n              " }{TEXT 212 5 "LOCAL" }{TEXT 
+212 18 "\n                " }{TEXT 212 1 "1" }{TEXT 212 16 "\n        \+
+      " }{TEXT 212 8 "FUNCTION" }{TEXT 212 18 "\n                " }
+{TEXT 212 13 "LEXICAL_LOCAL" }{TEXT 212 20 "\n                  " }
+{TEXT 212 1 "1" }{TEXT 212 18 "\n                " }{TEXT 212 6 "EXPSE
+Q" }{TEXT 212 20 "\n                  " }{TEXT 212 5 "PARAM" }{TEXT 
+212 22 "\n                    " }{TEXT 212 1 "1" }{TEXT 212 14 "\n    \+
+        " }{TEXT 212 6 "RETURN" }{TEXT 212 16 "\n              " }
+{TEXT 212 5 "LOCAL" }{TEXT 212 18 "\n                " }{TEXT 212 1 "1
+" }{TEXT 212 10 "\n        " }{TEXT 212 14 "DESCRIPTIONSEQ" }{TEXT 
+212 10 "\n        " }{TEXT 212 9 "GLOBALSEQ" }{TEXT 212 10 "\n        \+
+" }{TEXT 212 10 "LEXICALSEQ" }{TEXT 212 12 "\n          " }{TEXT 212 
+11 "LEXICALPAIR" }{TEXT 212 14 "\n            " }{TEXT 212 4 "NAME" }
+{TEXT 212 16 "\n              " }{TEXT 212 8 "\"p8_1\"" }{TEXT 212 14 
+"\n            " }{TEXT 212 5 "LOCAL" }{TEXT 212 16 "\n              "
+ }{TEXT 212 1 "1" }{TEXT 212 10 "\n        " }{TEXT 212 3 "EOP" }{TEXT
+ 212 12 "\n          " }{TEXT 212 6 "EXPSEQ" }{TEXT 212 14 "\n        \+
+    " }{TEXT 212 6 "INTPOS" }{TEXT 212 16 "\n              " }{TEXT 
+212 1 "1" }{TEXT 212 6 "\n    " }{TEXT 212 6 "ASSIGN" }{TEXT 212 8 "\n
+      " }{TEXT 212 5 "LOCAL" }{TEXT 212 10 "\n        " }{TEXT 212 1 "
+1" }{TEXT 212 8 "\n      " }{TEXT 212 4 "PROC" }{TEXT 212 10 "\n      \+
+  " }{TEXT 212 8 "PARAMSEQ" }{TEXT 212 12 "\n          " }{TEXT 212 4 
+"NAME" }{TEXT 212 14 "\n            " }{TEXT 212 5 "\"x\"" }{TEXT 212 
+10 "\n        " }{TEXT 212 8 "LOCALSEQ" }{TEXT 212 10 "\n        " }
+{TEXT 212 9 "OPTIONSEQ" }{TEXT 212 10 "\n        " }{TEXT 212 6 "EXPSE
+Q" }{TEXT 212 10 "\n        " }{TEXT 212 7 "STATSEQ" }{TEXT 212 12 "\n
+          " }{TEXT 212 7 "STATSEQ" }{TEXT 212 14 "\n            " }
+{TEXT 212 7 "STATSEQ" }{TEXT 212 16 "\n              " }{TEXT 212 7 "S
+TATSEQ" }{TEXT 212 18 "\n                " }{TEXT 212 6 "RETURN" }
+{TEXT 212 20 "\n                  " }{TEXT 212 6 "INTPOS" }{TEXT 212 
+22 "\n                    " }{TEXT 212 1 "1" }{TEXT 212 10 "\n        \+
+" }{TEXT 212 14 "DESCRIPTIONSEQ" }{TEXT 212 10 "\n        " }{TEXT 
+212 9 "GLOBALSEQ" }{TEXT 212 10 "\n        " }{TEXT 212 10 "LEXICALSEQ
+" }{TEXT 212 10 "\n        " }{TEXT 212 3 "EOP" }{TEXT 212 12 "\n     \+
+     " }{TEXT 212 6 "EXPSEQ" }{TEXT 212 14 "\n            " }{TEXT 
+212 6 "INTPOS" }{TEXT 212 16 "\n              " }{TEXT 212 1 "1" }
+{TEXT 212 4 "\n  " }{TEXT 212 14 "DESCRIPTIONSEQ" }{TEXT 212 4 "\n  " 
+}{TEXT 212 9 "GLOBALSEQ" }{TEXT 212 4 "\n  " }{TEXT 212 10 "LEXICALSEQ
+" }{TEXT 212 4 "\n  " }{TEXT 212 6 "EXPSEQ" }}}{EXCHG {PARA 0 "> " 0 "
+" {MPLTEXT 1 0 18 "m := FromInert(m);" }}{PARA 11 "" 1 "" {XPPMATH 20 
+">I\"mG6\"b6#I+thismoduleGF$6#I%p8_1GF$F$6#I,ModuleApplyGF$C$>F+f*6#'I
+\"xGF$I(integerG%*protectedG6#I#x1GF$F$F$C$>F5-F)6#F1OF5F$F$6$F)8$>F)f
+*F9F$F$F$O\"\"\"F$F$F$F$F$F$F$" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 
+1 0 18 "printmod(eval(m));" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q,Module
+Apply6\"f*6#'I\"xGF$I(integerG%*protectedG6#I#x1GF$F$F$C$>F,-I%p8_1GF$
+6#F(OF,F$F$6$F0F0" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q%p8_16\"f*6#I\"x
+GF$F$F$F$O\"\"\"F$F$F$" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" 
+}}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}}
 {MARK "0 0 0" 0 }{VIEWOPTS 1 1 0 1 1 1803 1 1 1 1 }{PAGENUMBERS 0 1 2 
 33 1 1 }
