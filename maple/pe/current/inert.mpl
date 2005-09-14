@@ -6,6 +6,8 @@ getParams   := proc(x) option inline; op(1,x) end proc;
 getLocals   := proc(x) option inline; op(2,x) end proc;
 getProcBody := proc(x) option inline; op(5,x) end proc;
 
+getCond := proc(x) option inline; op(1,x) end proc;
+
 # for extracting subexpressions from inert statments
 getHeader := proc(x) option inline; op(0,x) end proc;
 getVal := proc(x) option inline; op(1,x) end proc;
