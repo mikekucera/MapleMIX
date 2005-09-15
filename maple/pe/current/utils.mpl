@@ -5,6 +5,7 @@ printmod := proc(m)
     
     printit := proc(x)
         print(convert(x, string), x);
+        print();
     end proc;
     
     if type(m, `module`) then
