@@ -26,7 +26,7 @@ pe_test := proc(p::procedure, vallist::list(equation) := [], printinert := true)
     print();
 
     return m;        
-end proc;
+end proc:
 
 
 # The partial evaluator dosen't support tables yet, for
