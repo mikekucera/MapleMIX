@@ -52,17 +52,13 @@ TransformUnfold := module()
         header := getHeader(inert);
 
         if header = _Inert_STATSEQ then
-            last := nops(inert);
-            while last > 0 do
-                res := procname(op(last,inert), x);
-                if res = EMPTY then
-                    last := last - 1;
-                else
-                    return _Inert_STATSEQ(op(1..last-1, inert), res);
-                end if;
-            end do;
-            return EMPTY;
-            
+            flattened := flattenStatseq(inert);
+            size := nops(flattened);
+            res := procname(op(-1, flattened), x);
+            _Inert_STATSEQ(op(1..size-1, flattened), res);
+
+        # TODO, its possible for none of the branches of an if to execute, so need assignment before the if
+
         elif header = _Inert_IF then
             map(addAssigns, inert, x);
 
@@ -72,7 +68,7 @@ TransformUnfold := module()
         elif header = _Inert_ASSIGN then
             _Inert_STATSEQ(inert, _Inert_ASSIGN(_Inert_LOCAL(x), op(1, inert)));
 
-        # need to add support for loops and other structures
+        # TODO need to add support for loops and other structures
 
         else #its an expression
             _Inert_ASSIGN(_Inert_LOCAL(x), inert);

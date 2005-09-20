@@ -35,11 +35,11 @@ end proc;
 
 getStaticValue := proc(inert::inert)
     res := EvalExp:-reduce(inert, OnENV:-NewOnENV());
-    `if`(isInert(res), res, FAIL);
+    `if`(isInert(res), FAIL, res);
 end proc;
 
 isStaticValue := proc(inert::inert)
-    evalb(getStaticValue(inert) \= FAIL);
+    evalb(getStaticValue(inert) <> FAIL);
 end proc;
 
 
@@ -192,6 +192,7 @@ peSpecializeProc := proc(inert::inert, n::string) #void
     body := TransformIfNormalForm(body);
     body := peInert(body);
     body := TransformIfNormalForm(body);
+    env:-display();
 
     # POST-PROCESS
     newParamList := select((env:-dynamic? @ getParamName), params);
@@ -220,16 +221,13 @@ peExpression := proc(expr::inert, env)
 end proc;
 
 
-# TODO: needs to be rewritten to support _Inert_STATSEQ(_Inert_RETURN(...), _Inert_STATSEQ())
-endsWithReturn := proc(stat::inert)
-    header := getHeader(stat);
-
-    if stat = _Inert_STATSEQ() then
+endsWithReturn := proc(inert::inert)
+    if inert = _Inert_STATSEQ() then
         false;
-    elif header = _Inert_STATSEQ then
-        procname(op(-1, stat));
+    elif getHeader(inert) = _Inert_STATSEQ then
+        procname(op(-1, flattenStatseq(inert)));
     else
-        evalb(header = _Inert_RETURN);
+        evalb(getHeader(inert) = _Inert_RETURN);
     end if;
 end proc;
 
@@ -251,7 +249,8 @@ end proc;
 isUnfoldable := proc(inertFunctionCall::inert(FUNCTION), inertProcedure::inert(PROC))
     # for now only perform an unfolding if all arguments are static,   
     #andmap(isStaticValue, op(2, inertFunctionCall)); #will return true if function call has no arguments
-   false;
+   #false;
+   true;
 end proc;
 
 
@@ -333,9 +332,24 @@ peStrippedAssign := proc(eqn::`=`)
     if isUnfoldable(residualFunctionCall, residualProcedure) then
         code[funcName] := evaln(code[funcName]); # remove mapping from code        
         res := TransformUnfold:-UnfoldIntoAssign(getProcBody(residualProcedure), genVar, op(varName));
-        # TODO test if unfolded into a single static assignment        
-        # if nops(res)
-        res;
+        flattened := flattenStatseq(res);
+
+        # If resulting statseq has only one statment
+        # It must be an assign because thats what UnfoldINtoAssign does
+        if nops(flattened) = 1 then            
+            assign := op(flattened);
+            print(assign);
+            expr := op(2, assign);
+            val := getStaticValue(expr);
+            print("val", val);
+            if val <> FAIL then
+                varName := op([1,1], assign);
+                EnvStack:-top():-putVal(varName, val);
+                print(varName, val);
+                return;
+            end if;
+        end if;
+        flattened;
     else
         _Inert_ASSIGN(_Inert_LOCAL(varName), residualFunctionCall);
     end if;
@@ -351,7 +365,7 @@ pe[_Inert_ASSIGN] := proc(name::inert(LOCAL), expr::inert)
     if isInert(reduced) then
         _Inert_STATSEQ(op(inertAssigns), _Inert_ASSIGN(name, reduced));
     else
-        env:-putVal(name, reduced);
+        env:-putVal(op(name), reduced);
         _Inert_STATSEQ(op(inertAssigns));
     end if;
 end proc;
