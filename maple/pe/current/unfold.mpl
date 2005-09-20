@@ -39,37 +39,37 @@ TransformUnfold := module()
 
     # For now only supports single assigment, multiple assignment should be trivial.
     # Requires input to be in if normal form.
-    UnfoldIntoAssign := proc(body::inert(STATSEQ), assignName::string, genVarName::procedure)
+    UnfoldIntoAssign := proc(body::inert(STATSEQ), genVarName::procedure, x::string)
         local newbody;
         newbody := RenameAllVariables(body, genVarName);
-        newbody := RemoveReturns(newbody);
-        addAssigns(newbody, assignName);                
+        newbody := RemoveReturns(newbody);       
+        addAssigns(newbody, x);
     end proc;
 
 
     # assumes returns have been removed
-    addAssigns := proc(inert::inert, x::string)
-        local last, res;
+    addAssigns := proc(inert::inert, x::string) local last, res;
+        header := getHeader(inert);
 
-        if type(inert, inert(STATSEQ)) then
+        if header = _Inert_STATSEQ then
             last := nops(inert);
             while last > 0 do
                 res := procname(op(last,inert), x);
                 if res = EMPTY then
                     last := last - 1;
                 else
-                    return _Inert_STATSEQ(op(1..last, inert), res);
+                    return _Inert_STATSEQ(op(1..last-1, inert), res);
                 end if;
             end do;
             return EMPTY;
             
-        elif type(inert, inert(IF)) then
+        elif header = _Inert_IF then
             map(addAssigns, inert, x);
 
-        elif type(inert, inert(CONDPAIR)) then
+        elif header = _Inert_CONDPAIR then
             _Inert_CONDPAIR(op(1, inert), procname(op(2, inert), x));
 
-        elif type(inert, inert(ASSIGN)) then
+        elif header = _Inert_ASSIGN then
             _Inert_STATSEQ(inert, _Inert_ASSIGN(_Inert_LOCAL(x), op(1, inert)));
 
         # need to add support for loops and other structures

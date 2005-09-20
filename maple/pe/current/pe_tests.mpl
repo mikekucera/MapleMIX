@@ -126,9 +126,22 @@ p12 := proc(x, y)
     end if;
 end proc;
 
+p13 := proc(x, y)
+    return x + y;
+end proc;
+
+p14 := proc(x, y)
+    a := p13(x, 10);
+    return a;
+end proc;
+
 
 
 
 pow := proc(x, n) 
-    
+    if n = 0 then
+        return 1;
+    else
+        return x * pow(x, n-1);
+    end if;
 end proc;

@@ -33,17 +33,16 @@ makeNameGenerator := proc(n::string)::procedure;
     end proc;
 end proc;       
 
-tagName := proc(tag, f)
-    () -> tag(f())
-end proc;
-
-
 isExpDynamic := isInert;
 isExpStatic  := `not` @ isExpDynamic;
 
 
-##################################################################################
 
+
+
+##################################################################################
+# code used in pre and post processes
+##################################################################################
 
 # replaces params and local indices with their names
 replace := proc(xs, f)
@@ -121,6 +120,10 @@ combineEnvs := proc(stack)
 end proc;
 
 
+
+
+############################################################################
+# The specializer
 ############################################################################
 
 
@@ -241,7 +244,8 @@ end proc;
 isUnfoldable := proc(inertFunctionCall::inert(FUNCTION), inertProcedure::inert(PROC))
     # for now only perform an unfolding if all arguments are static,
     # print("isUnfoldable", map(isExpStatic, op(2, inertFunctionCall)));
-    andmap(isExpStatic, op(2, inertFunctionCall)); #will return true if function call has no arguments
+    #andmap(isExpStatic, op(2, inertFunctionCall)); #will return true if function call has no arguments
+    true;
 end proc;
 
 
@@ -321,8 +325,11 @@ peStrippedAssign := proc(eqn::equation)
     residualProcedure := code[funcName];
         
     if isUnfoldable(residualFunctionCall, residualProcedure) then
-        code[funcName] := evaln(code[funcName]); # remove mapping from code        
-        TransformUnfold:-UnfoldIntoAssign(getProcBody(residualProcedure), genVar, op(varName));
+        code[funcName] := evaln(code[funcName]); # remove mapping from code
+        print("before transform", getProcBody(residualProcedure));
+        res := TransformUnfold:-UnfoldIntoAssign(getProcBody(residualProcedure), genVar, op(varName));
+        print("result of transformintounfold", res);
+        res;
     else
         _Inert_ASSIGN(_Inert_LOCAL(varName), residualFunctionCall);
     end if;
@@ -387,8 +394,8 @@ pe[_Inert_IF] := proc()
                 finished := true;
                 res := _Inert_STATSEQ(op(inertAssigns), ifbody);
             else
-                # TODO, this is wrong, if the condition is false then the processing of the if structure should continue
-                res := _Inert_STATSEQ(op(inertAssigns));
+                # assigns must be preserved because they might be side effecting
+                res := _Inert_STATSEQ(op(inertAssigns), peIfBranch(nextArg(), NULL));
             end if;               
         else
             ifbody := peInert(ifbranch);
