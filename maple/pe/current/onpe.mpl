@@ -1,5 +1,4 @@
 
-read("types.mpl");
 read("inert.mpl");
 read("OnENV.mpl");
 read("strip_exp.mpl");
@@ -134,7 +133,7 @@ end proc;
 
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p::procedure, vallist::list(equation) := []) #::moduledefinition;
+PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := []) #::moduledefinition;
     # set up globals
     genVar := makeNameGenerator("x");
     genNum := makeNameGenerator("");
@@ -323,7 +322,7 @@ end proc;
 
 
 
-peStrippedAssign := proc(eqn::equation)
+peStrippedAssign := proc(eqn::`=`)
     varName := lhs(eqn);
     funcCall := rhs(eqn);
     residualFunctionCall := peFunction(op(funcCall));
