@@ -33,10 +33,15 @@ makeNameGenerator := proc(n::string)::procedure;
     end proc;
 end proc;       
 
-isExpDynamic := isInert;
-isExpStatic  := `not` @ isExpDynamic;
 
+getStaticValue := proc(inert::inert)
+    res := EvalExp:-reduce(inert, OnENV:-NewOnENV());
+    `if`(isInert(res), res, FAIL);
+end proc;
 
+isStaticValue := proc(inert::inert)
+    evalb(getStaticValue(inert) \= FAIL);
+end proc;
 
 
 
@@ -203,6 +208,9 @@ end proc;
 
 
 # takes an entire inert expression, including the header
+# Returns a list of inert assigns and the result of reducing the expression,
+# if the expression is dynamic it will be returned in inert form, 
+# if it is static it will not be in inert form.
 peExpression := proc(expr::inert, env)
     #the expression stripper returns assigments as a list of equations
     assigns, strippedExpr := StripExp:-strip(expr, genVar);
@@ -242,10 +250,9 @@ end proc;
 
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 isUnfoldable := proc(inertFunctionCall::inert(FUNCTION), inertProcedure::inert(PROC))
-    # for now only perform an unfolding if all arguments are static,
-    # print("isUnfoldable", map(isExpStatic, op(2, inertFunctionCall)));
-    #andmap(isExpStatic, op(2, inertFunctionCall)); #will return true if function call has no arguments
-    true;
+    # for now only perform an unfolding if all arguments are static,   
+    #andmap(isStaticValue, op(2, inertFunctionCall)); #will return true if function call has no arguments
+   false;
 end proc;
 
 
@@ -286,11 +293,11 @@ peFunction := proc(n::inert(ASSIGNEDNAME))::inert(FUNCTION);
     processArg := proc(argExp)
         i := i + 1;
         reduced := EvalExp:-reduce(argExp, EnvStack:-top());
-        if isExpStatic(reduced) then
+        if not isInert(reduced) then
             # put static argument value into environment
             env:-putVal(op(op(i, params)), reduced);
             NULL;
-        # this needs to work with any expressions, not just single variables
+        # TODO this needs to work with any expressions, not just single variables
         elif isInertVariable(reduced) and top:-hasTypeInfo?(getVal(reduced)) then
             env:-addTypeSet(getVal(reduced), top:-getTypes(getVal(reduced)));
             reduced;
@@ -325,10 +332,10 @@ peStrippedAssign := proc(eqn::equation)
     residualProcedure := code[funcName];
         
     if isUnfoldable(residualFunctionCall, residualProcedure) then
-        code[funcName] := evaln(code[funcName]); # remove mapping from code
-        print("before transform", getProcBody(residualProcedure));
+        code[funcName] := evaln(code[funcName]); # remove mapping from code        
         res := TransformUnfold:-UnfoldIntoAssign(getProcBody(residualProcedure), genVar, op(varName));
-        print("result of transformintounfold", res);
+        # TODO test if unfolded into a single static assignment        
+        # if nops(res)
         res;
     else
         _Inert_ASSIGN(_Inert_LOCAL(varName), residualFunctionCall);
@@ -342,19 +349,20 @@ pe[_Inert_ASSIGN] := proc(name::inert(LOCAL), expr::inert)
     env := EnvStack:-top();
     inertAssigns, reduced := peExpression(expr, env);
 
-    if isExpStatic(reduced) then
+    if isInert(reduced) then
+        _Inert_STATSEQ(op(inertAssigns), _Inert_ASSIGN(name, reduced));
+    else
         env:-putVal(name, reduced);
         _Inert_STATSEQ(op(inertAssigns));
-    else
-       _Inert_STATSEQ(op(inertAssigns), _Inert_ASSIGN(name, reduced));
-    end if;    
+    end if;
 end proc;
+
 
 
 # pe for returns, all returns residualized for now
 pe[_Inert_RETURN] := proc(expr::inert)
     inertAssigns, reduced := peExpression(expr, EnvStack:-top());
-    reduced := `if`(isExpStatic(reduced), ToInert(reduced), reduced);
+    reduced := `if`(isInert(reduced), reduced, ToInert(reduced));
     _Inert_STATSEQ(op(inertAssigns), _Inert_RETURN(reduced));
 end proc;
 
@@ -384,7 +392,7 @@ pe[_Inert_IF] := proc()
       
         if getHeader(ifbranch) = _Inert_CONDPAIR then
             inertAssigns, reduced := peExpression(op(1, ifbranch), EnvStack:-top());
-            if isExpDynamic(reduced) then
+            if isInert(reduced) then
                 ifbody := peInert(op(2, ifbranch));
                 ifpart := _Inert_IF(_Inert_CONDPAIR(reduced, ifbody), 
                                     `if`(hasNextArg(), peIfBranch(nextArg()), NULL));
