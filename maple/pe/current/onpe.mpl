@@ -4,6 +4,8 @@ read("inert.mpl");
 read("OnENV.mpl");
 read("strip_exp.mpl");
 read("eval_exp.mpl");
+read("if_transform.mpl");
+read("unfold.mpl");
 
 
 # Simple online partial evaluator for a subset of maple
@@ -180,7 +182,9 @@ peSpecializeProc := proc(inert::inert, n::string) #void
     map( curry(evalParamType, env), params );
 
     # PARTIAL EVALUATION
+    body := TransformIfNormalForm(body);
     body := peInert(body);
+    body := TransformIfNormalForm(body);
 
     # POST-PROCESS
     newParamList := select((env:-dynamic? @ getParamName), params);
@@ -199,13 +203,16 @@ end proc;
 peExpression := proc(expr::inert, env)
     #the expression stripper returns assigments as a list of equations
     assigns, strippedExpr := StripExp:-strip(expr, genVar);
-    inertAssigns := map(eqn -> _Inert_ASSIGN(_Inert_LOCAL(lhs(eqn)), peInert(rhs(eqn))), assigns);
+    #inertAssigns := map(eqn -> _Inert_ASSIGN(_Inert_LOCAL(lhs(eqn)), peInert(rhs(eqn))), assigns);
+    inertAssigns := map(peStrippedAssign, assigns);
     reduced := EvalExp:-reduce(strippedExpr, env);
     return inertAssigns, reduced;    
 end proc;
 
 
+# TODO: needs to be rewritten to support _Inert_STATSEQ(_Inert_RETURN(...), _Inert_STATSEQ())
 endsWithReturn := proc(stat::inert)
+    print("endsWithReturn", stat);
     header := getHeader(stat);
     `if`(header = _Inert_STATSEQ, procname(op(-1,stat)), evalb(header = _Inert_RETURN));    
 end proc;
@@ -223,8 +230,36 @@ pe[_Inert_STATSEQ] := proc()
 end proc;
 
 
-# assumes nested function calls have already been stripped out of the argument expressions
+
+# Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
+isUnfoldable := proc(inertFunctionCall::inert(FUNCTION), inertProcedure::inert(PROC))
+    # for now only perform an unfolding if all arguments are static,
+    print("isUnfoldable", map(isExpStatic, op(2, inertFunctionCall)));
+    andmap(isExpStatic, op(2, inertFunctionCall));
+    
+end proc;
+
+
+
+# only works for a standalone function
 pe[_Inert_FUNCTION] := proc(n::inert(ASSIGNEDNAME))
+    residualFunctionCall := peFunction(args);
+    funcName := op([1,1], residualFunctionCall);
+    residualProcedure := code[funcName];
+    
+    if isUnfoldable(residualFunctionCall, residualProcedure) then
+        code[funcName] := evaln(code[funcName]); # remove mapping from code        
+        TransformUnfold:-UnfoldStandalone(getProcBody(residualProcedure), genVar);
+    else
+        residualFunctionCall;
+    end if;
+end proc;
+
+
+
+# Assumes nested function calls have already been stripped out of the argument expressions.
+# Always returns a function call, code for specialized function will be in the 'code' module variable.
+peFunction := proc(n::inert(ASSIGNEDNAME))::inert(FUNCTION);
     # get the code for the actual function from the underlying interpreter
     inert := (ToInert @ eval @ convert)(getVal(n), name);
 
@@ -269,6 +304,25 @@ pe[_Inert_FUNCTION] := proc(n::inert(ASSIGNEDNAME))
     # this is where decision to unfold would likely go
     _Inert_FUNCTION(_Inert_NAME(newName), newArgs);
 end proc;
+
+
+
+peStrippedAssign := proc(eqn::equation)
+    varName := lhs(eqn);
+    funcCall := rhs(eqn);
+    residualFunctionCall := peFunction(op(funcCall));
+    
+    funcName := op([1,1], residualFunctionCall);
+    residualProcedure := code[funcName];
+        
+    if isUnfoldable(residualFunctionCall, residualProcedure) then
+        code[funcName] := evaln(code[funcName]); # remove mapping from code        
+        TransformUnfold:-UnfoldIntoAssign(getProcBody(residualProcedure), genVar, op(varName));
+    else
+        _Inert_ASSIGN(_Inert_LOCAL(varName), residualFunctionCall);
+    end if;
+end proc;
+
 
 
 # partial evalutation of a single assignment statement

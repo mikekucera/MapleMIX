@@ -103,3 +103,15 @@ end proc;
 p9 := proc(x::integer)
     return p8(x);
 end proc;
+
+
+p10 := proc(x)
+    if x > 10 then
+        return 1;
+    end if;
+    return 0;
+end proc;
+
+p11 := proc(x)
+    p10(x);
+end proc;

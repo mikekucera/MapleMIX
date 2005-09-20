@@ -43,8 +43,8 @@ TransformIfNormalForm := module()
         end if;
 
         index := indexOfFirstIf(inert);
-        if index = FAIL then
-            return statseq;
+        if index = FAIL then # there is no if statment
+            return inert;
         end if;    
 
         # break original statment sequence into three parts
@@ -61,7 +61,7 @@ TransformIfNormalForm := module()
             ifstat := map(curry(insertAtEnd, rest), ifstat);              
         end if;
 
-        _Inert_STATSEQ(fistpart, map(procname, ifstat));
+        _Inert_STATSEQ(firstpart, map(procname, ifstat));
     end proc;
 
 

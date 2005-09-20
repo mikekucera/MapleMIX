@@ -1,7 +1,7 @@
 
 
 TransformUnfold := module()
-    export PrepareForUnfoldStandalone, PrepareForUnfoldIntoAssignment, RenameAllVariables, RemoveReturns; 
+    export UnfoldStandalone, UnfoldIntoAssign, RenameAllVariables, RemoveReturns; 
     local addAssigns;
 
     RenameAllVariables := proc(inert::inert(STATSEQ), genVarName::procedure)::inert(STATSEQ);
@@ -9,7 +9,7 @@ TransformUnfold := module()
         names := table();
 
         rename := proc(f)
-            proc(n::string) local newname;
+            proc(n) local newname;
                 if assigned(names[n]) then
                     f(names[n]);
                 else
@@ -34,12 +34,12 @@ TransformUnfold := module()
 
     # Just renames variables and removes return statments.
     # Will be unsound if the procedure contains a return within a dynamic if within a loop.
-    PrepareForUnfoldStandalone := RemoveReturns @ RenameAllVariables;
+    UnfoldStandalone := RemoveReturns @ RenameAllVariables;
 
 
     # For now only supports single assigment, multiple assignment should be trivial.
     # Requires input to be in if normal form.
-    PrepareForUnfoldIntoAssignment := proc(body::inert(STATSEQ), assignName::string, genVarName::procedure)
+    UnfoldIntoAssign := proc(body::inert(STATSEQ), assignName::string, genVarName::procedure)
         local newbody;
         newbody := RenameAllVariables(body, genVarName);
         newbody := RemoveReturns(newbody);
