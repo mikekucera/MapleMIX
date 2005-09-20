@@ -212,9 +212,15 @@ end proc;
 
 # TODO: needs to be rewritten to support _Inert_STATSEQ(_Inert_RETURN(...), _Inert_STATSEQ())
 endsWithReturn := proc(stat::inert)
-    print("endsWithReturn", stat);
     header := getHeader(stat);
-    `if`(header = _Inert_STATSEQ, procname(op(-1,stat)), evalb(header = _Inert_RETURN));    
+
+    if stat = _Inert_STATSEQ() then
+        false;
+    elif header = _Inert_STATSEQ then
+        procname(op(-1, stat));
+    else
+        evalb(header = _Inert_RETURN);
+    end if;
 end proc;
 
 
@@ -234,9 +240,8 @@ end proc;
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 isUnfoldable := proc(inertFunctionCall::inert(FUNCTION), inertProcedure::inert(PROC))
     # for now only perform an unfolding if all arguments are static,
-    print("isUnfoldable", map(isExpStatic, op(2, inertFunctionCall)));
-    andmap(isExpStatic, op(2, inertFunctionCall));
-    
+    # print("isUnfoldable", map(isExpStatic, op(2, inertFunctionCall)));
+    andmap(isExpStatic, op(2, inertFunctionCall)); #will return true if function call has no arguments
 end proc;
 
 
@@ -246,7 +251,7 @@ pe[_Inert_FUNCTION] := proc(n::inert(ASSIGNEDNAME))
     residualFunctionCall := peFunction(args);
     funcName := op([1,1], residualFunctionCall);
     residualProcedure := code[funcName];
-    
+
     if isUnfoldable(residualFunctionCall, residualProcedure) then
         code[funcName] := evaln(code[funcName]); # remove mapping from code        
         TransformUnfold:-UnfoldStandalone(getProcBody(residualProcedure), genVar);
@@ -382,9 +387,9 @@ pe[_Inert_IF] := proc()
                 finished := true;
                 res := _Inert_STATSEQ(op(inertAssigns), ifbody);
             else
+                # TODO, this is wrong, if the condition is false then the processing of the if structure should continue
                 res := _Inert_STATSEQ(op(inertAssigns));
-            end if;
-               
+            end if;               
         else
             ifbody := peInert(ifbranch);
             res := ifbody;

@@ -115,3 +115,20 @@ end proc;
 p11 := proc(x)
     p10(x);
 end proc;
+
+p12 := proc(x, y)
+    if x = y then
+        return 1;
+    elif x > 20 then
+        return 2;
+    else
+        return 3;
+    end if;
+end proc;
+
+
+
+
+pow := proc(x, n) 
+    
+end proc;

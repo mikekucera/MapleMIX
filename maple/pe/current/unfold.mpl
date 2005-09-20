@@ -4,7 +4,7 @@ TransformUnfold := module()
     export UnfoldStandalone, UnfoldIntoAssign, RenameAllVariables, RemoveReturns; 
     local addAssigns;
 
-    RenameAllVariables := proc(inert::inert(STATSEQ), genVarName::procedure)::inert(STATSEQ);
+    RenameAllVariables := proc(inert::inert(STATSEQ), genVarName::procedure)
         local names, rename;
         names := table();
 
@@ -28,7 +28,7 @@ TransformUnfold := module()
     # Naively removes return statments and replaces them with the expression that was in the return.
     # This will be unsound if the proc is not in if normal form.
     RemoveReturns := proc(inert::inert(STATSEQ))
-        eval(inert, [_Inert_RETURN = op]);        
+        eval(inert, [_Inert_RETURN = (() -> args)]); 
     end proc;
 
 
