@@ -1,10 +1,10 @@
 
 
 TransformUnfold := module()
-    export UnfoldStandalone, UnfoldIntoAssign, RenameAllVariables, RemoveReturns; 
+    export UnfoldStandalone, UnfoldIntoAssign, RenameAllLocals, RemoveReturns; 
     local addAssigns;
 
-    RenameAllVariables := proc(inert::inert(STATSEQ), genVarName::procedure)
+    RenameAllLocals := proc(inert::inert(STATSEQ), genVarName::procedure)
         local names, rename;
         names := table();
 
@@ -20,30 +20,51 @@ TransformUnfold := module()
             end proc;
         end proc;
 
-        eval(inert, [_Inert_PARAM = rename(_Inert_PARAM), 
-                     _Inert_LOCAL = rename(_Inert_LOCAL) ]);
+        eval(inert, [_Inert_LOCAL = rename(_Inert_LOCAL) ]);
     end proc;
 
 
     # Naively removes return statments and replaces them with the expression that was in the return.
-    # This will be unsound if the proc is not in if normal form.
+    # This will be unsound if the proc is not in if-normal form.
     RemoveReturns := proc(inert::inert(STATSEQ))
         eval(inert, [_Inert_RETURN = (() -> args)]); 
     end proc;
 
 
-    # Just renames variables and removes return statments.
-    # Will be unsound if the procedure contains a return within a dynamic if within a loop.
-    UnfoldStandalone := RemoveReturns @ RenameAllVariables;
+    # TODO: Will be unsound if the procedure contains a return within a dynamic if within a loop.
+    # specCall must be the residual call to the specialized procedure, consisting of only dynamic argument expressions,
+    # the static ones should have been removed.
+    UnfoldStandalone := proc(specProc::inert(PROC), specCall::inert(FUNCTION), genVarName::procedure)::inert(STATSEQ);       
+        body := getProcBody(specProc);
+        body := (RemoveReturns @ RenameAllLocals)(body, genVarName);        
+
+        argExpressions := op(2, specCall);
+
+        # process each dynamic argument expression in the function call
+        i := 1;
+        for argExpr in argExpressions do
+            header := getHeader(argExpr);
+
+            if header = _Inert_LOCAL then                
+                body := subs(_Inert_PARAM(i) = _Inert_LOCAL(op(argExpr)), body);
+            elif header = _Inert_PARAM then
+                body := subs(_Inert_PARAM(i) = _Inert_PARAM(op(argExpr)), body);
+            else
+                error "only supports dynamic argument expressions that are local variables (for now)";
+            end if;
+            i := i + 1;
+        end do;
+
+        return body;       
+    end proc;
 
 
     # For now only supports single assigment, multiple assignment should be trivial.
     # Requires input to be in if normal form.
-    UnfoldIntoAssign := proc(body::inert(STATSEQ), genVarName::procedure, x::string)
+    UnfoldIntoAssign := proc(specProc::inert(PROC), specCall::inert(FUNCTION), genVarName::procedure, assignTo::string)::inert(STATSEQ);
         local newbody;
-        newbody := RenameAllVariables(body, genVarName);
-        newbody := RemoveReturns(newbody);       
-        addAssigns(newbody, x);
+        newbody := UnfoldStandalone(specProc, specCall, genVarName);
+        addAssigns(newbody, assignTo);
     end proc;
 
 

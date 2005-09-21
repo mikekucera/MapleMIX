@@ -44,3 +44,14 @@ flattenStatseq := proc(statseq::inert(STATSEQ))::inert(STATSEQ);
     map(flatten, statseq);
 end proc:
 
+
+# returns true iff the given statment is a return or is a statseq that ends with a return
+endsWithReturn := proc(inert::inert)
+    if inert = _Inert_STATSEQ() then
+        false;
+    elif getHeader(inert) = _Inert_STATSEQ then
+        procname(op(-1, flattenStatseq(inert)));
+    else
+        evalb(getHeader(inert) = _Inert_RETURN);
+    end if;
+end proc;
