@@ -14,6 +14,8 @@ Stuff on the not-too-distant horizon
   - Let insertion of dynamic argument expressions
   - More involved decision to unfold
   - Unfolding when arguments are attached to type assertions?
+  - Detection of loops that contain a return under dynamic control,
+    as they should never be unfolded.
 
 - Add support for expression forms (taking into consideration 
   partially static data).

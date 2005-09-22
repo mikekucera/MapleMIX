@@ -60,7 +60,13 @@ paramMap := proc(params, f)
     c := 1;
     for i in params do
         tbl[getParamName(i)] := c;
-        c := c + 1;
+        c := c + 1;# if the argument is a procedure it is applied with no arguments
+applythunk := proc(p)
+    if type(p, procedure) then apply(p) end if;
+end proc;
+
+
+
     end do;
 
     return x -> f(tbl[x]);
@@ -105,12 +111,6 @@ evalParamType := proc(env, param)
             env:-addType(name, typ);
         end if;
     end if;
-end proc;
-
-
-# if the argument is a procedure it is applied with no arguments
-applythunk := proc(p)
-    if type(p, procedure) then apply(p) end if;
 end proc;
 
 
@@ -235,11 +235,15 @@ end proc;
 
 
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
+
 isUnfoldable := proc(inertFunctionCall::inert(FUNCTION), inertProcedure::inert(PROC))
-    # for now only perform an unfolding if all arguments are static,   
-    #andmap(isStaticValue, op(2, inertFunctionCall)); #will return true if function call has no arguments
-   #false;
-   true;
+    if nops(op(2, inertFunctionCall)) = 0 then # all the arguments were static and reduced away
+       return true;
+    else
+       flattened := flattenStatseq(getProcBody(inertProcedure));
+       return evalb( nops(flattened) = 1 and op([1,0], flattened) = _Inert_RETURN and isStaticValue(op([1,1], flattened)) );
+    end if;
+    false;        
 end proc;
 
 
@@ -325,7 +329,7 @@ peAssignToFunction := proc(eqn::`=`)
         flattened := flattenStatseq(res);
 
         # If resulting statseq has only one statment
-        # It must be an assign because thats what UnfoldINtoAssign does
+        # It must be an assign because thats what UnfoldIntoAssign does
         if nops(flattened) = 1 then            
             assign := op(flattened);
             expr := op(2, assign);
