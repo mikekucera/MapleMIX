@@ -1,0 +1,31 @@
+Big To Do List
+Stuff on the not-too-distant horizon
+
+
+- Add support for statment forms
+  - Loops
+  - Multiple assignment
+
+- State contexts
+  - Global variables
+  - First class procs and modules
+
+- Unfolding
+  - Let insertion of dynamic argument expressions
+  - More involved decision to unfold
+  - Unfolding when arguments are attached to type assertions?
+
+- Add support for expression forms (taking into consideration 
+  partially static data).
+  - Lists
+  - Tables
+  - Strings
+  - Algebraics
+
+- Remove multi-value functionality from the online environment.
+  - What about multi-type functionality?
+
+- Structured type creation
+  - eg) if x::integer and y::integer then type(x=y, integer=integer) is 
+    static and true
+  - Rudamentary type inference? (at least across assignments)
