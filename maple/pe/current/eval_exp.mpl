@@ -32,6 +32,7 @@ EvalExp := module()
         _Inert_STRING    = (x -> x),
         
         _Inert_COMPLEX   = complex,
+        _Inert_RATIONAL  = rational,
         _Inert_EXPSEQ    = expseq,
         _Inert_LIST      = literalList,
         _Inert_SET       = literalSet
@@ -81,6 +82,7 @@ EvalExp := module()
         end if;
     end proc;
 
+    rational := `/`;
 
     literalList := eseq -> `if`(isStatic(eseq), [op(eseq)], _Inert_LIST(eseq));
     literalSet  := eseq -> `if`(isStatic(eseq), {op(eseq)}, _Inert_SET(eseq));

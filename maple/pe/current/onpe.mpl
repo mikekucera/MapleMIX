@@ -61,12 +61,6 @@ paramMap := proc(params, f)
     for i in params do
         tbl[getParamName(i)] := c;
         c := c + 1;# if the argument is a procedure it is applied with no arguments
-applythunk := proc(p)
-    if type(p, procedure) then apply(p) end if;
-end proc;
-
-
-
     end do;
 
     return x -> f(tbl[x]);
@@ -237,6 +231,7 @@ end proc;
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 
 isUnfoldable := proc(inertFunctionCall::inert(FUNCTION), inertProcedure::inert(PROC))
+    return true;
     if nops(op(2, inertFunctionCall)) = 0 then # all the arguments were static and reduced away
        return true;
     else
@@ -266,7 +261,7 @@ end proc;
 
 # Assumes nested function calls have already been stripped out of the argument expressions.
 # Always returns a function call, code for specialized function will be in the 'code' module variable.
-peFunction := proc(n::inert(ASSIGNEDNAME))::inert(FUNCTION);
+peFunction := proc(n::inert({ASSIGNEDNAME,NAME}))::inert(FUNCTION);
     # get the code for the actual function from the underlying interpreter
     inert := (ToInert @ eval @ convert)(getVal(n), name);
 
@@ -457,7 +452,7 @@ build_module := proc(n::string)::inert;
                 localIndex := nops(lexicalLocals) + 1;
             else
                 if not member(localName, locals, localIndex) then
-                    error(cat("'", localName, "' is not a module local"));
+                    return _Inert_FUNCTION(args); #error(cat("'", localName, "' is not a module local"));
                 end if;                
             end if;
             

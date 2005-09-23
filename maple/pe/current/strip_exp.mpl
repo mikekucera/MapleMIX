@@ -5,15 +5,12 @@
 StripExp := module()
     description "strips impure function applications out of expressions";
     export strip;
-    local known_pure;
+    local intrinsic;
 
-    # get a list of 'mathematical' functions from the system
-    known_pure := FunctionAdvisor(known_functions, quiet);
-    # add functions that are not mathematical but are known to be pure
-    known_pure := [op(known_pure), type];
+    # set of functions that should be treated like 'intrinsic' operations
+    intrinsic := {"type", "op", "mod"};
 
-
-    strip := proc(e, gen)
+    strip := proc(e::inert, gen::procedure)
         local examine_func, impure_funcs, res;        
  
         impure_funcs := [];  
@@ -21,8 +18,7 @@ StripExp := module()
         # generation of table is a side effect of nested proc
         examine_func := proc(f)
             local newvar;
-            
-            if member(convert(op(1, f), name), known_pure) then
+            if member(op(1, f), intrinsic) then
                 _Inert_FUNCTION(args);
             else
                 newvar := gen();                
