@@ -32,17 +32,23 @@ EvalExp := module()
         _Inert_STRING    = (x -> x),
         
         _Inert_COMPLEX   = complex,
-        _Inert_EXPSEQ    = expseq
-        #_Inert_FUNCTION  = pureFunc
+        _Inert_EXPSEQ    = expseq,
+        _Inert_LIST      = literalList,
+        _Inert_SET       = literalSet
     ];
 
 
-    isDynamic := proc(x) option inline;
-        evalb(isInert(x) or getHeader(x) = _Tag_STATICEXPSEQ);
-    end proc;
-    
-    isStatic := `not` @ isDynamic;
-    allStatic := xs -> andmap(isStatic, xs);
+    isStatic := x -> evalb( not isInert(x) or getHeader(x) = _Tag_STATICEXPSEQ );
+    isDynamic := `not` @ isStatic;
+    allStatic := curry(andmap, isStatic); 
+
+
+    #isDynamic := proc(x) option inline;
+    #    #evalb(isInert(x) or getHeader(x) = _Tag_STATICEXPSEQ);
+    #    evalb(isInert(x));
+    #end proc;    
+    #isStatic := `not` @ isDynamic;
+    #allStatic := xs -> andmap(isStatic, xs);
 
     
     binOp := proc(f, op)        
@@ -73,6 +79,15 @@ EvalExp := module()
         else
             args[1] + args[2] * I;
         end if;
+    end proc;
+
+
+    literalList := eseq -> `if`(isStatic(eseq), [op(eseq)], _Inert_LIST(eseq));
+    literalSet  := eseq -> `if`(isStatic(eseq), {op(eseq)}, _Inert_SET(eseq));
+
+
+    tableref := proc(n, eseq)
+
     end proc;
 
     
@@ -121,7 +136,7 @@ EvalExp := module()
                 end if;
             
             elif getHeader(expseq) = _Tag_STATICEXPSEQ then # if all arguments are static then call the pure func
-                return apply(convert(op(n), name), op(expseq));
+                return apply(convert(op(1,n), name), op(expseq));
             end if;
 
             #residualize
@@ -140,6 +155,7 @@ EvalExp := module()
         residual := eval(exp, [op(subsList), 
                                _Inert_PARAM = evalName(env, _Inert_PARAM), 
                                _Inert_LOCAL = evalName(env, _Inert_LOCAL),
+                               _Inert_NAME  = evalName(env, _Inert_NAME),
                                _Inert_FUNCTION = pureFunc(env)
                               ]);
 
