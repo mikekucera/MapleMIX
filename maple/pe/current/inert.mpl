@@ -55,3 +55,21 @@ endsWithReturn := proc(inert::inert)
         evalb(getHeader(inert) = _Inert_RETURN);
     end if;
 end proc;
+
+
+statmentForms := {_Inert_IF, _Inert_FORFROM, _Inert_FORIN, 
+                  _Inert_BREAK, _Inert_NEXT, _Inert_RETURN, 
+                  _Inert_ERROR, _Inert_TRY, _Inert_ASSIGN, 
+                  _Inert_READ, _Inert_SAVE};
+
+
+# expression forms that are supported so far
+expressionForms := {_Inert_SUM, _Inert_PROD, _Inert_POWER, 
+                    _Inert_CATENATE, _Inert_EQUATION, _Inert_LESSEQ, 
+                    _Inert_LESSTHAN, _Inert_IMPLIES, _Inert_AND, 
+                    _Inert_OR, _Inert_XOR, _Inert_NOT, 
+                    _Inert_INTPOS, _Inert_INTNEG, _Inert_FLOAT, 
+                    _Inert_STRING, _Inert_COMPLEX, _Inert_RATIONAL, 
+                    _Inert_EXPSEQ, _Inert_LIST, _Inert_SET, 
+                    _Inert_PARAM, _Inert_LOCAL, _Inert_NAME, 
+                    _Inert_FUNCTION};

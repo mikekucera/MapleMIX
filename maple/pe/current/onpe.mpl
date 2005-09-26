@@ -12,7 +12,7 @@ read("unfold.mpl");
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
     export PartiallyEvaluate;
-    local EnvStack, genVar, genNum, code, makeGenerator;
+    local EnvStack, genVar, genNum, code, makeGenerator, ModuleLoad;
 
 #################################################################################
 
@@ -214,6 +214,27 @@ peExpression := proc(expr::inert)
 end proc;
 
 
+# pe for returns, all returns residualized for now
+pe[_Inert_RETURN] := proc(expr::inert)
+    inertAssigns, reduced := peExpression(expr);
+    reduced := `if`(isInert(reduced), reduced, ToInert(reduced));
+    _Inert_STATSEQ(op(inertAssigns), _Inert_RETURN(reduced));
+end proc;
+
+
+# partial evaluation of an expression that is not part of a statment, usually an implicit return
+peStandaloneExpression := proc(inertForm)
+    return proc()
+        inertAssigns, reduced := peExpression(inertForm(args));
+        reduced := `if`(isInert(reduced), reduced, ToInert(reduced));
+        _Inert_STATSEQ(op(inertAssigns), reduced);
+    end proc;
+end proc;
+
+for inertForm in expressionForms do
+    pe[inertForm] := peStandaloneExpression(inertForm);
+end do;
+
 
 # map over statement sequences
 pe[_Inert_STATSEQ] := proc()
@@ -357,12 +378,7 @@ end proc;
 
 
 
-# pe for returns, all returns residualized for now
-pe[_Inert_RETURN] := proc(expr::inert)
-    inertAssigns, reduced := peExpression(expr);
-    reduced := `if`(isInert(reduced), reduced, ToInert(reduced));
-    _Inert_STATSEQ(op(inertAssigns), _Inert_RETURN(reduced));
-end proc;
+
 
 
 
