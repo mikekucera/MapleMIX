@@ -1,7 +1,7 @@
 
 
 
-pe_test := proc(p::procedure, vallist::list(equation) := [], printinert := true)
+pe_test := proc(p::procedure, vallist::list(equation) := [], printinert := false)
     inert := OnPE:-PartiallyEvaluate(p, vallist);
     
     if printinert then

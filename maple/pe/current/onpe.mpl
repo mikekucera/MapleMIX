@@ -210,6 +210,7 @@ peExpression := proc(expr::inert)
     assigns, strippedExpr := StripExp:-strip(expr, genVar); # TODO, unsound for shortcut boolean logic expressions
     residualAssignsToFunctionCalls := map(peAssignToFunction, assigns);
     reducedExpr := EvalExp:-reduce(strippedExpr, env);
+    # TODO, residualAssignsToFunctionCalls is a bad name because the function calls may have been unfolded
     return residualAssignsToFunctionCalls, reducedExpr;
 end proc;
 
@@ -241,8 +242,10 @@ pe[_Inert_STATSEQ] := proc()
     q := SimpleQueue();
     for i from 1 to nops([args]) do
         res := peInert([args][i]);
-        q:-enqueue(res);
-        if endsWithReturn(res) then break end if;
+        if nops([res]) > 0 then
+            q:-enqueue(res);
+            if endsWithReturn(res) then break end if;
+        end if;
     end do;
     _Inert_STATSEQ(op(q:-toList()));
 end proc;
@@ -265,6 +268,7 @@ end proc;
 
 
 # only works for a standalone function
+# this should override previous pe table assignment that treats a function as an expression
 pe[_Inert_FUNCTION] := proc(n::inert(ASSIGNEDNAME))
     residualFunctionCall := peFunction(args);
     funcName := op([1,1], residualFunctionCall);
@@ -367,9 +371,19 @@ end proc;
 
 # partial evalutation of a single assignment statement
 pe[_Inert_ASSIGN] := proc(name::inert(LOCAL), expr::inert)
+    # TODO, inertAssigns a bad name because function may have been unfolded
     inertAssigns, reduced := peExpression(expr);
     if isInert(reduced) then
-        _Inert_STATSEQ(op(inertAssigns), _Inert_ASSIGN(name, reduced));
+        if getHeader(op(-1, inertAssigns)) <> _Inert_STATSEQ then error("must return a statment sequence") end if;        
+        lastStat := op([-1, -1], inertAssigns);        
+
+        if isInertVariable(reduced) 
+        and op(0, lastStat) = _Inert_ASSIGN     
+        and getVal(reduced) = op([1,1], lastStat) then                       
+            _Inert_STATSEQ(op(1..-2, inertAssigns), op([-1, 1..-2], inertAssigns), _Inert_ASSIGN(name, op(2, lastStat)));            
+        else
+            _Inert_STATSEQ(op(inertAssigns), _Inert_ASSIGN(name, reduced));
+        end if;
     else
         EnvStack:-top():-putVal(op(name), reduced);
         _Inert_STATSEQ(op(inertAssigns)); # TODO, is it possible for an expression to reduce to some assigns AND a static value?
