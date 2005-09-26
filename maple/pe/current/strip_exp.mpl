@@ -8,7 +8,7 @@ StripExp := module()
     local intrinsic;
 
     # set of functions that should be treated like 'intrinsic' operations
-    intrinsic := {"type", "op", "mod"};
+    intrinsic := {anames(builtin)};
 
     strip := proc(e::inert, gen::procedure)
         local examine_func, impure_funcs, res;        
@@ -18,7 +18,7 @@ StripExp := module()
         # generation of table is a side effect of nested proc
         examine_func := proc(f)
             local newvar;
-            if member(op(1, f), intrinsic) then
+            if member(convert(op(1, f), name), intrinsic) then
                 _Inert_FUNCTION(args);
             else
                 newvar := gen();                
