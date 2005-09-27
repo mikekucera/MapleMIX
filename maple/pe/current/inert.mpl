@@ -1,14 +1,21 @@
 # collection of functions for working with inert forms
 
-`type/inert` := proc(f)
-    if nargs = 1 then
-        type(f, function) and StringTools:-RegMatch("^_Inert_", op(0, f));
-    elif nargs = 2 then
-        type(f, specfunc(anything, map2(cat, '_Inert_', args[2])));
+# type of inert forms
+`type/inert` := curry(funcPrefixType, '_Inert_');
+
+# type used buy the partial evaluator's intermediate forms
+`type/tag`   := curry(funcPrefixType, '_Tag_');
+
+
+funcPrefixType := proc(prefix, f)
+    if nargs = 2 then
+        type(f, function) and StringTools:-RegMatch(cat("^", prefix), op(0, f));
+    elif nargs = 3 then
+        type(f, specfunc(anything, map2(cat, prefix, args[3])));
     else 
         error("must be called with 1 or 2 args");
     end if;
-end proc:
+end proc;
 
 
 isInert := proc(x) option inline;

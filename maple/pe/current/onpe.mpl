@@ -156,17 +156,6 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := []) #::moduledefin
 end proc;
 
 
-# partially evaluates an arbitrary inert code
-peInert := proc(inert::inert) # returns inert code or NULL
-   local header;
-   header := getHeader(inert);
-   if assigned(pe[header]) then
-        pe[header](op(inert));
-   else
-        error(cat("not supported yet: ", op(0, inert)));
-   end if;
-end proc;
-
 
 # takes inert code and assumes static variables are on top of EnvStack
 peSpecializeProc := proc(inert::inert, n::string) #void
@@ -200,18 +189,50 @@ peSpecializeProc := proc(inert::inert, n::string) #void
 end proc; 
 
 
-# takes an entire inert expression, including the header
-# Returns a list of inert assigns and the result of reducing the expression,
-# if the expression is dynamic it will be returned in inert form, 
-# if it is static it will not be in inert form.
+
+# partially evaluates an arbitrary inert code
+peInert := proc(inert::Or(inert, tag)) # returns inert code or NULL
+   local header;
+   header := getHeader(inert);
+   if assigned(pe[header]) then
+        pe[header](op(inert));
+   else
+        error(cat("not supported yet: ", op(0, inert)));
+   end if;
+end proc;
+
+
+
+# returns two values because pe[_Tag_STRIPPED] returns two values
 peExpression := proc(expr::inert)
-    env := EnvStack:-top();
-    #the expression stripper returns assigments as a list of equations
-    assigns, strippedExpr := StripExp:-strip(expr, genVar); # TODO, unsound for shortcut boolean logic expressions
-    residualAssignsToFunctionCalls := map(peAssignToFunction, assigns);
-    reducedExpr := EvalExp:-reduce(strippedExpr, env);
-    # TODO, residualAssignsToFunctionCalls is a bad name because the function calls may have been unfolded
-    return residualAssignsToFunctionCalls, reducedExpr;
+    a, b := StripExp:-strip(expr, genVar);
+    peInert(a), peInert(b);
+end proc;
+
+
+
+#pe[_Tag_STRIPPED] := proc(assigns::tag(STRIPPEDASSIGNSEQ), expr::tag(STRIPPEDEXPR))
+#    q := SimpleQueue();
+#    #subsList := [];
+#        
+#    for i from 1 to nops(assigns) do
+#        #res := subs(subsList, op(i, assigns));                      
+#        res := peInert(res);
+#        
+#        if nops([res]) = 1 then # if residual code consists of a single statment then it must be an assign to an expression
+#            subsList := [op(subsList), op([1,1], res) = op([1,2], res)];
+#        elif nops([res]) > 1 then
+#            q:-enqueue(res);
+#            if endsWithReturn(res) then break end if;
+#        end if;    
+#    end do;
+#    
+#    _Inert_STATSEQ(op(q:-toList())), peInert(subs(subsList, expr));
+#end proc;
+
+
+pe[_Tag_STRIPPEDEXPR] := proc(expr::inert)
+    EvalExp:-reduce(expr, EnvStack:-top());
 end proc;
 
 
@@ -252,6 +273,7 @@ end proc;
 
 
 
+
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 
 isUnfoldable := proc(inertFunctionCall::inert(FUNCTION), inertProcedure::inert(PROC))
@@ -265,22 +287,6 @@ isUnfoldable := proc(inertFunctionCall::inert(FUNCTION), inertProcedure::inert(P
     false;        
 end proc;
 
-
-
-# only works for a standalone function
-# this should override previous pe table assignment that treats a function as an expression
-pe[_Inert_FUNCTION] := proc(n::inert(ASSIGNEDNAME))
-    residualFunctionCall := peFunction(args);
-    funcName := op([1,1], residualFunctionCall);
-    residualProcedure := code[funcName];
-
-    if isUnfoldable(residualFunctionCall, residualProcedure) then
-        code[funcName] := evaln(code[funcName]); # remove mapping from code        
-        TransformUnfold:-UnfoldStandalone(residualProcedure, residualFunctionCall, genVar);
-    else
-        residualFunctionCall;
-    end if;
-end proc;
 
 
 
@@ -333,10 +339,26 @@ peFunction := proc(n::inert({ASSIGNEDNAME,NAME}))::inert(FUNCTION);
 end proc;
 
 
+
+# only works for a standalone function
+# this should override previous pe table assignment that treats a function as an expression
+pe[_Inert_FUNCTION] := proc(n::inert(ASSIGNEDNAME))
+    residualFunctionCall := peFunction(args);
+    funcName := op([1,1], residualFunctionCall);
+    residualProcedure := code[funcName];
+
+    if isUnfoldable(residualFunctionCall, residualProcedure) then
+        code[funcName] := evaln(code[funcName]); # remove mapping from code        
+        TransformUnfold:-UnfoldStandalone(residualProcedure, residualFunctionCall, genVar);
+    else
+        residualFunctionCall;
+    end if;
+end proc;
+
+
 # an assign that has as its expression a single function call 
-peAssignToFunction := proc(eqn::`=`)
-    varName := lhs(eqn);
-    funcCall := rhs(eqn);
+pe[_Tag_ASSIGNTOFUNCTION] := proc(var::inert(LOCAL), funcCall::inert(FUNCTION))
+    varName := op(var);
     residualFunctionCall := peFunction(op(funcCall));
     
     funcName := op([1,1], residualFunctionCall);
@@ -374,24 +396,21 @@ pe[_Inert_ASSIGN] := proc(name::inert(LOCAL), expr::inert)
     # TODO, inertAssigns a bad name because function may have been unfolded
     inertAssigns, reduced := peExpression(expr);
     if isInert(reduced) then
-        if getHeader(op(-1, inertAssigns)) <> _Inert_STATSEQ then error("must return a statment sequence") end if;        
-        lastStat := op([-1, -1], inertAssigns);        
+        #if getHeader(op(-1, inertAssigns)) <> _Inert_STATSEQ then error("must return a statment sequence") end if;        
+        #lastStat := op([-1, -1], inertAssigns);        
 
-        if isInertVariable(reduced) 
-        and op(0, lastStat) = _Inert_ASSIGN     
-        and getVal(reduced) = op([1,1], lastStat) then                       
-            _Inert_STATSEQ(op(1..-2, inertAssigns), op([-1, 1..-2], inertAssigns), _Inert_ASSIGN(name, op(2, lastStat)));            
-        else
+        #if isInertVariable(reduced) 
+        #and op(0, lastStat) = _Inert_ASSIGN     
+        #and getVal(reduced) = op([1,1], lastStat) then                       
+        #    _Inert_STATSEQ(op(1..-2, inertAssigns), op([-1, 1..-2], inertAssigns), _Inert_ASSIGN(name, op(2, lastStat)));            
+        #else
             _Inert_STATSEQ(op(inertAssigns), _Inert_ASSIGN(name, reduced));
-        end if;
+        #end if;
     else
         EnvStack:-top():-putVal(op(name), reduced);
         _Inert_STATSEQ(op(inertAssigns)); # TODO, is it possible for an expression to reduce to some assigns AND a static value?
     end if;
 end proc;
-
-
-
 
 
 
