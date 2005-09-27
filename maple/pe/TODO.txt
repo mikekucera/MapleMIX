@@ -1,6 +1,8 @@
 Big To Do List
 Stuff on the not-too-distant horizon
 
+- Inlining of assignments to expressions in stripped code
+- Bug with standalone function calls... not being stripped
 
 - Add support for statment forms
   - Loops
