@@ -27,31 +27,25 @@ EvalExp := module()
         _Inert_NOT       = unOp(_Inert_NOT, `not`),           
             
         _Inert_INTPOS    = (x -> x), 
-        _Inert_INTNEG    = (x -> -x),
+        _Inert_INTNEG    = `-`,
         _Inert_FLOAT     = ((x,y) -> FromInert(_Inert_FLOAT(ToInert(x),ToInert(y)))),
         _Inert_STRING    = (x -> x),
+        _Inert_NAME      = rcurry(convert, symbol),
         
+        _Inert_RATIONAL  = `/`,
         _Inert_COMPLEX   = complex,
-        _Inert_RATIONAL  = rational,
         _Inert_EXPSEQ    = expseq,
         _Inert_LIST      = literalList,
         _Inert_SET       = literalSet
+        
     ];
 
 
-    isStatic := x -> evalb( not isInert(x) or getHeader(x) = _Tag_STATICEXPSEQ );
+    isStatic := x -> evalb( not isInert(x) or member(getHeader(x), {_Tag_STATICEXPSEQ, _Tag_STATICTABLE}) );
     isDynamic := `not` @ isStatic;
     allStatic := curry(andmap, isStatic); 
 
-
-    #isDynamic := proc(x) option inline;
-    #    #evalb(isInert(x) or getHeader(x) = _Tag_STATICEXPSEQ);
-    #    evalb(isInert(x));
-    #end proc;    
-    #isStatic := `not` @ isDynamic;
-    #allStatic := xs -> andmap(isStatic, xs);
-
-    
+        
     binOp := proc(f, op)        
         proc(x, y) local inx, iny;
             inx, iny := isDynamic(x), isDynamic(y);
@@ -68,9 +62,7 @@ EvalExp := module()
         end proc;
     end proc;
     
-    
-    unOp   := (f, op) -> x -> `if`(isDynamic(x), f(x), op(x));
-    
+    unOp   := (f, op) -> x -> `if`(isDynamic(x), f(x), op(x));    
     naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
 
 
@@ -82,15 +74,9 @@ EvalExp := module()
         end if;
     end proc;
 
-    rational := `/`;
-
     literalList := eseq -> `if`(isStatic(eseq), [op(eseq)], _Inert_LIST(eseq));
     literalSet  := eseq -> `if`(isStatic(eseq), {op(eseq)}, _Inert_SET(eseq));
 
-
-    tableref := proc(n, eseq)
-
-    end proc;
 
     
     # You can't pass a raw expression sequence into another function
@@ -140,7 +126,7 @@ EvalExp := module()
             elif getHeader(expseq) = _Tag_STATICEXPSEQ then # if all arguments are static then call the pure func
                 return apply(convert(op(1,n), name), op(expseq));
             end if;
-
+         `if`(env:-fullyStatic?(x), env:-getVal(x), f(x));
             #residualize
             # perhaps all function calls should be split out of expressions, for unfolding
             _Inert_FUNCTION(n, expseq);
@@ -148,8 +134,33 @@ EvalExp := module()
     end proc;
 
 
+    # evaluates table references as expressions
+    tableref := proc(env)
+        proc(tbl::tag(STATICTABLE), eseq::tag(STATICEXPSEQ))
+            actualTable := op(2, tbl);
+            ref := op(1, eseq);
+            if assigned(actualTable[ref]) then
+                actualTable[ref];
+            else
+               _Inert_TABLEREF(tbl, eseq);
+            end if;                 
+        end proc;
+    end proc;
+
+
     # evaluates static variables
-    evalName := (env, f) -> x -> `if`(env:-fullyStatic?(x), env:-getVal(x), f(x));
+    evalName := (env, f) -> proc(x)
+         if env:-fullyStatic?(x) then
+            val := env:-getVal(x);
+            if type(val, table) then
+                _Tag_STATICTABLE(f(x), val);
+            else
+                val;
+            end if;
+         else
+             f(x);
+         end if;
+    end proc;
 
 
     # exported expression reducing function
@@ -157,11 +168,13 @@ EvalExp := module()
         residual := eval(exp, [op(subsList), 
                                _Inert_PARAM = evalName(env, _Inert_PARAM), 
                                _Inert_LOCAL = evalName(env, _Inert_LOCAL),
-                               _Inert_NAME  = evalName(env, _Inert_NAME),
+                               _Inert_TABLEREF = binOp(_Inert_TABLEREF, tableref(env)), 
                                _Inert_FUNCTION = pureFunc(env)
                               ]);
 
-        eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic]);
+        eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 
+                        _Tag_STATICTABLE = ((x,v) -> x)]);
+
     end proc;
     
 end module;

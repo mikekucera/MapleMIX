@@ -177,7 +177,15 @@ peSpecializeProc := proc(inert::inert, n::string) #void
     body := TransformIfNormalForm(body);
 
     # POST-PROCESS
-    newParamList := select((env:-dynamic? @ getParamName), params);
+    leftoverParams := {};
+    leftoverParam := proc(n)
+        leftoverParams := {op(leftoverParams), n};
+    end proc;
+    eval(body, _Inert_PARAM=leftoverParam);
+
+    #newParamList := select((env:-dynamic? @ getParamName), params);
+
+    newParamList := select((rcurry(member, leftoverParams) @ getParamName), params);
     paramReplace := paramMap(newParamList, _Inert_PARAM);
     localReplace, newLocals := localMap();
 
