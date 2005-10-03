@@ -1,12 +1,12 @@
 
 # type of inert forms
-`type/inert` := curry(funcPrefixType, '_Inert_');
+`type/inert` := curry(funcPrefixType, '_Inert_'):
 
 # type used buy the partial evaluator's intermediate forms
-`type/tag`   := curry(funcPrefixType, '_Tag_');
+`type/tag`   := curry(funcPrefixType, '_Tag_'):
 
 # type of M forms
-`type/m`     := curry(funcPrefixType, 'M');
+`type/m`     := curry(funcPrefixType, 'M'):
 
 
 funcPrefixType := proc(prefix, f)
@@ -17,4 +17,4 @@ funcPrefixType := proc(prefix, f)
    else 
        error("must be called with 1 or 2 args");
    end if;
-end proc;
+end proc:

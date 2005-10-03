@@ -27,13 +27,3 @@ printmod := proc(m)
     NULL;
 end proc;
 
-
-# returns a closure that generates unique names (as strings)
-makeNameGenerator := proc(n::string)::procedure;
-    local val;
-    val := 0;
-    return proc()
-        val := val + 1;
-        cat(n, val);
-    end proc;
-end proc;

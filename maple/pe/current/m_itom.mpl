@@ -1,15 +1,20 @@
 
-InertToM := module()
-    export ModuleApply;
+ToM := module()
+    export ModuleApply;    
 
-    ModuleApply := proc(code::inert)::m;
-            gen := makeNameGenerator("m");
-            itom(code)
+    ModuleApply := proc(obj)::m;
+        gen := NameGenerator:-New("m");
+        itom(ToInert(eval(obj)))
     end proc;    
-                   
-    itom := code -> m[op(0, code)](op(code));                       
+
+    # takes one arg               
+    itom := code -> m[op(0, code)](op(code));
+    # takes two args
+    itom2 := (a, b) -> itom(a), itom(b);
+    # takes any number of args
     mapitom := () -> op(map(itom, [args]));
         
+
     # takes an inert expression and splits it
     splitAssigns := proc()
         q := SimpleQueue();          
@@ -45,18 +50,40 @@ InertToM := module()
     m[_Inert_NAME]     := MName;
     m[_Inert_LOCAL]    := MLocal;
     m[_Inert_PARAM]    := MParam;
+
     m[_Inert_INTPOS]   := MInt;
     m[_Inert_INTNEG]   := MInt @ `-`;
     m[_Inert_STRING]   := MString;
-    m[_Inert_EQUATION] := MEquation;
-    
-    m[_Inert_PROC]      := MProc @ mapitom;
-    m[_Inert_PARAMSEQ]  := MParamSeq @ mapitom;
-    m[_Inert_LOCALSEQ]  := MLocalSeq @ mapitom;
-    m[_Inert_OPTIONSEQ] := MOptionSeq @ mapitom;
+
+    m[_Inert_NOT]      := MNot @ itom;
+
+    m[_Inert_FLOAT]    := MFloat    @ itom2;
+    m[_Inert_EQUATION] := MEquation @ itom2;
+    m[_Inert_POWER]    := MPower    @ itom2;
+    m[_Inert_CATENATE] := MCatenate @ itom2;
+    m[_Inert_LESSEQ]   := MLesseq   @ itom2;
+    m[_Inert_LESSTHAN] := MLessThan @ itom2;
+    m[_Inert_IMPLIES]  := MImplies  @ itom2;
+    m[_Inert_AND]      := MAnd      @ itom2;
+    m[_Inert_OR]       := MOr       @ itom2;
+    m[_Inert_XOR]      := MXor      @ itom2;
+
+    m[_Inert_RATIONAL]  := MRational @ itom2;
+    m[_Inert_COMPLEX]   := MComplex  @ itom2;
+
+    m[_Inert_LIST]      := MList     @ mapitom;
+    m[_Inert_SET]       := MSet      @ mapitom;
+
     m[_Inert_EXPSEQ]    := MExpSeq @ mapitom;
-    m[_Inert_SUM]       := MSum @ mapitom;
-    m[_Inert_PROD]      := MProd @ mapitom;
+    m[_Inert_SUM]       := MSum    @ mapitom;
+    m[_Inert_PROD]      := MProd   @ mapitom;
+
+    m[_Inert_RETURN] := MReturn @ mapitom;
+    
+    m[_Inert_PROC]      := MProc      @ mapitom;
+    m[_Inert_PARAMSEQ]  := MParamSeq  @ mapitom;
+    m[_Inert_LOCALSEQ]  := MLocalSeq  @ mapitom;
+    m[_Inert_OPTIONSEQ] := MOptionSeq @ mapitom;
     
     m[_Inert_DESCRIPTIONSEQ] := NULL;
     m[_Inert_GLOBALSEQ]      := NULL;
@@ -86,4 +113,4 @@ InertToM := module()
         end if;
     end proc;
 
-end module;
+end module:

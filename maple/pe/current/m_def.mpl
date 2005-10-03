@@ -1,11 +1,12 @@
     
 M := module()
-    export InertToM, Print;
+    export Print, ToM, ReduceExp;
     local mapitm, m, gen, intrinsic;
     
     # set of builtin function names
     intrinsic := {anames(builtin)};
-    
+
+    isM := x -> evalb(type(x, m));    
 
     # used to print out M forms in a (slightly more) readable way
     Print := proc(m::m)
@@ -30,5 +31,7 @@ M := module()
 
 $include "m_itom.mpl"
 
-end module;
+$include "eval_exp.mpl"
+
+end module:
 

@@ -70,4 +70,4 @@ IntermediateForms := module()
 
     isExpr := rcurry(member, expressionForms);
 
-end module;
+end module:
