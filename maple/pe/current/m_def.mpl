@@ -1,4 +1,3 @@
-
     
 M := module()
     export ModuleApply, Print;
@@ -14,10 +13,8 @@ M := module()
         itom(code)
     end proc;
     
-        
-
-    
-    # used to print out M forms in a readable way
+            
+    # used to print out M forms in a (slightly more) readable way
     Print := proc(m::m)
         printspaces := proc(num)
             from 1 to num*2 do
@@ -45,7 +42,7 @@ M := module()
     
     
     # takes an inert expression and splits it
-    split := proc()
+    splitAssigns := proc()
         q := SimpleQueue();          
         processExpr := proc(e::inert)
             # generation of table is a side effect of nested proc
@@ -65,48 +62,60 @@ M := module()
         residualExpressions := map(processExpr, [args]);
         return q:-toList(), residualExpressions;
     end proc;
+
     
+    # splits the given expression, then applies the continuation k to the stripped expression
+    split := proc(expr, k)
+        assigns, reduced := splitAssigns(expr);
+        `if`(nops(assigns) = 0, k(op(reduced)), MStatSeq(op(assigns), k(op(reduced))));
+    end proc;    
     
-    m[_Inert_STATSEQ] := proc() local standaloneExpr;    
-        standaloneExpr := proc(expr::inert)
-            assigns, reduced := split(expr);
-            MStatSeq(op(assigns), op(reduced));
-        end proc;
-        MStatSeq( op(map(x -> `if`(member(op(0,x), expressionForms), standaloneExpr, itom)(x), [args])) );
-    end proc;
-    
-        
+            
     m[MSingleUse] := MSingleUse;
     
-    m[_Inert_NAME] := MName;
-    m[_Inert_LOCAL] := MLocal;
-    m[_Inert_PARAM] := MParam;
-    m[_Inert_INTPOS] := MInt;
-    m[_Inert_INTNEG] := MInt @ `-`;
-    m[_Inert_STRING] := MString;
+    m[_Inert_NAME]     := MName;
+    m[_Inert_LOCAL]    := MLocal;
+    m[_Inert_PARAM]    := MParam;
+    m[_Inert_INTPOS]   := MInt;
+    m[_Inert_INTNEG]   := MInt @ `-`;
+    m[_Inert_STRING]   := MString;
+    m[_Inert_EQUATION] := MEquation;
     
-    m[_Inert_PROC] := MProc @ mapitom;
-    m[_Inert_PARAMSEQ] := MParamSeq @ mapitom;
-    m[_Inert_LOCALSEQ] := MLocalSeq @ mapitom;
+    m[_Inert_PROC]      := MProc @ mapitom;
+    m[_Inert_PARAMSEQ]  := MParamSeq @ mapitom;
+    m[_Inert_LOCALSEQ]  := MLocalSeq @ mapitom;
     m[_Inert_OPTIONSEQ] := MOptionSeq @ mapitom;
-    m[_Inert_EXPSEQ] := MExpSeq @ mapitom;
-    m[_Inert_SUM] := MSum @ mapitom;
-    m[_Inert_PROD] := MProd @ mapitom;
+    m[_Inert_EXPSEQ]    := MExpSeq @ mapitom;
+    m[_Inert_SUM]       := MSum @ mapitom;
+    m[_Inert_PROD]      := MProd @ mapitom;
     
     m[_Inert_DESCRIPTIONSEQ] := NULL;
-    m[_Inert_GLOBALSEQ] := NULL;
-    m[_Inert_LEXICALSEQ] := NULL;
-    m[_Inert_EOP] := NULL;        
-    
-    m[_Inert_FUNCTION] := proc()
-        assigns, reduced := split(op(2..-1, [args]));
-        MStatSeq(op(assigns), MStandaloneFunction(op(reduced)));
-    end proc;
-    
-    m[_Inert_ASSIGN] := proc(name, expr)
-        assigns, reduced := split(expr);
-        MStatSeq(op(assigns), MAssign(itom(name), op(reduced)))
-    end proc;
+    m[_Inert_GLOBALSEQ]      := NULL;
+    m[_Inert_LEXICALSEQ]     := NULL;
+    m[_Inert_EOP]            := NULL;        
     
 
+    m[_Inert_STATSEQ] := proc() local standaloneExpr;    
+        standaloneExpr := rcurry(split, () -> args);
+        MStatSeq( op(map(x -> `if`(isExpr(op(0,x)), standaloneExpr, itom)(x), [args])) );        
+    end proc;
+    
+    m[_Inert_FUNCTION] := () -> split(op(2..-1,[args]), MStandaloneFunction);
+    
+    m[_Inert_ASSIGN] := (name, expr) -> split(expr, curry(MAssign, itom(name)));
+
+    m[_Inert_IF] := proc()
+        if typematch([args], [_Inert_CONDPAIR(c::anything, s::anything)]) then
+            split(c, red -> MIfElse(red, itom(s), MStatSeq()));
+        elif typematch([args], [_Inert_CONDPAIR(c::anything, s::anything), el::inert(STATSEQ)]) then
+            split(c, red -> MIfElse(red, itom(s), itom(el)));
+        else
+            condpair := op(1, [args]); 
+            rest := op(2..-1, [args]);
+            c, s := op(1, condpair), op(2, condpair);            
+            split(c, red -> MIfElse(red, itom(s), itom(_Inert_IF(rest))));
+        end if;
+    end proc;    
+
 end module;
+

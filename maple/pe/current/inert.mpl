@@ -67,10 +67,13 @@ endsWithReturn := proc(inert::inert)
 end proc;
 
 
+
 statmentForms := {_Inert_IF, _Inert_FORFROM, _Inert_FORIN, 
                   _Inert_BREAK, _Inert_NEXT, _Inert_RETURN, 
                   _Inert_ERROR, _Inert_TRY, _Inert_ASSIGN, 
                   _Inert_READ, _Inert_SAVE};
+
+isStat := rcurry(member, statmentForms);
 
 
 # expression forms that are supported so far
@@ -83,3 +86,5 @@ expressionForms := {_Inert_SUM, _Inert_PROD, _Inert_POWER,
                     _Inert_EXPSEQ, _Inert_LIST, _Inert_SET, 
                     _Inert_PARAM, _Inert_LOCAL, _Inert_NAME, 
                     _Inert_FUNCTION, _Inert_TABLEREF};
+
+isExpr := rcurry(member, expressionForms);
