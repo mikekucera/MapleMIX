@@ -1,19 +1,16 @@
 
 ToM := module()
     export ModuleApply;    
+    local itom, itom2, mapitom,  m, gen;
+
+    m := table();
+    itom, itom2, mapitom := transformProcs(m);
 
     ModuleApply := proc(obj)::m;
-        gen := NameGenerator:-New("m");
+        gen := NameGenerator:-New("m");        
         itom(ToInert(eval(obj)))
-    end proc;    
-
-    # takes one arg               
-    itom := code -> m[op(0, code)](op(code));
-    # takes two args
-    itom2 := (a, b) -> itom(a), itom(b);
-    # takes any number of args
-    mapitom := () -> op(map(itom, [args]));
-        
+    end proc;
+ 
 
     # takes an inert expression and splits it
     splitAssigns := proc()
