@@ -29,9 +29,9 @@ M := module()
     end proc;
         
 
-$include "m_itom.mpl"
+$include "m_tom.mpl"
 
-$include "eval_exp.mpl"
+$include "m_reduce_exp.mpl"
 
 end module:
 
