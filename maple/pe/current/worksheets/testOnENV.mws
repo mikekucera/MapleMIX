@@ -44,156 +44,103 @@ Output" -1 11 1 {CSTYLE "" -1 -1 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 1 0
 {CSTYLE "" -1 -1 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 1 0 0 1 }1 1 0 0 3 3
  2 36 2 0 2 2 -1 1 }{CSTYLE "Help Variable" -1 25 "Courier" 1 12 0 0 0
  1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Text" -1 200 "Times" 1 12 0 0 0 1 2 2
- 2 2 2 2 0 0 0 1 }{CSTYLE "Help Bold" -1 39 "Times" 1 12 0 0 0 1 2 1 2
- 2 2 2 0 0 0 1 }{CSTYLE "Page Number" -1 33 "Times" 1 12 0 0 0 1 2 2 2
- 2 2 2 0 0 0 1 }{CSTYLE "2D Math Italic Small" -1 201 "Times" 1 1 0 0 
-0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Nonterminal" -1 24 "Courier" 1 
-12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Default" -1 38 "Times" 1 12 0
- 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Maple Comment" -1 21 "Courier" 1 
-12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Maple Input" -1 0 "Courier" 1
- 12 255 0 0 1 2 1 2 2 1 2 0 0 0 1 }{CSTYLE "2D Math Small" -1 7 "Times
-" 1 1 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Fixed" -1 23 "Courier
-" 1 10 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Popup" -1 31 "Times" 1 12
- 0 128 128 1 1 2 1 2 2 2 0 0 0 1 }{CSTYLE "Plot Title" -1 27 "Times" 1
- 10 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "2D Input" -1 19 "Times" 1 12
- 255 0 0 1 2 2 2 2 1 2 0 0 0 1 }{CSTYLE "Copyright" -1 34 "Times" 1 10
- 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Maple Input Placeholder" -1 202
- "Courier" 1 12 200 0 200 1 2 1 2 2 1 2 0 0 0 1 }{CSTYLE "2D Math Bold
- Small" -1 10 "Times" 1 1 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "2D Mat
-h" -1 2 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Notes"
- -1 37 "Times" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Help Underli
-ned Bold" -1 41 "Times" 1 12 0 0 0 1 1 1 2 2 2 2 0 0 0 1 }{CSTYLE "Hyp
-erlink" -1 17 "Times" 1 12 0 128 128 1 2 2 1 2 2 2 0 0 0 1 }{CSTYLE "2
-D Math Symbol 2" -1 16 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }
-{CSTYLE "Plot Text" -1 28 "Times" 1 8 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }
-{CSTYLE "2D Math Italic Small201" -1 203 "Times" 1 1 0 0 0 1 1 2 2 2 2
- 2 0 0 0 1 }{CSTYLE "Help Italic" -1 42 "Times" 1 12 0 0 0 1 1 2 2 2 2
- 2 0 0 0 1 }{CSTYLE "Output Labels" -1 29 "Times" 1 8 0 0 0 1 2 2 2 2 
-2 2 0 0 0 1 }{CSTYLE "Help Heading" -1 26 "Times" 1 14 0 0 0 1 2 1 2 2
- 2 2 0 0 0 1 }{CSTYLE "Help Normal" -1 30 "Times" 1 12 0 0 0 1 2 2 2 2
- 2 2 0 0 0 1 }{CSTYLE "2D Comment" -1 18 "Times" 1 12 0 0 0 1 2 2 2 2 
-2 2 0 0 0 1 }{CSTYLE "Help Maple Name" -1 35 "Times" 1 12 104 64 92 1 
-2 1 2 2 2 2 0 0 0 1 }{CSTYLE "2D Output" -1 20 "Times" 1 12 0 0 255 1 
-2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Dictionary Hyperlink" -1 45 "Times" 1 12
- 147 0 15 1 2 2 1 2 2 2 0 0 0 1 }{CSTYLE "Help Emphasized" -1 22 "Time
-s" 1 12 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Italic Bold" -1 40 
-"Times" 1 12 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "LaTeX" -1 32 "Times
-" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Menus" -1 36 "Times"
- 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Prompt" -1 1 "Courier" 1 
-12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Help Underlined" -1 44 "Times
-" 1 12 0 0 0 1 2 2 1 2 2 2 0 0 0 1 }{CSTYLE "Help Underlined Italic" 
--1 43 "Times" 1 12 0 0 0 1 1 2 1 2 2 2 0 0 0 1 }{CSTYLE "2D Math Bold"
- -1 5 "Times" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "2D Math Itali
-c" -1 3 "Times" 1 12 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }}
-{SECT 0 {EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}{EXCHG {PARA 0 "
-> " 0 "" {MPLTEXT 1 0 20 "read(\"OnENV.mpl\");" }}{PARA 11 "" 1 "" 
-{XPPMATH 20 ">I&OnENVG6\"`6#I)NewOnENVGF$b6#I+thismoduleGF$F$F$F&F$6#Q
-=Online~knowledge~environmentF$F$F$I,_m136995996GF$F$" }}}{EXCHG 
-{PARA 0 "> " 0 "" {MPLTEXT 1 0 25 "env := OnENV:-NewOnENV();" }}{PARA 
-11 "" 1 "" {XPPMATH 20 ">I$envG6\"`65I'addValGF$I'putValGF$I(addTypeGF
-$I(putTypeGF$I*addValSetGF$I+addTypeSetGF$I(getValsGF$I)getTypesGF$I+v
-alIndicesGF$I,typeIndicesGF$I'getValGF$I-fullyStatic?GF$I.fullyDynamic
-?GF$I)dynamic?GF$I%has?GF$I+setDynamicGF$I&cloneGF$I(combineGF$I(displ
-ayGF$b6#I+thismoduleGF$6(I'valEnvGF$I(typeEnvGF$I(keyTypeGF$I+getIndic
-esGF$I+addSetProcGF$I(addProcGF$F$F&F$F$F$6$I)NewOnENVGF$FEI,_m1356548
-48GF$F=" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 18 "env:-addVal(x, 1
-);" }}{PARA 11 "" 1 "" {XPPMATH 20 "<#\"\"\"" }}}{EXCHG {PARA 0 "> " 0
- "" {MPLTEXT 1 0 18 "env:-valIndices();" }}{PARA 11 "" 1 "" {XPPMATH 
-20 "7#Q\"x6\"" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 21 "env:-fully
-Static?(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "I%trueG%*protectedG" }}}
-{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 22 "env:-fullyDynamic?(x);" }}
-{PARA 11 "" 1 "" {XPPMATH 20 "I&falseG%*protectedG" }}}{EXCHG {PARA 0 
-"> " 0 "" {MPLTEXT 1 0 17 "env:-dynamic?(x);" }}{PARA 11 "" 1 "" 
-{XPPMATH 20 "I&falseG%*protectedG" }}}{EXCHG {PARA 0 "> " 0 "" 
-{MPLTEXT 1 0 13 "env:-has?(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "I%true
-G%*protectedG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 17 "env:-addVa
-l(x,2);" }}{PARA 11 "" 1 "" {XPPMATH 20 "<$\"\"\"\"\"#" }}}{EXCHG 
-{PARA 0 "> " 0 "" {MPLTEXT 1 0 16 "env:-getVals(x);" }}{PARA 11 "" 1 "
-" {XPPMATH 20 "<$\"\"\"\"\"#" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 
-0 21 "env:-fullyStatic?(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "I&falseG%
-*protectedG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 22 "env:-fullyDy
-namic?(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "I&falseG%*protectedG" }}}
-{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 17 "env:-dynamic?(x);" }}{PARA 
-11 "" 1 "" {XPPMATH 20 "I%trueG%*protectedG" }}}{EXCHG {PARA 0 "> " 0 
-"" {MPLTEXT 1 0 26 "env2 := OnENV:-NewOnENV();" }}{PARA 11 "" 1 "" 
-{XPPMATH 20 ">I%env2G6\"`65I'addValGF$I'putValGF$I(addTypeGF$I(putType
-GF$I*addValSetGF$I+addTypeSetGF$I(getValsGF$I)getTypesGF$I+valIndicesG
-F$I,typeIndicesGF$I'getValGF$I-fullyStatic?GF$I.fullyDynamic?GF$I)dyna
-mic?GF$I%has?GF$I+setDynamicGF$I&cloneGF$I(combineGF$I(displayGF$b6#I+
-thismoduleGF$6(I'valEnvGF$I(typeEnvGF$I(keyTypeGF$I+getIndicesGF$I+add
-SetProcGF$I(addProcGF$F$F&F$F$F$6$I)NewOnENVGF$FEI,_m136651124GF$F=" }
-}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 30 "env2:-addValSet(x, \{9, 10
-\});" }}{PARA 11 "" 1 "" {XPPMATH 20 "<$\"\"*\"#5" }}}{EXCHG {PARA 0 "
-> " 0 "" {MPLTEXT 1 0 24 "c := env:-combine(env2);" }}{PARA 11 "" 1 ""
- {XPPMATH 20 "6$Q&clone6\"7#Q\"xF$" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$
-Q\"i6\"Q\"xF$" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I\"cG6\"`65I'addValGF$
-I'putValGF$I(addTypeGF$I(putTypeGF$I*addValSetGF$I+addTypeSetGF$I(getV
-alsGF$I)getTypesGF$I+valIndicesGF$I,typeIndicesGF$I'getValGF$I-fullySt
-atic?GF$I.fullyDynamic?GF$I)dynamic?GF$I%has?GF$I+setDynamicGF$I&clone
-GF$I(combineGF$I(displayGF$b6#I+thismoduleGF$6(I'valEnvGF$I(typeEnvGF$
-I(keyTypeGF$I+getIndicesGF$I+addSetProcGF$I(addProcGF$F$F&F$F$F$6$I)Ne
-wOnENVGF$FEI,_m136651404GF$F=" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 
-0 14 "c:-getVals(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "<&\"\"\"\"\"#\"
-\"*\"#5" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 22 "c:-clone():-disp
-lay();" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q&clone6\"7#Q\"xF$" }}{PARA 
-11 "" 1 "" {XPPMATH 20 "6$Q\"i6\"Q\"xF$" }}{PARA 11 "" 1 "" {XPPMATH 
-20 "-I&TABLEG%*protectedG6#7#/Q\"x6\"<&\"\"\"\"\"#\"\"*\"#5" }}{PARA 
-11 "" 1 "" {XPPMATH 20 "-I&TABLEG%*protectedG6#7\"" }}}{EXCHG {PARA 0 
-"> " 0 "" {MPLTEXT 1 0 26 "env3 := OnENV:-NewOnENV();" }}{PARA 11 "" 1
- "" {XPPMATH 20 ">I%env3G6\"`65I'addValGF$I'putValGF$I(addTypeGF$I(put
-TypeGF$I*addValSetGF$I+addTypeSetGF$I(getValsGF$I)getTypesGF$I+valIndi
-cesGF$I,typeIndicesGF$I'getValGF$I-fullyStatic?GF$I.fullyDynamic?GF$I)
-dynamic?GF$I%has?GF$I+setDynamicGF$I&cloneGF$I(combineGF$I(displayGF$b
-6#I+thismoduleGF$6(I'valEnvGF$I(typeEnvGF$I(keyTypeGF$I+getIndicesGF$I
-+addSetProcGF$I(addProcGF$F$F&F$F$F$6$I)NewOnENVGF$FEI,_m135331764GF$F
-=" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 34 "env3:-addValSet(\"x\",
- \{1,2,3\});" }}{PARA 11 "" 1 "" {XPPMATH 20 "<%\"\"\"\"\"#\"\"$" }}}
-{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 16 "env3:-display();" }}{PARA 11
- "" 1 "" {XPPMATH 20 "-I&TABLEG%*protectedG6#7#/Q\"x6\"<%\"\"\"\"\"#\"
-\"$" }}{PARA 11 "" 1 "" {XPPMATH 20 "-I&TABLEG%*protectedG6#7\"" }}}
-{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 34 "env3:-addValSet(\"x\", \{1,3
-,5\});" }}{PARA 11 "" 1 "" {XPPMATH 20 "<&\"\"\"\"\"#\"\"$\"\"&" }}}
-{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 16 "env3:-display();" }}{PARA 11
- "" 1 "" {XPPMATH 20 "-I&TABLEG%*protectedG6#7#/Q\"x6\"<&\"\"\"\"\"#\"
-\"$\"\"&" }}{PARA 11 "" 1 "" {XPPMATH 20 "-I&TABLEG%*protectedG6#7\"" 
-}}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 25 "env3:-clone():-display();
-" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q&clone6\"7#Q\"xF$" }}{PARA 11 "" 
-1 "" {XPPMATH 20 "6$Q\"i6\"Q\"xF$" }}{PARA 11 "" 1 "" {XPPMATH 20 "-I&
-TABLEG%*protectedG6#7#/Q\"x6\"<&\"\"\"\"\"#\"\"$\"\"&" }}{PARA 11 "" 1
- "" {XPPMATH 20 "-I&TABLEG%*protectedG6#7\"" }}}{EXCHG {PARA 0 "> " 0 
-"" {MPLTEXT 1 0 19 "env3:-valIndices();" }}{PARA 11 "" 1 "" {XPPMATH 
-20 "7#Q\"x6\"" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 34 "env3:-addV
-alSet(\"y\", \{9,6,7\});" }}{PARA 11 "" 1 "" {XPPMATH 20 "<%\"\"'\"\"(
-\"\"*" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 16 "env3:-display();" 
-}}{PARA 11 "" 1 "" {XPPMATH 20 "-I&TABLEG%*protectedG6#7$/Q\"x6\"<&\"
-\"\"\"\"#\"\"$\"\"&/Q\"yF)<%\"\"'\"\"(\"\"*" }}{PARA 11 "" 1 "" 
-{XPPMATH 20 "-I&TABLEG%*protectedG6#7\"" }}}{EXCHG {PARA 0 "> " 0 "" 
-{MPLTEXT 1 0 19 "env3:-valIndices();" }}{PARA 11 "" 1 "" {XPPMATH 20 "
-7$Q\"x6\"Q\"yF$" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 25 "env3:-cl
-one():-display();" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q&clone6\"7$Q\"xF
-$Q\"yF$" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$Q\"i6\"Q\"xF$" }}{PARA 11 "
-" 1 "" {XPPMATH 20 "6$Q\"i6\"Q\"yF$" }}{PARA 11 "" 1 "" {XPPMATH 20 "-
-I&TABLEG%*protectedG6#7$/Q\"x6\"<&\"\"\"\"\"#\"\"$\"\"&/Q\"yF)<%\"\"'
-\"\"(\"\"*" }}{PARA 11 "" 1 "" {XPPMATH 20 "-I&TABLEG%*protectedG6#7\"
-" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 19 "env3:-valIndices();" }}
-{PARA 11 "" 1 "" {XPPMATH 20 "7$Q\"x6\"Q\"yF$" }}}{EXCHG {PARA 0 "> " 
-0 "" {MPLTEXT 1 0 40 "for i in env3:-valIndices() do i end do;" }}
-{PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}{PARA 11 "" 1 "" {XPPMATH 20 "Q
-\"x6\"" }}{PARA 11 "" 1 "" {XPPMATH 20 "Q\"y6\"" }}}{EXCHG {PARA 0 "> \+
-" 0 "" {MPLTEXT 1 0 26 "env4 := OnENV:-NewOnENV();" }}{PARA 11 "" 1 ""
- {XPPMATH 20 ">I%env4G6\"`66I'addValGF$I'putValGF$I(addTypeGF$I(putTyp
-eGF$I*addValSetGF$I+addTypeSetGF$I(getValsGF$I)getTypesGF$I+valIndices
-GF$I,typeIndicesGF$I'getValGF$I-hasTypeInfo?GF$I-fullyStatic?GF$I.full
-yDynamic?GF$I)dynamic?GF$I%has?GF$I+setDynamicGF$I&cloneGF$I(combineGF
-$I(displayGF$b6#I+thismoduleGF$6(I'valEnvGF$I(typeEnvGF$I(keyTypeGF$I+
-getIndicesGF$I+addSetProcGF$I(addProcGF$F$F&F$F$F$6$I)NewOnENVGF$FFI,_
-m136996036GF$F>" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 26 "env4:-ad
-dType(x, integer);" }}{PARA 11 "" 1 "" {XPPMATH 20 "<#I(integerG%*prot
-ectedG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 16 "env4:-display();"
- }}{PARA 11 "" 1 "" {XPPMATH 20 "6$-I&TABLEG%*protectedG6#7\"-F$6#7#/Q
-\"x6\"<#I(integerGF%" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 25 "env
-4:-clone():-display();" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$-I&TABLEG%*p
-rotectedG6#7\"-F$6#7#/Q\"x6\"<#I(integerGF%" }}}{EXCHG {PARA 0 "> " 0 
-"" {MPLTEXT 1 0 6 "env4:-" }}}}
+ 2 2 2 2 0 0 0 1 }{CSTYLE "2D Math Italic Small201203204" -1 201 "Time
+s" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Bold" -1 39 "Times" 
+1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Page Number" -1 33 "Times" 
+1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "2D Math Italic Small" -1 
+202 "Times" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Nonterminal
+" -1 24 "Courier" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Default" 
+-1 38 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Maple Comment
+" -1 21 "Courier" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Maple Inp
+ut" -1 0 "Courier" 1 12 255 0 0 1 2 1 2 2 1 2 0 0 0 1 }{CSTYLE "2D Mat
+h Small" -1 7 "Times" 1 1 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help F
+ixed" -1 23 "Courier" 1 10 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Popup
+" -1 31 "Times" 1 12 0 128 128 1 1 2 1 2 2 2 0 0 0 1 }{CSTYLE "Plot Ti
+tle" -1 27 "Times" 1 10 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "2D Input
+" -1 19 "Times" 1 12 255 0 0 1 2 2 2 2 1 2 0 0 0 1 }{CSTYLE "Copyright
+" -1 34 "Times" 1 10 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Maple Input
+ Placeholder" -1 203 "Courier" 1 12 200 0 200 1 2 1 2 2 1 2 0 0 0 1 }
+{CSTYLE "2D Math Bold Small" -1 10 "Times" 1 1 0 0 0 1 2 1 2 2 2 2 0 0
+ 0 1 }{CSTYLE "2D Math" -1 2 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 
+}{CSTYLE "Help Notes" -1 37 "Times" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }
+{CSTYLE "Help Underlined Bold" -1 41 "Times" 1 12 0 0 0 1 1 1 2 2 2 2 
+0 0 0 1 }{CSTYLE "Hyperlink" -1 17 "Times" 1 12 0 128 128 1 2 2 1 2 2 
+2 0 0 0 1 }{CSTYLE "2D Math Symbol 2" -1 16 "Times" 1 12 0 0 0 1 2 2 2
+ 2 2 2 0 0 0 1 }{CSTYLE "Plot Text" -1 28 "Times" 1 8 0 0 0 1 2 2 2 2 
+2 2 0 0 0 1 }{CSTYLE "2D Math Italic Small201" -1 204 "Times" 1 1 0 0 
+0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Italic" -1 42 "Times" 1 12 0 0 
+0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Output Labels" -1 29 "Times" 1 8 0 0
+ 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Heading" -1 26 "Times" 1 14 0 
+0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Help Normal" -1 30 "Times" 1 12 0 
+0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "2D Comment" -1 18 "Times" 1 12 0 0
+ 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Maple Name" -1 35 "Times" 1 12
+ 104 64 92 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "2D Output" -1 20 "Times" 1 
+12 0 0 255 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Dictionary Hyperlink" -1 45
+ "Times" 1 12 147 0 15 1 2 2 1 2 2 2 0 0 0 1 }{CSTYLE "Help Emphasized
+" -1 22 "Times" 1 12 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Italic
+ Bold" -1 40 "Times" 1 12 0 0 0 1 1 2 2 2 2 2 0 0 0 1 }{CSTYLE "LaTeX"
+ -1 32 "Times" 1 12 0 0 0 1 2 2 2 2 2 2 0 0 0 1 }{CSTYLE "Help Menus" 
+-1 36 "Times" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Prompt" -1 1 
+"Courier" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0 1 }{CSTYLE "Help Underlined" 
+-1 44 "Times" 1 12 0 0 0 1 2 2 1 2 2 2 0 0 0 1 }{CSTYLE "Help Underlin
+ed Italic" -1 43 "Times" 1 12 0 0 0 1 1 2 1 2 2 2 0 0 0 1 }{CSTYLE "2D
+ Math Italic Small201203" -1 205 "Times" 1 1 0 0 0 1 1 2 2 2 2 2 0 0 0
+ 1 }{CSTYLE "2D Math Bold" -1 5 "Times" 1 12 0 0 0 1 2 1 2 2 2 2 0 0 0
+ 1 }{CSTYLE "2D Math Italic" -1 3 "Times" 1 12 0 0 0 1 1 2 2 2 2 2 0 0
+ 0 1 }}
+{SECT 0 {EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 8 "restart;" }}{PARA 11 
+"" 1 "" {XPPMATH 20 ">I(libnameG6\"6$Q7/usr/share/maple10/libF$QG/home
+/mike/thesis/maple/pe/current/libF$" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 25 "env := OnENV:-NewOnENV();" }}{PARA 11 "" 1 "" 
+{XPPMATH 20 ">I$envG6\"`6/I'putValGF$I(putTypeGF$I+valIndicesGF$I,type
+IndicesGF$I(getTypeGF$I'getValGF$I,hasTypeInfoGF$I)isStaticGF$I*isDyna
+micGF$I+setDynamicGF$I&cloneGF$I(combineGF$I(displayGF$b6#I+thismodule
+GF$6(I'valEnvGF$I(typeEnvGF$I(keyTypeGF$I+getIndicesGF$I(addProcGF$I(g
+etProcGF$F$F&F$F$F$6$I)NewOnENVGF$I)NewOnENVG6#/I+modulenameGF$I&OnENV
+GF$I,_m135042216GF$F7" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 18 "en
+v:-putVal(x, 1);" }}{PARA 11 "" 1 "" {XPPMATH 20 "\"\"\"" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 18 "env:-valIndices();" }}{PARA 11 "" 1
+ "" {XPPMATH 20 "7#Q\"x6\"" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 
+17 "env:-isStatic(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "I%trueG%*protec
+tedG" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 18 "env:-isDynamic(x);"
+ }}{PARA 11 "" 1 "" {XPPMATH 20 "I&falseG%*protectedG" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 17 "env:-putVal(x,2);" }}{PARA 11 "" 1 
+"" {XPPMATH 20 "\"\"#" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 15 "en
+v:-getVal(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "\"\"#" }}}{EXCHG {PARA 
+0 "> " 0 "" {MPLTEXT 1 0 26 "env2 := OnENV:-NewOnENV();" }}{PARA 11 ""
+ 1 "" {XPPMATH 20 ">I%env2G6\"`6/I'putValGF$I(putTypeGF$I+valIndicesGF
+$I,typeIndicesGF$I(getTypeGF$I'getValGF$I,hasTypeInfoGF$I)isStaticGF$I
+*isDynamicGF$I+setDynamicGF$I&cloneGF$I(combineGF$I(displayGF$b6#I+thi
+smoduleGF$6(I'valEnvGF$I(typeEnvGF$I(keyTypeGF$I+getIndicesGF$I(addPro
+cGF$I(getProcGF$F$F&F$F$F$6$I)NewOnENVGF$I)NewOnENVG6#/I+modulenameGF$
+I&OnENVGF$I,_m135201540GF$F7" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 
+0 19 "env2:-putVal(y, 9);" }}{PARA 11 "" 1 "" {XPPMATH 20 "\"\"*" }}}
+{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 24 "c := env:-combine(env2);" }}
+{PARA 11 "" 1 "" {XPPMATH 20 ">I\"cG6\"`6/I'putValGF$I(putTypeGF$I+val
+IndicesGF$I,typeIndicesGF$I(getTypeGF$I'getValGF$I,hasTypeInfoGF$I)isS
+taticGF$I*isDynamicGF$I+setDynamicGF$I&cloneGF$I(combineGF$I(displayGF
+$b6#I+thismoduleGF$6(I'valEnvGF$I(typeEnvGF$I(keyTypeGF$I+getIndicesGF
+$I(addProcGF$I(getProcGF$F$F&F$F$F$6$I)NewOnENVGF$I)NewOnENVG6#/I+modu
+lenameGF$I&OnENVGF$I,_m135201820GF$F7" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 13 "c:-getVal(x);" }}{PARA 11 "" 1 "" {XPPMATH 20 "\"\"#"
+ }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 13 "c:-display();" }}{PARA 
+11 "" 1 "" {XPPMATH 20 "6$-I&TABLEG%*protectedG6#7$/Q\"x6\"\"\"#/Q\"yF
+*\"\"*-F$6#7\"" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 26 "env3 := O
+nENV:-NewOnENV();" }}{PARA 11 "" 1 "" {XPPMATH 20 ">I%env3G6\"`6/I'put
+ValGF$I(putTypeGF$I+valIndicesGF$I,typeIndicesGF$I(getTypeGF$I'getValG
+F$I,hasTypeInfoGF$I)isStaticGF$I*isDynamicGF$I+setDynamicGF$I&cloneGF$
+I(combineGF$I(displayGF$b6#I+thismoduleGF$6(I'valEnvGF$I(typeEnvGF$I(k
+eyTypeGF$I+getIndicesGF$I(addProcGF$I(getProcGF$F$F&F$F$F$6$I)NewOnENV
+GF$I)NewOnENVG6#/I+modulenameGF$I&OnENVGF$I,_m135202900GF$F7" }}}
+{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 26 "env3:-putType(z, integer);" 
+}}{PARA 11 "" 1 "" {XPPMATH 20 "I(integerG%*protectedG" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 16 "env3:-display();" }}{PARA 11 "" 1 "
+" {XPPMATH 20 "6$-I&TABLEG%*protectedG6#7\"-F$6#7#/Q\"z6\"I(integerGF%
+" }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 28 "env3:-combine(c):-displ
+ay();" }}{PARA 11 "" 1 "" {XPPMATH 20 "6$-I&TABLEG%*protectedG6#7$/Q\"
+x6\"\"\"#/Q\"yF*\"\"*-F$6#7#/Q\"zF*I(integerGF%" }}}{EXCHG {PARA 0 "> \+
+" 0 "" {MPLTEXT 1 0 16 "env2:-display();" }}{PARA 11 "" 1 "" {XPPMATH 
+20 "6$-I&TABLEG%*protectedG6#7#/Q\"y6\"\"\"*-F$6#7\"" }}}{EXCHG {PARA 
+0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}}
 {MARK "0 0 0" 0 }{VIEWOPTS 1 1 0 1 1 1803 1 1 1 1 }{PAGENUMBERS 0 1 2 
 33 1 1 }
