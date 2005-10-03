@@ -6,6 +6,9 @@
 # type used buy the partial evaluator's intermediate forms
 `type/tag`   := curry(funcPrefixType, '_Tag_');
 
+# type of M forms
+`type/m`     := curry(funcPrefixType, 'M');
+
 
 funcPrefixType := proc(prefix, f)
     if nargs = 2 then
