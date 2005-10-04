@@ -4,7 +4,7 @@ ToM := module()
     local itom, itom2, mapitom,  m, gen;
 
     m := table();
-    itom, itom2, mapitom := transformProcs(m);
+    itom, itom2, mapitom := createTableProcs(m);
 
     ModuleApply := proc(obj)::m;
         gen := NameGenerator:-New("m");        
@@ -77,15 +77,14 @@ ToM := module()
 
     m[_Inert_RETURN] := MReturn @ mapitom;
     
-    m[_Inert_PROC]      := MProc      @ mapitom;
-    m[_Inert_PARAMSEQ]  := MParamSeq  @ mapitom;
-    m[_Inert_LOCALSEQ]  := MLocalSeq  @ mapitom;
-    m[_Inert_OPTIONSEQ] := MOptionSeq @ mapitom;
-    
-    m[_Inert_DESCRIPTIONSEQ] := NULL;
-    m[_Inert_GLOBALSEQ]      := NULL;
-    m[_Inert_LEXICALSEQ]     := NULL;
-    m[_Inert_EOP]            := NULL;        
+    m[_Inert_PROC]           := MProc           @ mapitom;
+    m[_Inert_PARAMSEQ]       := MParamSeq       @ mapitom;
+    m[_Inert_LOCALSEQ]       := MLocalSeq       @ mapitom;
+    m[_Inert_OPTIONSEQ]      := MOptionSeq      @ mapitom;    
+    m[_Inert_DESCRIPTIONSEQ] := MDescriptionSeq @ mapitom;
+    m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;
+    m[_Inert_LEXICALSEQ]     := MLexicalSeq     @ mapitom;
+    m[_Inert_EOP]            := MEop            @ mapitom;        
     
 
     m[_Inert_STATSEQ] := proc() local standaloneExpr;    

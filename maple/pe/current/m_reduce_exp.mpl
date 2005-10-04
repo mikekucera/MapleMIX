@@ -107,14 +107,6 @@ ReduceExp := module()
             #    arg1 := op(1, expseq);
             #   typeExpr := FromInert(op(2, expseq));
             # # returns a closure that generates unique names (as strings)
-makeNameGenerator := proc(n::string)::procedure;
-    local val;
-    val := 0;
-    return proc()
-        val := val + 1;
-        cat(n, val);
-    end proc;
-end proc;
             #    if isStatic(arg1) then                # if the variable already reduced to a static value
             #        return type(arg1, typeExpr);
             #    elif isInertVariable(arg1) and env:-hasTypeInfo?(getVal(arg1)) then

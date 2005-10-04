@@ -1,6 +1,6 @@
 interface(warnlevel = 1):
 with(LibraryTools):
-savelibname := "/home/mike/thesis/maple/pe/current/lib":
+savelibname := "lib":
 
 $include "gen.mpl"
 

@@ -1,45 +1,21 @@
-
-read("inert.mpl");
-read("OnENV.mpl");
-read("strip_exp.mpl");
-read("eval_exp.mpl");
-read("if_transform.mpl");
-read("unfold.mpl");
-
-
 # Simple online partial evaluator for a subset of maple
 
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
     export PartiallyEvaluate;
-    local EnvStack, genVar, genNum, code, makeGenerator, ModuleLoad;
-
-#################################################################################
-
-kernelopts(assertlevel=2);
 
 ##################################################################################
 
 # Section: bunch of utility functions (may be moved into separate modules or files)
 
-# returns a closure that generates unique names (as strings)
-makeNameGenerator := proc(n::string)::procedure;
-    local val;
-    val := 0;
-    return proc()
-        val := val + 1;
-        cat(n, val);
-    end proc;
-end proc;       
 
-
-getStaticValue := proc(inert::inert)
-    res := EvalExp:-reduce(inert, OnENV:-NewOnENV());
-    `if`(isInert(res), FAIL, res);
+getStaticValue := proc(m::m)
+    res := M:-ReduceExp(m, OnENV:-NewOnENV());
+    `if`(M:-IsM(res), FAIL, res);
 end proc;
 
-isStaticValue := proc(inert::inert)
-    evalb(getStaticValue(inert) <> FAIL);
+isStaticValue := proc(m::m)
+    evalb(getStaticValue(m) <> FAIL);
 end proc;
 
 
@@ -127,7 +103,7 @@ end proc;
 
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := []) #::moduledefinition;
+PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
     # set up globals
     genVar := makeNameGenerator("x");
     genNum := makeNameGenerator("");
@@ -136,34 +112,35 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := []) #::moduledefin
     #create initial environment
     env := OnENV:-NewOnENV();
     for eqn in vallist do
-        env:-addVal(lhs(eqn),rhs(eqn));
+        env:-putVal(lhs(eqn),rhs(eqn));
     end do;
 
     EnvStack := SimpleStack();
     EnvStack:-push(env);
 
-    # get the inert form of the procedure
-    inert := ToInert(eval(p));
+    # get the m form of the procedure
+    m := M:-ToM(p);
 
     # specialize
     use procName = "ModuleApply" in
-        peSpecializeProc(inert, procName);
+        peSpecializeProc(m, procName);
         EnvStack := 'EnvStack';
         # build a module from the global list of procs and return that
-        return build_module(procName);
-        #return op(code);
+        #return build_module(procName);
+        
+        return op(code);
     end use;
 end proc;
 
 
 
 # takes inert code and assumes static variables are on top of EnvStack
-peSpecializeProc := proc(inert::inert, n::string) #void
+peSpecializeProc := proc(m::m, n::string) #void
     env := EnvStack:-top();
 
-    params := getParams(inert);
-    locals := getLocals(inert);
-    body   := getProcBody(inert); #body must be a STATSEQ
+    params := M:-Params(m);
+    locals := M:-Locals(m);
+    body   := M:-ProcBody(m);
 
     #PRE-PROCESS, replace variable indices with names
     body := eval(body, [_Inert_PARAM = replace(params, _Inert_PARAM),
