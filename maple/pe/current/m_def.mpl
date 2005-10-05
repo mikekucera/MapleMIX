@@ -1,7 +1,7 @@
 
 M := module()
-    export Print, ToM, FromM, ReduceExp, IsM,
-           Params, Locals, ProcBody;
+    export Print, ToM, FromM, ReduceExp, IsM, TransformIfNormalForm,
+           Params, Locals, ProcBody, Header;
     local intrinsic, createTableProcs;
     
     # set of builtin function names
@@ -44,11 +44,14 @@ M := module()
     Params   := proc(x) option inline; op(1,x) end proc:
     Locals   := proc(x) option inline; op(2,x) end proc:
     ProcBody := proc(x) option inline; op(5,x) end proc:
+    Header   := proc(x) option inline; op(0,x) end proc:
 
 
 $include "m_tom.mpl"
 
 $include "m_fromm.mpl"
+
+$include "if_transform.mpl"
 
 $include "m_reduce_exp.mpl"
 

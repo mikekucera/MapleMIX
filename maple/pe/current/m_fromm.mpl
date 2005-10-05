@@ -53,9 +53,10 @@ FromM := module()
 	end proc;
 
     
-    i[MName]  := _Inert_NAME;
-    i[MLocal] := n -> _Inert_LOCAL(replaceLocal(n));
-    i[MParam] := n -> _Inert_PARAM(paramMap[n]);
+    i[MName]      := _Inert_NAME;
+    i[MLocal]     := n -> _Inert_LOCAL(replaceLocal(n));
+    i[MSingleUse] := i[MLocal];
+    i[MParam]     := n -> _Inert_PARAM(paramMap[n]);
 
     i[MInt] := x -> `if`(x < 0, _Inert_INTNEG(-x), _Inert_INTPOS(x));
     i[MString] := _Inert_STRING;
@@ -101,9 +102,9 @@ FromM := module()
     i[MFunction]           := _Inert_FUNCTION @ mapmtoi;
     i[MAssign]             := _Inert_ASSIGN   @ mapmtoi;
     i[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
-    i[MSingleUse]          := _Inert_LOCAL;
     
-    i[MIfElse] := proc(c, s1, s2)
+    
+    i[MIfThenElse] := proc(c, s1, s2)
         _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), _Inert_STATSEQ(mtoi(s2)))
     end proc;
     

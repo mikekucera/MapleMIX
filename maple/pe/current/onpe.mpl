@@ -96,9 +96,8 @@ peSpecializeProc := proc(m::m, n::string) #void
     body   := M:-ProcBody(m);
 
     # should be able to store the actual type in the M form
-    # eg MDcolon(MName("x"), MType(integer)); that way below line is not needed
-    
-    map( curry(evalParamType, env), params );
+    # eg MDcolon(MName("x"), MType(integer)); that way below line is not needed    
+    #map( curry(evalParamType, env), params );
 
     # PARTIAL EVALUATION
     #body := TransformIfNormalForm(body);
