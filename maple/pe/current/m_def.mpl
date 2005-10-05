@@ -51,7 +51,7 @@ $include "m_tom.mpl"
 
 $include "m_fromm.mpl"
 
-$include "if_transform.mpl"
+$include "m_transform_if.mpl"
 
 $include "m_reduce_exp.mpl"
 

@@ -3,7 +3,6 @@ TransformIfNormalForm := module()
     export ModuleApply;
     local indexOfFirstIf;
 
-
     # given a statment sequence returns the index of 
     # the first IF statment in the sequence
     indexOfFirstIf := proc(statseq::m(StatSeq))
