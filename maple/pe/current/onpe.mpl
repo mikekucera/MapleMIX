@@ -6,8 +6,6 @@ OnPE := module()
 
 ##################################################################################
 
-# Section: bunch of utility functions (may be moved into separate modules or files)
-
 
 getStaticValue := proc(m::m)
     res := M:-ReduceExp(m, OnENV:-NewOnENV());
@@ -19,35 +17,7 @@ isStaticValue := proc(m::m)
 end proc;
 
 
-
 ##################################################################################
-# code used in pre and post processes
-##################################################################################
-
-
-# returns two closures used to generate locals in the postprocess
-localMap := proc()
-    local tbl, rep, c, newLocals;
-    tbl := table();
-    c := 1;
-
-    rep := proc(x)
-        if not assigned(tbl[x]) then
-            tbl[x] := c;
-            c := c + 1;
-        end if;        
-        _Inert_LOCAL(tbl[x]);
-    end proc;
-
-    newLocals := proc()
-        _Inert_LOCALSEQ(op(map(x -> _Inert_NAME(lhs(x)), op(eval(tbl)))));
-    end proc;
-
-    return rep, newLocals;
-end proc;
-
-
-###################################################################################
 
 
 # takes an environment and an inert param
@@ -125,6 +95,9 @@ peSpecializeProc := proc(m::m, n::string) #void
     params := M:-Params(m);
     body   := M:-ProcBody(m);
 
+    # should be able to store the actual type in the M form
+    # eg MDcolon(MName("x"), MType(integer)); that way below line is not needed
+    
     map( curry(evalParamType, env), params );
 
     # PARTIAL EVALUATION

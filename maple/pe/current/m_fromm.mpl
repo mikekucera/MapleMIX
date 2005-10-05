@@ -1,14 +1,17 @@
 
 FromM := module()
     export ModuleApply;
-    local i, mtoi, mtoi2, mapmtoi, createParamMap, paramMap;
+    local i, mtoi, mtoi2, mapmtoi, createParamMap, paramMap, 
+          createLocalMappingFunctions, replaceLocal, newLocalList;
 
     i := table();
     mtoi, mtoi2, mapmtoi := createTableProcs(i);
 
     ModuleApply := proc(code::m(Proc))
-        paramMap := createParamMap(Params(code));
-        mtoi(code);        
+        paramMap := createParamMap(Params(code));        
+        replaceLocal, newLocalList := createLocalMappingFunctions();        
+        inertProc := mtoi(code);
+        subsop(2=newLocalList(), inertProc);
     end proc;
     
     
@@ -24,9 +27,34 @@ FromM := module()
         tbl;
     end proc;
 
+
+    # returns two functions used to generate locals
+ 	createLocalMappingFunctions := proc()
+	    local tbl, q, c;	    
+	    # contents of closure
+	    tbl := table();
+	    q := SimpleQueue();
+	    c := 0;
+	
+        # procedure that replaces a local with its index
+	    proc(x)
+	        if not assigned(tbl[x]) then
+     	        c := c + 1;
+	            tbl[x] := c;
+	            q:-enqueue(_Inert_NAME(x));
+	            c;
+	        else
+	            tbl[x];
+	        end if;        	        
+	    end proc,
+	    	
+	    # procedure that creates a new local sequence
+	    () -> _Inert_LOCALSEQ(op(q:-toList()));
+	end proc;
+
     
     i[MName]  := _Inert_NAME;
-    i[MLocal] := _Inert_LOCAL;
+    i[MLocal] := n -> _Inert_LOCAL(replaceLocal(n));
     i[MParam] := n -> _Inert_PARAM(paramMap[n]);
 
     i[MInt] := x -> `if`(x < 0, _Inert_INTNEG(-x), _Inert_INTPOS(x));
