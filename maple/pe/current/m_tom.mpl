@@ -21,9 +21,9 @@ ToM := module()
     createMap := proc(varSeq)
         tbl := table();
         index := 0;
-        for n in varSeq do
+        for n in varSeq do     
             index := index + 1;
-            tbl[index] := op(n);
+            tbl[index] := op(`if`(op(0,n)=_Inert_DCOLON, [1,1], 1), n);
         end do;    
         tbl;
     end proc;
@@ -124,6 +124,11 @@ ToM := module()
             c, s := op(1, condpair), op(2, condpair);            
             split(c, red -> MIfElse(red, itom(s), itom(_Inert_IF(rest))));
         end if;
+    end proc;
+    
+    # converts a type assertion into a 'typed name'
+    m[_Inert_DCOLON] := proc(n, t)
+        MTypedName(op(n), MType(FromInert(t)));
     end proc;
 
 end module:

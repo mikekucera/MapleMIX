@@ -22,20 +22,20 @@ end proc;
 
 # takes an environment and an inert param
 # returns the type expression of a function parameter type assertion
-evalParamType := proc(env, param)
-    if op(0, param) = _Inert_DCOLON then
-        name := op(op(1, param));
-        typ  := FromInert(op(2, param));
-
-        if env:-fullyStatic?(name) then
-            if not type(env:-getVal(name), eval(typ)) then
-                error("Type assertion falure");
-            end if;
-        else
-            env:-addType(name, typ);
-        end if;
-    end if;
-end proc;
+#evalParamType := proc(env, param)
+#    if op(0, param) = _Inert_DCOLON then
+#        name := op(op(1, param));
+#        typ  := FromInert(op(2, param));
+#
+#        if env:-fullyStatic?(name) then
+#            if not type(env:-getVal(name), eval(typ)) then
+#                error("Type assertion falure");
+#            end if;
+#        else
+#            env:-addType(name, typ);
+#        end if;
+#    end if;
+#end proc;
 
 
 combineEnvs := proc(stack)
@@ -101,9 +101,9 @@ peSpecializeProc := proc(m::m, n::string) #void
     map( curry(evalParamType, env), params );
 
     # PARTIAL EVALUATION
-    body := TransformIfNormalForm(body);
+    #body := TransformIfNormalForm(body);
     body := peInert(body);
-    body := TransformIfNormalForm(body);
+    #body := TransformIfNormalForm(body);
 
     # POST-PROCESS
     leftoverParams := {};
@@ -112,16 +112,9 @@ peSpecializeProc := proc(m::m, n::string) #void
     end proc;
     eval(body, _Inert_PARAM=leftoverParam);
 
-    #newParamList := select((env:-dynamic? @ getParamName), params);
+    newParamList := select(x -> member(leftoverParams, op(1,x)), params);
 
-    newParamList := select((rcurry(member, leftoverParams) @ getParamName), params);
-    localReplace, newLocals := localMap();
-
-    body := eval(body, [_Inert_PARAM = paramReplace, _Inert_LOCAL = localReplace]);
-    
-    newLocalList := newLocals();
-
-    code[n] := subsop(1=newParamList, 2=newLocalList, 5=body, inert);
+    code[n] := subsop(1=newParamList, 5=body, inert);
 end proc; 
 
 

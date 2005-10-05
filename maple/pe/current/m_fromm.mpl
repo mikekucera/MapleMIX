@@ -21,7 +21,7 @@ FromM := module()
         tbl := table();
         index := 1;
         for param in params do
-            tbl[op(param)] := index;
+            tbl[op(1, param)] := index;
             index := index + 1;
         end do;
         tbl;
@@ -79,7 +79,7 @@ FromM := module()
     i[MList] := _Inert_LIST @ mapmtoi;
     i[MSet]  := _Inert_SET  @ mapmtoi;
     
-    i[MExpSeq] := _Inert_EXPSEQ @ mapmtoi;
+    i[MExpSeq] := _Inert_EXPSEQ @ mapmtoi; 
     i[MSum]    := _Inert_SUM    @ mapmtoi;
     i[MProd]   := _Inert_PROD   @ mapmtoi;
     
@@ -105,6 +105,10 @@ FromM := module()
     
     i[MIfElse] := proc(c, s1, s2)
         _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), _Inert_STATSEQ(mtoi(s2)))
+    end proc;
+    
+    i[MTypedName] := proc(n, t)
+        _Inert_DCOLON(_Inert_NAME(n), ToInert(op(t)));
     end proc;
     
 end module;
