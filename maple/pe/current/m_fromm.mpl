@@ -1,18 +1,33 @@
 
 FromM := module()
     export ModuleApply;
-    local i, mtoi, mtoi2, mapmtoi;
+    local i, mtoi, mtoi2, mapmtoi, createParamMap, paramMap;
 
     i := table();
     mtoi, mtoi2, mapmtoi := createTableProcs(i);
 
-    ModuleApply := proc(code::m)
-        mtoi(code);
+    ModuleApply := proc(code::m(Proc))
+        paramMap := createParamMap(Params(code));
+        mtoi(code);        
+    end proc;
+    
+    
+    # returns a table that maps param names to their indices
+    createParamMap := proc(params)
+        local tbl, param, index;
+        tbl := table();
+        index := 1;
+        for param in params do
+            tbl[op(param)] := index;
+            index := index + 1;
+        end do;
+        tbl;
     end proc;
 
+    
     i[MName]  := _Inert_NAME;
     i[MLocal] := _Inert_LOCAL;
-    i[MParam] := _Inert_PARAM;
+    i[MParam] := n -> _Inert_PARAM(paramMap[n]);
 
     i[MInt] := x -> `if`(x < 0, _Inert_INTNEG(-x), _Inert_INTPOS(x));
     i[MString] := _Inert_STRING;

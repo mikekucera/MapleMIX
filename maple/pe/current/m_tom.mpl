@@ -1,17 +1,34 @@
 
 ToM := module()
     export ModuleApply;    
-    local itom, itom2, mapitom,  m, gen;
+    local itom, itom2, mapitom,  m, gen, createMap, paramMap, localMap;
 
     m := table();
     itom, itom2, mapitom := createTableProcs(m);
+    gen := NameGenerator:-New("m");
 
-    ModuleApply := proc(obj)::m;
-        gen := NameGenerator:-New("m");        
-        itom(ToInert(eval(obj)))
+    
+    ModuleApply := proc(p::procedure)::m;
+        local inert;        
+        inert := ToInert(eval(p));        
+        paramMap := (createMap @ Params)(inert);
+        localMap := (createMap @ Locals)(inert);
+        itom(inert);
     end proc;
  
+    
+    # mapes param and local indices to their names
+    createMap := proc(varSeq)
+        tbl := table();
+        index := 0;
+        for n in varSeq do
+            index := index + 1;
+            tbl[index] := op(n);
+        end do;    
+        tbl;
+    end proc;
 
+    
     # takes an inert expression and splits it
     splitAssigns := proc()
         q := SimpleQueue();          
@@ -45,8 +62,8 @@ ToM := module()
     m[MSingleUse] := MSingleUse;
     
     m[_Inert_NAME]     := MName;
-    m[_Inert_LOCAL]    := MLocal;
-    m[_Inert_PARAM]    := MParam;
+    m[_Inert_LOCAL]    := i -> MLocal(localMap[i]);
+    m[_Inert_PARAM]    := i -> MParam(paramMap[i]);
 
     m[_Inert_INTPOS]   := MInt;
     m[_Inert_INTNEG]   := MInt @ `-`;
@@ -97,9 +114,9 @@ ToM := module()
     m[_Inert_ASSIGN] := (name, expr) -> split(expr, curry(MAssign, itom(name)));
 
     m[_Inert_IF] := proc()
-        if typematch([args], [_Inert_CONDPAIR(c::anything, s::anything)]) then
+        if typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything)]) then
             split(c, red -> MIfElse(red, itom(s), MStatSeq()));
-        elif typematch([args], [_Inert_CONDPAIR(c::anything, s::anything), el::inert(STATSEQ)]) then
+        elif typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything), 'el'::inert(STATSEQ)]) then
             split(c, red -> MIfElse(red, itom(s), itom(el)));
         else
             condpair := op(1, [args]); 

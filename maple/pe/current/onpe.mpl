@@ -24,24 +24,6 @@ end proc;
 # code used in pre and post processes
 ##################################################################################
 
-# replaces params and local indices with their names
-replace := proc(xs, f)
-    i -> (f @ getParamName @ op)(i, xs);
-end proc;
-
-# returns a closure that maps param names to their indices
-paramMap := proc(params, f)
-    local tbl, i, c;
-    tbl := table();
-    c := 1;
-    for i in params do
-        tbl[getParamName(i)] := c;
-        c := c + 1;# if the argument is a procedure it is applied with no arguments
-    end do;
-
-    return x -> f(tbl[x]);
-end proc;
-
 
 # returns two closures used to generate locals in the postprocess
 localMap := proc()
@@ -64,6 +46,8 @@ localMap := proc()
     return rep, newLocals;
 end proc;
 
+
+###################################################################################
 
 
 # takes an environment and an inert param
@@ -139,12 +123,7 @@ peSpecializeProc := proc(m::m, n::string) #void
     env := EnvStack:-top();
 
     params := M:-Params(m);
-    locals := M:-Locals(m);
     body   := M:-ProcBody(m);
-
-    #PRE-PROCESS, replace variable indices with names
-    body := eval(body, [_Inert_PARAM = replace(params, _Inert_PARAM),
-                        _Inert_LOCAL = replace(locals, _Inert_LOCAL)]);
 
     map( curry(evalParamType, env), params );
 
@@ -163,7 +142,6 @@ peSpecializeProc := proc(m::m, n::string) #void
     #newParamList := select((env:-dynamic? @ getParamName), params);
 
     newParamList := select((rcurry(member, leftoverParams) @ getParamName), params);
-    paramReplace := paramMap(newParamList, _Inert_PARAM);
     localReplace, newLocals := localMap();
 
     body := eval(body, [_Inert_PARAM = paramReplace, _Inert_LOCAL = localReplace]);
