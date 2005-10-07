@@ -100,9 +100,9 @@ peSpecializeProc := proc(m::m, n::string) #void
     #map( curry(evalParamType, env), params );
 
     # PARTIAL EVALUATION
-    #body := TransformIfNormalForm(body);
+    body := TransformIfNormalForm(body);
     body := peInert(body);
-    #body := TransformIfNormalForm(body);
+    body := TransformIfNormalForm(body);
 
     # POST-PROCESS
     leftoverParams := {};
@@ -118,25 +118,28 @@ end proc;
 
 
 
-# partially evaluates an arbitrary inert code
-peInert := proc(inert::Or(inert, tag)) # returns inert code or NULL
-   local header;
-   header := getHeader(inert);
-   if assigned(pe[header]) then
-        pe[header](op(inert));
-   else
-        error(cat("not supported yet: ", op(0, inert)));
-   end if;
+# partially evaluates an arbitrary M code
+peInert := proc(m::Or(m, tag)) # returns inert code or NULL
+    local header;
+    header := M:-Header(m);
+    if assigned(pe[header]) then
+        return pe[header](op(m));
+    end if;
+    error cat("not supported yet: ", header);
 end proc;
 
 
 
 # returns two values because pe[_Tag_STRIPPED] returns two values
-peExpression := proc(expr::inert)
-    a, b := StripExp:-strip(expr, genVar);
-    peInert(a), peInert(b);
-end proc;
+#peExpression := proc(expr::inert)
+#    a, b := StripExp:-strip(expr, genVar);
+#    peInert(a), peInert(b);
+#end proc;
 
+pe[MStandaloneExpr] := proc(m::m)
+	res := M:-ReduceExpr(m, EnvStack:-top());
+	`if`(M:-IsM(res), res, M:-ToM(res));
+end proc;
 
 
 #pe[_Tag_STRIPPED] := proc(assigns::tag(STRIPPEDASSIGNSEQ), expr::tag(STRIPPEDEXPR))

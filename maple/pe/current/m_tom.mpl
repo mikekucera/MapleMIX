@@ -1,21 +1,31 @@
 
 ToM := module()
     export ModuleApply;    
-    local itom, itom2, mapitom,  m, gen, createMap, paramMap, localMap;
+    local procToM, toM,
+    	  itom, itom2, mapitom,  m, gen, createMap, paramMap, localMap, getVar;
 
     m := table();
     itom, itom2, mapitom := createTableProcs(m);
     gen := NameGenerator:-New("m");
 
     
-    ModuleApply := proc(p::procedure)::m;
-        local inert;        
+    ModuleApply := proc(x)::m;
+    	`if`(type(x, procedure), procToM(x), toM(x))
+    end proc;
+    
+    # Converts a procedure to M
+    procToM := proc(p::procedure)::m;
+    	local inert;        
         inert := ToInert(eval(p));        
         paramMap := (createMap @ Params)(inert);
         localMap := (createMap @ Locals)(inert);
         itom(inert);
     end proc;
  
+    # converts any value to M
+ 	toM := proc(x)::m;
+ 		itom(ToInert(x));
+ 	end proc;
     
     # mapes param and local indices to their names
     createMap := proc(varSeq)
@@ -26,6 +36,14 @@ ToM := module()
             tbl[index] := op(`if`(op(0,n)=_Inert_DCOLON, [1,1], 1), n);
         end do;    
         tbl;
+    end proc;
+    
+    getVar := proc(tbl, x)
+    	if assigned(tbl[x]) then
+    		tbl[x];
+    	else
+    		error cat("No var fould for name: ", x)
+    	end if;
     end proc;
 
     
@@ -52,7 +70,7 @@ ToM := module()
     end proc;
 
     
-    # splits the given expression, then applies the continuation k to the stripped expression
+    # splits the given expression, th    en applies the continuation k to the stripped expression
     split := proc(expr, k)
         assigns, reduced := splitAssigns(expr);
         if nops(assigns) = 0 then
@@ -66,8 +84,8 @@ ToM := module()
     m[MSingleUse] := MSingleUse;
     
     m[_Inert_NAME]     := MName;
-    m[_Inert_LOCAL]    := i -> MLocal(localMap[i]);
-    m[_Inert_PARAM]    := i -> MParam(paramMap[i]);
+    m[_Inert_LOCAL]    := i -> MLocal(getVar(localMap, i));
+    m[_Inert_PARAM]    := i -> MParam(getVar(paramMap, i));
 
     m[_Inert_INTPOS]   := MInt;
     m[_Inert_INTNEG]   := MInt @ `-`;
@@ -109,7 +127,7 @@ ToM := module()
     
 
     m[_Inert_STATSEQ] := proc() local standaloneExpr;    
-        standaloneExpr := rcurry(split, () -> args);
+        standaloneExpr := rcurry(split, MStandaloneExpr);
         f := x -> ssop(`if`(IntermediateForms:-isExpr(op(0,x)), standaloneExpr, itom)(x));
         #TODO: if result is a single statment then don't wrap it in a statseq
         MStatSeq(op(map(f, [args])));        
