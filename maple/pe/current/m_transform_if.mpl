@@ -32,9 +32,9 @@ TransformIfNormalForm := module()
         rest      := op(i+1..-1, m);
             
         MStatSeq(firstpart,
-                 MIfThenElse(op(1,ifstat),
-                             procname(MStatSeq(op(2,ifstat), rest)),
-                             procname(MStatSeq(op(3,ifstat), rest))
+                 MIfThenElse(Cond(ifstat),
+                             procname(MStatSeq(ssop(Then(ifstat)), rest)),
+                             procname(MStatSeq(ssop(Else(ifstat)), rest))
                             )
                 )
     end proc;

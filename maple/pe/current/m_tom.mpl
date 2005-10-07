@@ -55,7 +55,11 @@ ToM := module()
     # splits the given expression, then applies the continuation k to the stripped expression
     split := proc(expr, k)
         assigns, reduced := splitAssigns(expr);
-        `if`(nops(assigns) = 0, k(op(reduced)), MStatSeq(op(assigns), k(op(reduced))));
+        if nops(assigns) = 0 then
+        	k(op(reduced));
+        else
+        	MStatSeq(op(assigns), k(op(reduced)));
+        end if;
     end proc;    
     
             
@@ -106,7 +110,9 @@ ToM := module()
 
     m[_Inert_STATSEQ] := proc() local standaloneExpr;    
         standaloneExpr := rcurry(split, () -> args);
-        MStatSeq( op(map(x -> `if`(IntermediateForms:-isExpr(op(0,x)), standaloneExpr, itom)(x), [args])) );        
+        f := x -> ssop(`if`(IntermediateForms:-isExpr(op(0,x)), standaloneExpr, itom)(x));
+        #TODO: if result is a single statment then don't wrap it in a statseq
+        MStatSeq(op(map(f, [args])));        
     end proc;
     
     m[_Inert_FUNCTION] := () -> split(op(2..-1,[args]), MStandaloneFunction);
