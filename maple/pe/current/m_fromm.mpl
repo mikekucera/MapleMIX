@@ -53,11 +53,13 @@ FromM := module()
 	end proc;
 
     
-    i[MName]      := _Inert_NAME;
+    i[MName]      := _Inert_NAME;    
     i[MLocal]     := n -> _Inert_LOCAL(replaceLocal(n));
     i[MSingleUse] := i[MLocal];
     i[MParam]     := n -> _Inert_PARAM(paramMap[n]);
 
+    i[MAssignedName] := _Inert_ASSIGNEDNAME;
+    
     i[MInt] := x -> `if`(x < 0, _Inert_INTNEG(-x), _Inert_INTPOS(x));
     i[MString] := _Inert_STRING;
     

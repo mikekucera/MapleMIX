@@ -24,3 +24,7 @@ Save(IntermediateForms);
 $include "on_env.mpl"
 
 Save(OnENV);
+
+$include "onpe.mpl"
+
+Save(OnPE);

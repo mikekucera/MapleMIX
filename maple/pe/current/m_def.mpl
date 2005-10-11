@@ -1,6 +1,7 @@
 
 M := module()
     export Print, ToM, FromM, ReduceExp, IsM, TransformIfNormalForm,
+           EndsWithReturn, FlattenStatSeq,
            Params, Locals, ProcBody, Header,
            Cond, Then, Else,
            ssop;
@@ -43,6 +44,25 @@ M := module()
         doPrint(0, m);        
     end proc;
     
+    # returns true iff the given statment is a return or is a statseq that ends with a return
+    EndsWithReturn := proc(m::m)
+        if m = MStatSeq() then
+            false;
+        elif Header(m) = MStatSeq then
+            procname(op(-1, FlattenStatSeq(m)));
+        else
+            evalb(Header(m) = MReturn);
+        end if;
+    end proc;
+    
+    # Only flattens the outermost statment sequence, does not recurse into structures such as ifs and loops
+    FlattenStatSeq := proc(statseq::m(StatSeq)) ::m(StatSeq);
+        local flatten;
+        flatten := proc(m)
+            `if`(Header(m)=MStatSeq, op(map(flatten,m)), m);
+        end proc;    
+        map(flatten, statseq);
+    end proc:
     
     # if the arg is a MStatSeq it gets flattened, left untouched otherwise
     ssop := proc(m::m) option inline;

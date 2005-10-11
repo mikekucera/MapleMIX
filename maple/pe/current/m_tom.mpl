@@ -70,7 +70,7 @@ ToM := module()
     end proc;
 
     
-    # splits the given expression, th    en applies the continuation k to the stripped expression
+    # splits the given expression, then applies the continuation k to the stripped expression
     split := proc(expr, k)
         assigns, reduced := splitAssigns(expr);
         if nops(assigns) = 0 then
@@ -86,6 +86,8 @@ ToM := module()
     m[_Inert_NAME]     := MName;
     m[_Inert_LOCAL]    := i -> MLocal(getVar(localMap, i));
     m[_Inert_PARAM]    := i -> MParam(getVar(paramMap, i));
+    
+    m[_Inert_ASSIGNEDNAME] := MAssignedName;
 
     m[_Inert_INTPOS]   := MInt;
     m[_Inert_INTNEG]   := MInt @ `-`;
@@ -113,8 +115,6 @@ ToM := module()
     m[_Inert_EXPSEQ]    := MExpSeq @ mapitom;
     m[_Inert_SUM]       := MSum    @ mapitom;
     m[_Inert_PROD]      := MProd   @ mapitom;
-
-    m[_Inert_RETURN] := MReturn @ mapitom;
     
     m[_Inert_PROC]           := MProc           @ mapitom;
     m[_Inert_PARAMSEQ]       := MParamSeq       @ mapitom;
@@ -133,9 +133,11 @@ ToM := module()
         MStatSeq(op(map(f, [args])));        
     end proc;
     
-    m[_Inert_FUNCTION] := () -> split(op(2..-1,[args]), MStandaloneFunction);
+    m[_Inert_FUNCTION] := () -> split(op(2..-1,[args]), curry(MStandaloneFunction, itom(op(1, [args]))));
     
     m[_Inert_ASSIGN] := (name, expr) -> split(expr, curry(MAssign, itom(name)));
+    
+    m[_Inert_RETURN] := () -> split(args, MReturn);
 
     m[_Inert_IF] := proc()
         if typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything)]) then

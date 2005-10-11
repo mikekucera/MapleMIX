@@ -40,7 +40,7 @@ ReduceExp := module()
     ];
 
 
-    isStatic := x -> evalb( not isM(x) or member(op(0, x), {_Tag_STATICEXPSEQ, _Tag_STATICTABLE}) );
+    isStatic := x -> evalb( not IsM(x) or member(op(0, x), {_Tag_STATICEXPSEQ, _Tag_STATICTABLE}) );
     isDynamic := `not` @ isStatic;
     allStatic := curry(andmap, isStatic); 
 
