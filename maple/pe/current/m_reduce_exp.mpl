@@ -168,6 +168,7 @@ ReduceExp := module()
                                MParam = evalName(env, MParam), 
                                MLocal = evalName(env, MLocal),
                                MName  = evalName(env, MName),
+                               MSingleUse = evalName(env, MSingleUse),
                                #MTableref = binOp(MTableref, tableref(env)), 
                                MFunction = pureFunc(env)
                               ]);

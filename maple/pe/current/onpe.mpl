@@ -210,7 +210,7 @@ end proc;
 
 
 
-pe[MAssignToFunction] := proc(var::m, funcCall::m(Function))
+pe[MAssignToFunction] := proc(var::m(SingleUse), funcCall::m(Function))
     varName := op(var);
     residualFunctionCall := peFunction(op(funcCall));
     
@@ -220,7 +220,7 @@ pe[MAssignToFunction] := proc(var::m, funcCall::m(Function))
     if isUnfoldable(residualFunctionCall, residualProcedure) then
         code[funcName] := evaln(code[funcName]); # remove mapping from code        
         # transform the body of the proc, prepare it for unfolding
-        res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, residualFunctionCall, genVar, op(varName));
+        res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, residualFunctionCall, genVar, var);
         flattened := M:-FlattenStatSeq(res);
 
         # If resulting statseq has only one statment
@@ -231,8 +231,8 @@ pe[MAssignToFunction] := proc(var::m, funcCall::m(Function))
             val := getStaticValue(expr);
             if val <> FAIL then
                 varName := op([1,1], assign);
-                EnvStack:-top():-putVal(varName, val);
-                return;
+                EnvStack:-top():-putVal(varName, val);                
+                return;            
             end if;
         end if;
         flattened;

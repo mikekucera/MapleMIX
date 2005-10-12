@@ -19,7 +19,7 @@ Unfold := module()
             end proc;
         end proc;
 
-        eval(m, [MLocal=rename(MLocal), MSingleUse=rename(MSingleUse)]);
+        eval(m, [MLocal=rename(MLocal)]);
     end proc;
 
 
@@ -58,7 +58,7 @@ Unfold := module()
 
     # For now only supports single assigment, multiple assignment should be trivial.
     # Requires input to be in if normal form.
-    UnfoldIntoAssign := proc(specProc::m(Proc), specCall::m(Function), genVarName::procedure, assignTo::string) ::m(StatSeq);        
+    UnfoldIntoAssign := proc(specProc::m(Proc), specCall::m(Function), genVarName::procedure, assignTo::m) ::m(StatSeq);        
         local newbody;   
         newbody := UnfoldStandalone(specProc, specCall, genVarName);
         addAssigns(newbody, assignTo);
@@ -66,29 +66,35 @@ Unfold := module()
 
 
     # assumes returns have been removed
-    addAssigns := proc(m::m, x::string) local last, res;
-        header := Header(m);
-        # TODO, its possible for none of the branches of an if to execute, so need assignment before the if
-        # TODO need to add support for loops and other structures
+    addAssigns := proc(code::m, var::m)
+    
+        doAdd := proc(c)        
+	        header := Header(c);
+	        # TODO, its possible for none of the branches of an if to execute, 
+	        # so need assignment before the if
+	        # TODO need to add support for loops and other structures
+	        
+	        if header = MStatSeq then
+	            flattened := FlattenStatSeq(code);
+	            size := nops(flattened);
+	            res := procname(op(-1, flattened));
+	            MStatSeq(op(1..size-1, flattened), res);
+	
+	        elif header = MIfThenElse then
+	            MIfThenElse(Cond(c), procname(Then(c)), procname(Else(c)));
+	
+	        elif header = MAssign then
+	            MStatSeq(c, MAssign(var, op(1, c)));
+	        
+	        elif header = MStandaloneExpr then
+	            MAssign(var, op(c));
+	           
+	        else
+	            error cat("addAssigns, not supported yet: ", header);
+	        end if;
+        end proc;
         
-        if header = MStatSeq then
-            flattened := FlattenStatSeq(m);
-            size := nops(flattened);
-            res := procname(op(-1, flattened), x);
-            MStatSeq(op(1..size-1, flattened), res);
-
-        elif header = MIfThenElse then
-            MIfThenElse(Cond(m), procname(Then(m),x), procname(Else(m),x));
-
-        elif header = MAssign then
-            MStatSeq(m, MAssign(MLocal(x), op(1, m)));
-        
-        elif header = MStandaloneExpr then
-            MAssign(MLocal(x), op(m));
-            
-        else
-            error cat("addAssigns, not supported yet: ", header);
-        end if;
+        doAdd(code);
     end proc;
 
 

@@ -106,6 +106,9 @@ FromM := module()
     i[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
     
     
+    
+    
+    
     i[MIfThenElse] := proc(c, s1, s2)
         _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), _Inert_STATSEQ(mtoi(s2)))
     end proc;
