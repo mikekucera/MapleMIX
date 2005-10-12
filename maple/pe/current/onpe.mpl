@@ -183,12 +183,13 @@ pe[MIfThenElse] := proc(cond, s1, s2)
 end proc;
 
 
-pe[MAssign] := proc(name::m(Local), expr::m)
-    reduced := M:-ReduceExp(expr, EnvStack:-top());
+pe[MAssign] := proc(n::m(Local), expr::m)
+	env := EnvStack:-top();
+    reduced := M:-ReduceExp(expr, env);
     if M:-IsM(reduced) then
-        MAssign(name, reduced);
+        MAssign(n, reduced);
     else
-        env:-putVal(op(name), reduced);
+        env:-putVal(op(n), reduced);
         NULL;
     end if;
 end proc;

@@ -110,7 +110,11 @@ FromM := module()
     
     
     i[MIfThenElse] := proc(c, s1, s2)
-        _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), _Inert_STATSEQ(mtoi(s2)))
+        if s2 = MStatSeq() then
+            _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)));
+        else
+            _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), _Inert_STATSEQ(mtoi(s2)))
+        end if;
     end proc;
     
     i[MTypedName] := proc(n, t)
