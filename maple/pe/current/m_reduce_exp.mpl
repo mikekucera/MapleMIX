@@ -122,7 +122,7 @@ ReduceExp := module()
             #        end try;
             #    end if;
             #
-            if getHeader(expseq) = _Tag_STATICEXPSEQ then # if all arguments are static then call the pure func
+            if Header(expseq) = _Tag_STATICEXPSEQ then # if all arguments are static then call the pure func
                 return apply(convert(op(1,n), name), op(expseq));
             end if;
 

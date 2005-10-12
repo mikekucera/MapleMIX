@@ -97,7 +97,7 @@ FromM := module()
     i[MLexicalSeq]     := _Inert_LEXICALSEQ     @ mapmtoi;
     i[MEop]            := _Inert_EOP            @ mapmtoi;
     
-    
+    i[MStandaloneExpr] := mapmtoi;
     
     i[MStatSeq]            := _Inert_STATSEQ  @ mapmtoi;
     i[MStandaloneFunction] := _Inert_FUNCTION @ mapmtoi;

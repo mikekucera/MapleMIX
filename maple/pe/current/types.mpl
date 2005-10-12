@@ -10,6 +10,7 @@
 
 
 funcPrefixType := proc(prefix, f)
+   try
    if nargs = 2 then
        type(f, function) and StringTools:-RegMatch(cat("^", prefix), op(0, f));
    elif nargs = 3 then
@@ -17,4 +18,7 @@ funcPrefixType := proc(prefix, f)
    else 
        error("must be called with 1 or 2 args");
    end if;
+   catch:
+       print("f", f);
+   end try;
 end proc:

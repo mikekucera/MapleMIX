@@ -80,8 +80,9 @@ ToM := module()
         end if;
     end proc;    
     
-            
+    # TODO, why do I have to do this?
     m[MSingleUse] := MSingleUse;
+    m[MFunction] := MFunction;
     
     m[_Inert_NAME]     := MName;
     m[_Inert_LOCAL]    := i -> MLocal(getVar(localMap, i));

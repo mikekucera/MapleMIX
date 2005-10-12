@@ -1,6 +1,6 @@
 
 M := module()
-    export Print, ToM, FromM, ReduceExp, IsM, TransformIfNormalForm,
+    export Print, ToM, FromM, ReduceExp, IsM, TransformIfNormalForm, Unfold,
            EndsWithReturn, FlattenStatSeq,
            Params, Locals, ProcBody, Header,
            Cond, Then, Else,
@@ -89,5 +89,7 @@ $include "m_fromm.mpl"
 $include "m_transform_if.mpl"
 
 $include "m_reduce_exp.mpl"
+
+$include "m_unfold.mpl"
 
 end module:
