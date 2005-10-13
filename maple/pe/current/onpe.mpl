@@ -95,8 +95,9 @@ peSpecializeProc := proc(m::m, n::string) #void
 
     # PARTIAL EVALUATION
     body := M:-TransformIfNormalForm(body);
+    body := M:-AddImplicitReturns(body);
     body := peInert(body);
-    body := M:-TransformIfNormalForm(body);
+    #body := M:-TransformIfNormalForm(body);
 
     # POST-PROCESS
     #leftoverParams := {};
@@ -160,7 +161,9 @@ end proc;
 
 
 pe[MIfThenElse] := proc(cond, s1, s2)
+    print("cond", cond);
     reduced := M:-ReduceExp(cond, EnvStack:-top());
+    print("reduced", reduced);
     if M:-IsM(reduced) then
         growEnvStack();
         reds1 := peInert(s1);

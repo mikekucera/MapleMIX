@@ -48,25 +48,24 @@ ToM := module()
 
     
     # takes an inert expression and splits it
-    splitAssigns := proc()
+    splitAssigns := proc(e::inert)
         q := SimpleQueue();          
-        processExpr := proc(e::inert)
-            # generation of table is a side effect of nested proc
-            examineFunc := proc(f)
-                local newvar;
-                if member(convert(op(1, f), name), intrinsic) then
-                    MFunction(mapitom(args));
-                else
-                    newvar := gen();    
-                    q:-enqueue(MAssignToFunction(MSingleUse(newvar), MFunction(mapitom(args))));                
-                    MSingleUse(newvar);
-                end if; 
-            end proc;
-            res := eval(e, [_Inert_FUNCTION = examineFunc]);
-            itom(res);
-        end proc;        
-        residualExpressions := map(processExpr, [args]);
-        return q:-toList(), residualExpressions;
+
+        # generation of table is a side effect of nested proc
+        examineFunc := proc(f)
+            local newvar;
+            if member(convert(op(1, f), name), intrinsic) then
+                MFunction(mapitom(args));
+            else
+                newvar := gen();    
+                q:-enqueue(MAssignToFunction(MSingleUse(newvar), MFunction(mapitom(args))));                
+                MSingleUse(newvar);
+            end if; 
+        end proc;
+        
+        res := eval(e, [_Inert_FUNCTION = examineFunc]);
+        residualExpression := itom(res);
+        return q:-toList(), residualExpression;
     end proc;
 
     
@@ -74,9 +73,9 @@ ToM := module()
     split := proc(expr, k)
         assigns, reduced := splitAssigns(expr);
         if nops(assigns) = 0 then
-        	k(op(reduced));
+        	k(reduced);
         else
-        	MStatSeq(op(assigns), k(op(reduced)));
+        	MStatSeq(op(assigns), k(reduced));
         end if;
     end proc;    
     
@@ -134,15 +133,18 @@ ToM := module()
         MStatSeq(op(map(f, [args])));        
     end proc;
     
-    m[_Inert_FUNCTION] := () -> split(op(2..-1,[args]), curry(MStandaloneFunction, itom(op(1, [args]))));
+    m[_Inert_FUNCTION] := proc()
+        print("_Inert_FUNCTION", args);
+    	split([args][2], curry(MStandaloneFunction, itom([args][1])));
+    end proc;
     
     m[_Inert_ASSIGN] := (name, expr) -> split(expr, curry(MAssign, itom(name)));
     
-    m[_Inert_RETURN] := () -> split(args, MReturn);
+    m[_Inert_RETURN] := e -> split(e, MReturn);
 
     m[_Inert_IF] := proc()
         if typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything)]) then
-            split(c, red -> MIfThenElse(red, itom(s), MStatSeq()));
+            split(c, red -> MIfThenElse(red, itom(s), MStatSeq(MStandaloneExpr(MExpSeq()))));
         elif typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything), 'el'::inert(STATSEQ)]) then
             split(c, red -> MIfThenElse(red, itom(s), itom(el)));
         else

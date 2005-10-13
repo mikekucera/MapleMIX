@@ -9,7 +9,9 @@ TransformIfNormalForm := module()
         local index, i;
         index := FAIL;
         for i from 1 to nops(statseq) do
-            if Header(op(i, statseq)) = MIfThenElse then
+            if Header(op(i, statseq)) = MStatSeq then
+                error "MStatSeq must be flattened";
+            elif Header(op(i, statseq)) = MIfThenElse then
                 index := i;
                 break;
             end if;
@@ -19,17 +21,20 @@ TransformIfNormalForm := module()
 
 
     # recursively performs program transformation
+    # StatSeqs must be in flattened form
+    
     ModuleApply := proc(m::m(StatSeq))
         local i;
-        i := indexOfFirstIf(m);
+        flat := FlattenStatSeq(m);
+        i := indexOfFirstIf(flat);
         if i = FAIL then # there is no if statment
-            return m;
+            return flat;
         end if;    
 
         # break original statment sequence into three parts
-        firstpart := op(1..i-1, m);
-        ifstat    := op(i, m);
-        rest      := op(i+1..-1, m);
+        firstpart := op(1..i-1, flat);
+        ifstat    := op(i, flat);
+        rest      := op(i+1..-1, flat);
             
         MStatSeq(firstpart,
                  MIfThenElse(Cond(ifstat),

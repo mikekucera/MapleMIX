@@ -24,7 +24,7 @@ Unfold := module()
 
 
     # Naively removes return statments and replaces them with the expression that was in the return.
-    # This will be unsound if the proc is not in if-normal form.
+    # This will be unsound if the proc is not in if-normal form with code below a return removed.
     removeReturns := proc(m::m(StatSeq)) option inline;
         eval(m, [MReturn = MStandaloneExpr]); 
     end proc;
@@ -58,6 +58,7 @@ Unfold := module()
 
     # For now only supports single assigment, multiple assignment should be trivial.
     # Requires input to be in if normal form.
+    # actually in this case removal of returns isn't needed
     UnfoldIntoAssign := proc(specProc::m(Proc), specCall::m(Function), genVarName::procedure, assignTo::m(SingleUse)) ::m(StatSeq);        
         local newbody;   
         newbody := UnfoldStandalone(specProc, specCall, genVarName);
@@ -67,41 +68,20 @@ Unfold := module()
 
     # assumes returns have been removed and code is in if normal form
     addAssigns := proc(code::m, var::m)
-    
+        # TODO need to add support for loops and other structures
         doAdd := proc(c)        
-	        header := Header(c);
-	        # TODO need to add support for loops and other structures
-	        
+	        header := Header(c);	        	        
 	        if header = MStatSeq then	            
-	            flattened := FlattenStatSeq(c);	            
-	            if flattened = MStatSeq() then
+	            flat := FlattenStatSeq(c);	            
+	            if flat = MStatSeq() then
 	                return MStatSeq();
-	            end if;	            
-	            before := [op(1..-2, flattened)];
-	            last := op(-1, flattened);
-	            
-	            # only need to do this if the if part or else part is empty
-	            
-	            if Header(last) = MIfThenElse 
-	               and nops(before) > 0 
-	               and (Then(last) = MStatSeq() or Else(last) = MStatSeq())
-	               then
-	                sndlast := op(-1, before);
-	                before := [op(1..-2, before)];
-	                MStatSeq(op(before), procname(sndlast), procname(last));
-	            else
-	            	MStatSeq(op(before), procname(last));
 	            end if;
-	
+	            MStatSeq(Front(flat), procname(Last(flat)));	
 	        elif header = MIfThenElse then
-	            print("else", Else(c));
 	            MIfThenElse(Cond(c), procname(Then(c)), procname(Else(c)));
 	
-	        elif header = MAssign then
+	        elif header = MAssign then # shouldn't need this
 	            MStatSeq(c, MAssign(var, op(1, c)));
-	            
-	        elif header = MReturn then
-	            MAssign(var, op(c));
 	        
 	        elif header = MStandaloneExpr then
 	            MAssign(var, op(c));

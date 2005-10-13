@@ -1,8 +1,8 @@
 
 M := module()
     export Print, ToM, FromM, ReduceExp, IsM, TransformIfNormalForm, Unfold,
-           EndsWithReturn, FlattenStatSeq,
-           Params, Locals, ProcBody, Header,
+           EndsWithReturn, FlattenStatSeq, AddImplicitReturns,
+           Params, Locals, ProcBody, Header, Last, Front,
            Cond, Then, Else,
            ssop;
     local intrinsic, createTableProcs;
@@ -64,17 +64,46 @@ M := module()
         map(flatten, statseq);
     end proc:
     
+        
+    # If a statseq ends with an assignment, then an implicit return is added
+    AddImplicitReturns := proc(statseq::m(StatSeq)) ::m(StatSeq);
+        if statseq = MStatSeq() then
+            return MStatSeq();
+        end if;
+        
+        front := Front(statseq);
+        last  := Last(statseq);
+        header := Header(last);
+        
+        if member(header, {MAssign, MAssignToFunction}) then
+            MStatSeq(front, last, MStandaloneExpr(op(1,last)));
+        elif header = MIfThenElse then
+            MStatSeq(front, MIfThenElse(Cond(last), 
+                                        procname(Then(last)), 
+                                        procname(Else(last))));
+        else
+            statseq;
+        end if;                
+    end proc;
+    
+    
     # if the arg is a MStatSeq it gets flattened, left untouched otherwise
     ssop := proc(m::m) option inline;
     	`if`(op(0,m) = MStatSeq, op(m), m)
     end proc;
     
     
-    Header   := proc(x) option inline; op(0,x) end proc:    
+    Header   := proc(x) option inline; op(0,x) end proc:
+    
+    # generally for working with MStatSeq
+    Last     := proc(x) option inline; op(-1, x) end proc;
+    Front    := proc(x) option inline; op(1..-2, x) end proc;
+    
     # for procs
     Params   := proc(x) option inline; op(1,x) end proc:
     Locals   := proc(x) option inline; op(2,x) end proc:
-    ProcBody := proc(x) option inline; op(5,x) end proc:        
+    ProcBody := proc(x) option inline; op(5,x) end proc:
+    
     # for MIfThenElse
     Cond := proc(x) option inline; op(1, x) end proc;
     Then := proc(x) option inline; op(2, x) end proc;    
