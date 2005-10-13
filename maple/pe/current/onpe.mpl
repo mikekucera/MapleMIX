@@ -74,7 +74,7 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
         peSpecializeProc(m, procName);
         EnvStack := 'EnvStack';
         # build a module from the global list of procs and return that
-        return build_module(procName);
+        return eval(FromInert(build_module(procName)));
         
         #return copy(code);
     end use;
@@ -161,9 +161,7 @@ end proc;
 
 
 pe[MIfThenElse] := proc(cond, s1, s2)
-    print("cond", cond);
     reduced := M:-ReduceExp(cond, EnvStack:-top());
-    print("reduced", reduced);
     if M:-IsM(reduced) then
         growEnvStack();
         reds1 := peInert(s1);
@@ -195,7 +193,7 @@ pe[MAssign] := proc(n::m(Local), expr::m)
         env:-putVal(op(n), reduced);
         NULL;
     end if;
-end proc;
+end proc;  
 
 
 
@@ -214,7 +212,7 @@ end proc;
 
 
 
-pe[MAssignToFunction] := proc(var::m(SingleUse), funcCall::m(Function))
+pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
     varName := op(var);
     residualFunctionCall := peFunction(op(funcCall));
     

@@ -4,7 +4,7 @@ M := module()
            EndsWithReturn, FlattenStatSeq, AddImplicitReturns,
            Params, Locals, ProcBody, Header, Last, Front,
            Cond, Then, Else,
-           ssop;
+           ssop, remseq;
     local intrinsic, createTableProcs;
     
     # set of builtin function names
@@ -87,9 +87,15 @@ M := module()
     end proc;
     
     
-    # if the arg is a MStatSeq it gets flattened, left untouched otherwise
+    # if the arg is a MStatSeq it gets converted into an expression sequence
     ssop := proc(m::m) option inline;
     	`if`(op(0,m) = MStatSeq, op(m), m)
+    end proc;
+    
+    # if the argument is a MStatSeq consisting of a single statment,
+    # then the MStatSeq is removed and the single statment is returned
+    remseq := proc(m::m) option inline;
+        `if`(op(0,m) = MStatSeq and nops(m) = 1, op(m), m)
     end proc;
     
     

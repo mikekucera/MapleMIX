@@ -1,16 +1,18 @@
 
 FromM := module()
     export ModuleApply;
-    local i, mtoi, mtoi2, mapmtoi, createParamMap, paramMap, 
+    local i, mtoi, mtoi2, mapmtoi, createParamMap, paramMap, singleAssigns,
           createLocalMappingFunctions, replaceLocal, newLocalList;
 
     i := table();
     mtoi, mtoi2, mapmtoi := createTableProcs(i);
 
     ModuleApply := proc(code::m(Proc))
+        singleAssigns := table();
         paramMap := createParamMap(Params(code));        
         replaceLocal, newLocalList := createLocalMappingFunctions();        
         inertProc := mtoi(code);
+        singleAssigns := 'singleAssigns';
         subsop(2=newLocalList(), inertProc);
     end proc;
     
@@ -54,9 +56,10 @@ FromM := module()
 
     
     i[MName]      := _Inert_NAME;    
-    i[MLocal]     := n -> _Inert_LOCAL(replaceLocal(n));
-    i[MSingleUse] := i[MLocal];
     i[MParam]     := n -> _Inert_PARAM(paramMap[n]);
+    
+    i[MLocal]     := n -> _Inert_LOCAL(replaceLocal(n));    
+    i[MGeneratedName] := i[MLocal];
 
     i[MAssignedName] := _Inert_ASSIGNEDNAME;
     
@@ -106,7 +109,18 @@ FromM := module()
     i[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
     
     
+    i[MSingleAssign] := proc(n::m(GeneratedName), e::m)
+        singleAssigns[op(n)] := mtoi(e);
+        NULL;
+    end proc;
     
+    i[MSingleUse] := proc(n)
+        if assigned(singleAssigns[n]) then
+            singleAssigns[n];
+        else
+            i[MLocal](n);
+        end if;
+    end proc;
     
     
     i[MIfThenElse] := proc(c, s1, s2)

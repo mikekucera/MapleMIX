@@ -19,7 +19,7 @@ Unfold := module()
             end proc;
         end proc;
 
-        eval(m, [MLocal=rename(MLocal)]);
+        eval(m, [MLocal=rename(MGeneratedName)]);
     end proc;
 
 
@@ -41,6 +41,7 @@ Unfold := module()
         argExpressions := op(2, specCall);
         
         # process each dynamic argument expression in the function call
+        # TODO: Let insertion
         i := 1;
         for argExpr in argExpressions do
             header := Header(argExpr);
@@ -59,15 +60,21 @@ Unfold := module()
     # For now only supports single assigment, multiple assignment should be trivial.
     # Requires input to be in if normal form.
     # actually in this case removal of returns isn't needed
-    UnfoldIntoAssign := proc(specProc::m(Proc), specCall::m(Function), genVarName::procedure, assignTo::m(SingleUse)) ::m(StatSeq);        
-        local newbody;   
+    UnfoldIntoAssign := proc(specProc::m(Proc), specCall::m(Function), genVarName::procedure, assignTo::m(GeneratedName)) ::m(StatSeq);
         newbody := UnfoldStandalone(specProc, specCall, genVarName);
-        addAssigns(newbody, assignTo);
+        newbody := FlattenStatSeq(newbody);
+        
+        last  := Last(newbody);        
+        if Header(last) = MStandaloneExpr then
+            MStatSeq(Front(newbody), MSingleAssign(assignTo, last));
+        else
+            addAssigns(newbody, op(assignTo));
+        end if;
     end proc;
 
 
     # assumes returns have been removed and code is in if normal form
-    addAssigns := proc(code::m, var::m)
+    addAssigns := proc(code::m, var::string)
         # TODO need to add support for loops and other structures
         doAdd := proc(c)        
 	        header := Header(c);	        	        
@@ -81,10 +88,10 @@ Unfold := module()
 	            MIfThenElse(Cond(c), procname(Then(c)), procname(Else(c)));
 	
 	        elif header = MAssign then # shouldn't need this
-	            MStatSeq(c, MAssign(var, op(1, c)));
+	            MStatSeq(c, MAssign(MGeneratedName(var), op(1, c)));
 	        
 	        elif header = MStandaloneExpr then
-	            MAssign(var, op(c));
+	            MAssign(MGeneratedName(var), op(c));
 	            
 	        else
 	            error cat("addAssigns, not supported yet: ", header);

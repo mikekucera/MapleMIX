@@ -58,14 +58,13 @@ ToM := module()
                 MFunction(mapitom(args));
             else
                 newvar := gen();    
-                q:-enqueue(MAssignToFunction(MSingleUse(newvar), MFunction(mapitom(args))));                
+                q:-enqueue(MAssignToFunction(MGeneratedName(newvar), MFunction(mapitom(args))));                
                 MSingleUse(newvar);
             end if; 
         end proc;
         
         res := eval(e, [_Inert_FUNCTION = examineFunc]);
-        residualExpression := itom(res);
-        return q:-toList(), residualExpression;
+        return q:-toList(), itom(res);
     end proc;
 
     
@@ -133,10 +132,7 @@ ToM := module()
         MStatSeq(op(map(f, [args])));        
     end proc;
     
-    m[_Inert_FUNCTION] := proc()
-        print("_Inert_FUNCTION", args);
-    	split([args][2], curry(MStandaloneFunction, itom([args][1])));
-    end proc;
+    m[_Inert_FUNCTION] := () ->split([args][2], curry(MStandaloneFunction, itom([args][1])));
     
     m[_Inert_ASSIGN] := (name, expr) -> split(expr, curry(MAssign, itom(name)));
     
