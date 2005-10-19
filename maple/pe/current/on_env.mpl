@@ -10,8 +10,9 @@ OnENV := module()
     NewOnENV := proc()
         module()
             local valEnv, typeEnv, keyType,
-                  getIndices, addProc, getProc;
+                  getIndices, addProc, getProc, lex;
             export putVal, putType, valIndices, typeIndices, getType,
+                   attachLex, removeLex, getLex,
                    getVal, hasTypeInfo,
                    isStatic, isDynamic,
                    setDynamic, clone, combine, display;
@@ -19,6 +20,18 @@ OnENV := module()
             # initialize "instance" variables
             valEnv  := table();
             typeEnv := table();
+        
+        
+            getLex := () -> lex;
+        
+            attachLex := proc(x)
+                lex := x;
+            end proc;
+            
+            removeLex := proc()
+                lex := 'lex';
+            end proc;
+        
         
             # normalizes all keys to the same type
             keyType := x -> convert(x, string);
@@ -39,7 +52,7 @@ OnENV := module()
                     if not assigned(evaln(tbl[n])) then
                         error("no value for " || key);
                     else
-                        op(tbl[n]);
+                        tbl[n];
                     end if;
                 end proc;
             end proc;
@@ -103,7 +116,7 @@ OnENV := module()
 
             
             display := proc()
-                print(op(valEnv), op(typeEnv));
+                print("vals", op(valEnv), "types", op(typeEnv), "lex", op(lex));
             end proc;
         
         end module;

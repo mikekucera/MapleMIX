@@ -1,6 +1,6 @@
 
 NameGenerator := module()
-    export New;
+    export New, ModuleApply;
 
     # returns a closure that generates unique names (as strings)
     # this can be replaced later with something more fancy if necessary
@@ -13,5 +13,7 @@ NameGenerator := module()
             cat(n, val);
         end proc;
     end proc;
+    
+    ModuleApply := New;
 
 end module:

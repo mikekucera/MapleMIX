@@ -160,16 +160,29 @@ ReduceExp := module()
              f(x);
          end if;
     end proc;
+    
+    
+    evalLex := proc(env, f)
+        evalName(env:-getLex(), f);
+    end proc;
 
 
     # exported expression reducing function
     ModuleApply := proc(exp::m, env) local residual;
+    
+        # TODO, reduction of a proc should be different
+        if Header(exp) = MProc then
+            return Closure(env, exp);            
+        end if;
+    
         residual := eval(exp, [op(subsList), 
                                MParam = evalName(env, MParam), 
                                MLocal = evalName(env, MLocal),
                                MName  = evalName(env, MName),
                                MSingleUse = evalName(env, MSingleUse),
                                #MTableref = binOp(MTableref, tableref(env)), 
+                               MLexicalLocal = evalLex(env, MLexicalLocal),
+                               MLexicalParam = evalLex(env, MLexicalParam),
                                MFunction = pureFunc(env)
                               ]);
 

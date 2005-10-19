@@ -17,6 +17,10 @@ isStaticValue := proc(m::m)
     evalb(getStaticValue(m) <> FAIL);
 end proc;
 
+Header := proc(x) option inline; op(0,x) end proc;
+# for dealing with closures
+Lex  := proc(x) option inline; op(1,x) end proc;
+Code := proc(x) option inline; op(2,x) end proc;
 
 ##################################################################################
 
@@ -74,16 +78,16 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
         peSpecializeProc(m, procName);
         EnvStack := 'EnvStack';
         # build a module from the global list of procs and return that
-        return eval(FromInert(build_module(procName)));
+        #return eval(FromInert(build_module(procName)));
         
-        #return copy(code);
+        return copy(code);
     end use;
 end proc;
 
 
 
 # takes inert code and assumes static variables are on top of EnvStack
-peSpecializeProc := proc(m::m, n::string) #void
+peSpecializeProc := proc(m::m, n := "") #void
     env := EnvStack:-top();
 
     params := M:-Params(m);
@@ -96,9 +100,11 @@ peSpecializeProc := proc(m::m, n::string) #void
     # PARTIAL EVALUATION
     body := M:-TransformIfNormalForm(body);
     body := M:-AddImplicitReturns(body);
-    body := peInert(body);
+    body := peM(body);
+    
     #body := M:-TransformIfNormalForm(body);
 
+    # probably remove
     # POST-PROCESS
     #leftoverParams := {};
     #leftoverParam := proc(n)
@@ -106,12 +112,18 @@ peSpecializeProc := proc(m::m, n::string) #void
     #end proc;
     #eval(body, MParam=leftoverParam);
 
-    newParamList := select(x -> env:-isDynamic(op(1,x)), params);        
-    code[n] := subsop(1=newParamList, 5=body, m);
+    newParamList := select(x -> env:-isDynamic(op(1,x)), params);
+    c := subsop(1=newParamList, 5=body, m);
+    
+    if n <> "" then
+       code[n] := c;
+    end if;
+    c;    
 end proc; 
 
 
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
+# probably won't be needed if I go with the sp-function approach
 isUnfoldable := proc(inertFunctionCall::m(Function), inertProcedure::m(Proc))
     return true;
     #if nops(op(2, inertFunctionCall)) = 0 then # all the arguments were static and reduced away
@@ -125,7 +137,7 @@ end proc;
 
 
 # partially evaluates an arbitrary M code
-peInert := proc(m::m) # returns inert code or NULL
+peM := proc(m::m) # returns inert code or NULL
     local header;
     header := M:-Header(m);
     if assigned(pe[header]) then
@@ -136,19 +148,25 @@ end proc;
 
 
 # pe for an expression that is to be residualized
-peResidualizeExpr := proc(k, m::m)
+peResidualizeExpr := proc(m::m)
     res := M:-ReduceExp(m, EnvStack:-top());
-	k(`if`(M:-IsM(res), res, M:-ToM(res)));
+    if Header(res) = Closure then
+        Code(res);
+    else
+	    `if`(M:-IsM(res), res, M:-ToM(res));
+	end if;
 end proc;
 
-pe[MStandaloneExpr] := curry(peResidualizeExpr, MStandaloneExpr);
-pe[MReturn] := curry(peResidualizeExpr, MReturn);
+
+pe[MStandaloneExpr] := MStandaloneExpr @ peResidualizeExpr;
+pe[MReturn] := MReturn @ peResidualizeExpr;
 
 
 pe[MStatSeq] := proc()
     q := SimpleQueue();
     for i from 1 to nargs do
-        res := peInert([args][i]);
+        print("statseq", [args][i]);
+        res := peM([args][i]);
         if nops([res]) > 0 then
             q:-enqueue(res);
             if M:-EndsWithReturn(res) then 
@@ -164,10 +182,10 @@ pe[MIfThenElse] := proc(cond, s1, s2)
     reduced := M:-ReduceExp(cond, EnvStack:-top());
     if M:-IsM(reduced) then
         growEnvStack();
-        reds1 := peInert(s1);
+        reds1 := peM(s1);
         thenEnv := EnvStack:-pop();
         growEnvStack();
-        reds2 := peInert(s2);
+        reds2 := peM(s2);
         elseEnv := EnvStack:-pop();
         EnvStack:-pop();
         EnvStack:-push(thenEnv:-combine(elseEnv));
@@ -179,7 +197,7 @@ pe[MIfThenElse] := proc(cond, s1, s2)
             MIfThenElse(reduced, reds1, reds2);
         end if;
     else
-        peInert(`if`(reduced, s1, s2))
+        peM(`if`(reduced, s1, s2))
     end if;
 end proc;
 
@@ -197,17 +215,24 @@ end proc;
 
 
 
-pe[MStandaloneFunction] := proc(n::m(AssignedName))
-    residualFunctionCall := peFunction(args);
-    funcName := op([1,1], residualFunctionCall);
-    residualProcedure := code[funcName];
-
-    if isUnfoldable(residualFunctionCall, residualProcedure) then
-        code[funcName] := evaln(code[funcName]); # remove mapping from code        
-        M:-Unfold:-UnfoldStandalone(residualProcedure, residualFunctionCall, genVar);
-    else
-        residualFunctionCall;
-    end if;
+pe[MStandaloneFunction] := proc(n::m({AssignedName, Param, Local}))
+    residual := peFunction(args);
+    print("MStandaloneFunction", residual);
+    
+    if M:-Header(residual) = MFunction then
+        residualFunctionCall := residual;
+	    funcName := op([1,1], residualFunctionCall);
+	    residualProcedure := code[funcName];
+	
+	    if isUnfoldable(residualFunctionCall, residualProcedure) then
+	        code[funcName] := evaln(code[funcName]); # remove mapping from code        
+	        M:-Unfold:-UnfoldStandalone(residualProcedure, residualFunctionCall, genVar);
+	    else
+	        residualFunctionCall;
+	    end if;
+	else
+	    residual;	    	    
+	end if;
 end proc;
 
 
@@ -244,23 +269,13 @@ pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
 end proc;
 
 
-
-# Assumes nested function calls have already been stripped out of the argument expressions.
-# Always returns a function call, code for specialized function will be in the 'code' module variable.
-peFunction := proc(n::m({AssignedName,Name}), argExpSeq::m(ExpSeq)) ::m(Function);
-    # get the code for the actual function from the underlying interpreter
-    m := M:-ToM(convert(op(1,n), name));    
-    if M:-Header(m) = MName then
-        error("only defined functions are supported");
-    end if;
-
-    params := M:-Params(m);
-    top := EnvStack:-top();
-    
-    # new environment for called function, will contain static arg values
+# for calling a function, returns a new environment for the function and
+# the new reduced argument list
+peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
     env := OnENV:-NewOnENV();
-
-    i := 0;
+	i := 0;
+	top := EnvStack:-top();
+	
     processArg := proc(argExp)
         i := i + 1;
         reduced := M:-ReduceExp(argExp, top);
@@ -278,16 +293,53 @@ peFunction := proc(n::m({AssignedName,Name}), argExpSeq::m(ExpSeq)) ::m(Function
     end proc;
  
     # reduce the argument expressions, these expressions should not be side effecting
-    newArgs := map(processArg, argExpSeq);
-    
-    #build a new environment for the function
-    EnvStack:-push(env);
-    newName := cat(op(1,n), "_", genNum());
-    peSpecializeProc(m, newName); 
-    EnvStack:-pop();    
+    reduced := map(processArg, argExpSeq);
+    return env, reduced;
+end proc;
 
-    # return residualized function call
-    MFunction(MName(newName), newArgs);
+
+
+# Assumes nested function calls have already been stripped out of the argument expressions.
+# Always returns a function call, code for specialized function will be in the 'code' module variable.
+peFunction := proc(ident::m, argExpSeq::m(ExpSeq)) ::m;
+    print("peFunction", args);
+    
+    head := M:-Header(ident);
+    
+    if head = Name then
+        error "symbolic functions not supported yet";
+        
+    elif member(head, {MParam, MLocal}) then
+        print("its a prarm");
+        env := EnvStack:-top();
+        if env:-isStatic(op(1,ident)) then
+            closure := env:-getVal(op(1,ident));       
+            newEnv, newArgs := peArgList(M:-Params(Code(closure)), argExpSeq);
+            # attach lexical environment to the environment of the function
+            newEnv:-attachLex(Lex(closure));
+            
+            EnvStack:-push(newEnv);            
+            res := peSpecializeProc(Code(closure));
+            EnvStack:-pop();
+            res;
+        else
+            print("here", argExpSeq);
+            MFunction(ident, map(peResidualizeExpr, argExpSeq));
+        end if;
+
+    elif head = MAssignedName then        
+	    # get the code for the actual function from the underlying interpreter
+	    m := M:-ToM(convert(op(1,ident), name));
+	    newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
+	    
+	    #build a new environment for the function
+	    EnvStack:-push(newEnv);
+	    newName := cat(op(1,ident), "_", genNum());
+	    peSpecializeProc(m, newName); 
+	    EnvStack:-pop();    
+		    
+	    MFunction(MName(newName), newArgs); # return residualized function call
+    end if;
 end proc;
 
 

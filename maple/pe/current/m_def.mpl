@@ -99,6 +99,9 @@ M := module()
     end proc;
     
     
+    # TODO, proc that returns true if the body of the given MProc is a single statment
+    
+    
     Header   := proc(x) option inline; op(0,x) end proc:
     
     # generally for working with MStatSeq

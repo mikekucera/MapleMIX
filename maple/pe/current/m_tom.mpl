@@ -1,33 +1,30 @@
 
 ToM := module()
     export ModuleApply;    
-    local procToM, toM,
-    	  itom, itom2, mapitom,  m, gen, createMap, paramMap, localMap, getVar;
+    local toM, ParamStack, LocalStack,
+    	  itom, itom2, mapitom,  m, gen, createMap, getVar;
 
     m := table();
     itom, itom2, mapitom := createTableProcs(m);
-    gen := NameGenerator:-New("m");
-
     
-    ModuleApply := proc(x)::m;
-    	`if`(type(x, procedure), procToM(x), toM(x))
-    end proc;
+    # TODO, replace New in NameGenerator with ModuleApply
+    gen := NameGenerator("m");
     
-    # Converts a procedure to M
-    procToM := proc(p::procedure)::m;
-    	local inert;        
-        inert := ToInert(eval(p));        
-        paramMap := (createMap @ Params)(inert);
-        localMap := (createMap @ Locals)(inert);
-        itom(inert);
-    end proc;
+    ModuleApply := proc(x)::m;        	    	
+    	ParamStack := SimpleStack();
+    	LocalStack := SimpleStack();    	
+    	res := `if`(type(x, procedure), toM(eval(x)), toM(x));    	
+		ParamStack := 'ParamStack';
+		LocalStack := 'LocalStack';
+		res;
+    end proc;        
  
     # converts any value to M
  	toM := proc(x)::m;
  		itom(ToInert(x));
  	end proc;
     
-    # mapes param and local indices to their names
+    # maps param and local indices to their names
     createMap := proc(varSeq)
         tbl := table();
         index := 0;
@@ -38,12 +35,20 @@ ToM := module()
         tbl;
     end proc;
     
-    getVar := proc(tbl, x)
+    getVar := proc(stack, x)
+        tbl := stack:-top();
     	if assigned(tbl[x]) then
     		tbl[x];
     	else
-    		error cat("No var fould for name: ", x)
+    		error cat("No var found for name: ", x)
     	end if;
+    end proc;
+    
+    getLexVar := proc(stack, x)
+        top := stack:-pop();
+        res := getVar(stack, x);
+        stack:-push(top);
+        res;
     end proc;
 
     
@@ -83,9 +88,13 @@ ToM := module()
     m[MFunction] := MFunction;
     
     m[_Inert_NAME]     := MName;
-    m[_Inert_LOCAL]    := i -> MLocal(getVar(localMap, i));
-    m[_Inert_PARAM]    := i -> MParam(getVar(paramMap, i));
+    m[_Inert_LOCAL]    := x -> MLocal(getVar(LocalStack, x));
+    m[_Inert_PARAM]    := x -> MParam(getVar(ParamStack, x));
     
+    m[_Inert_LEXICAL_LOCAL] := x -> MLexicalLocal(getLexVar(LocalStack, x));
+    m[_Inert_LEXICAL_PARAM] := x -> MLexicalParam(getLexVar(ParamStack, x));
+    m[_Inert_LEXICALPAIR]  := MLexicalPair @ itom2;
+        
     m[_Inert_ASSIGNEDNAME] := MAssignedName;
 
     m[_Inert_INTPOS]   := MInt;
@@ -113,16 +122,26 @@ ToM := module()
 
     m[_Inert_EXPSEQ]    := MExpSeq @ mapitom;
     m[_Inert_SUM]       := MSum    @ mapitom;
-    m[_Inert_PROD]      := MProd   @ mapitom;
+    m[_Inert_PROD]      := MProd   @ mapitom;    
     
-    m[_Inert_PROC]           := MProc           @ mapitom;
     m[_Inert_PARAMSEQ]       := MParamSeq       @ mapitom;
     m[_Inert_LOCALSEQ]       := MLocalSeq       @ mapitom;
     m[_Inert_OPTIONSEQ]      := MOptionSeq      @ mapitom;    
     m[_Inert_DESCRIPTIONSEQ] := MDescriptionSeq @ mapitom;
     m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;
     m[_Inert_LEXICALSEQ]     := MLexicalSeq     @ mapitom;
-    m[_Inert_EOP]            := MEop            @ mapitom;        
+    m[_Inert_EOP]            := MEop            @ mapitom;
+                
+    m[_Inert_PROC] := proc()
+        paramMap := createMap([args][1]);
+        localMap := createMap([args][2]);
+        ParamStack:-push(paramMap);
+        LocalStack:-push(localMap);
+        res := MProc(mapitom(args));
+        ParamStack:-pop();
+        LocalStack:-pop();
+        res;
+    end proc;
     
 
     m[_Inert_STATSEQ] := proc() local standaloneExpr;    

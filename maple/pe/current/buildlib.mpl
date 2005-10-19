@@ -1,5 +1,12 @@
 interface(warnlevel = 1):
 with(LibraryTools):
+
+try
+    FileTools:-MakeDirectory("lib");
+    lprint("lib directory created");
+catch:
+end try;
+
 savelibname := "lib":
 
 $include "gen.mpl"
