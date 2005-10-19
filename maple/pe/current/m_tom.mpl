@@ -31,7 +31,7 @@ ToM := module()
         for n in varSeq do     
             index := index + 1;
             tbl[index] := op(`if`(op(0,n)=_Inert_DCOLON, [1,1], 1), n);
-        end do;    
+        end do; 
         tbl;
     end proc;
     
@@ -40,7 +40,7 @@ ToM := module()
     	if assigned(tbl[x]) then
     		tbl[x];
     	else
-    		error cat("No var found for name: ", x)
+    		error cat("(in ToM), No var found for name: ", x)
     	end if;
     end proc;
     
@@ -128,21 +128,25 @@ ToM := module()
     m[_Inert_LOCALSEQ]       := MLocalSeq       @ mapitom;
     m[_Inert_OPTIONSEQ]      := MOptionSeq      @ mapitom;    
     m[_Inert_DESCRIPTIONSEQ] := MDescriptionSeq @ mapitom;
-    m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;
-    m[_Inert_LEXICALSEQ]     := MLexicalSeq     @ mapitom;
+    m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;    
     m[_Inert_EOP]            := MEop            @ mapitom;
-                
+                                            
     m[_Inert_PROC] := proc()
         paramMap := createMap([args][1]);
         localMap := createMap([args][2]);
         ParamStack:-push(paramMap);
         LocalStack:-push(localMap);
-        res := MProc(mapitom(args));
-        ParamStack:-pop();
-        LocalStack:-pop();
-        res;
+        MProc(mapitom(args));
     end proc;
     
+    # The lexical sequence comes after the proc body so its ok to pop the stacks 
+    # here. Actually its needed because the locals and params in the lexical 
+    # pairs refer to the outer environment.
+    m[_Inert_LEXICALSEQ] := proc()
+         ParamStack:-pop();
+         LocalStack:-pop();
+         MLexicalSeq(mapitom(args));
+    end proc;
 
     m[_Inert_STATSEQ] := proc() local standaloneExpr;    
         standaloneExpr := rcurry(split, MStandaloneExpr);

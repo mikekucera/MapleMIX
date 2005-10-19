@@ -3,9 +3,10 @@
 
 
 OnENV := module()
-    export NewOnENV;
+    export NewOnENV, ModuleApply;
     description "Online knowledge environment";
     
+    ModuleApply := NewOnENV;
     
     NewOnENV := proc()
         module()
@@ -32,13 +33,14 @@ OnENV := module()
                 lex := 'lex';
             end proc;
         
+            
         
             # normalizes all keys to the same type
             keyType := x -> convert(x, string);
         
             
             # sets a value overwriting previous one
-            putVal  := proc(key, val) valEnv[keyType(key)]  := val end proc;
+            putVal  := proc(key, val) valEnv[keyType(key)]  := val; thismodule end proc;
             putType := proc(key, typ) typeEnv[keyType(key)] := typ end proc;
             
             # returns the value
@@ -114,11 +116,10 @@ OnENV := module()
                 newenv;
             end proc;
 
-            
             display := proc()
-                print("vals", op(valEnv), "types", op(typeEnv), "lex", op(lex));
+                print(op(valEnv), op(typeEnv));
             end proc;
-        
+            
         end module;
     end proc;
 

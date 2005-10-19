@@ -217,7 +217,7 @@ end proc;
 
 pe[MStandaloneFunction] := proc(n::m({AssignedName, Param, Local}))
     residual := peFunction(args);
-    print("MStandaloneFunction", residual);
+    #print("MStandaloneFunction", residual);
     
     if M:-Header(residual) = MFunction then
         residualFunctionCall := residual;
@@ -302,7 +302,7 @@ end proc;
 # Assumes nested function calls have already been stripped out of the argument expressions.
 # Always returns a function call, code for specialized function will be in the 'code' module variable.
 peFunction := proc(ident::m, argExpSeq::m(ExpSeq)) ::m;
-    print("peFunction", args);
+    #print("peFunction", args);
     
     head := M:-Header(ident);
     
@@ -310,7 +310,7 @@ peFunction := proc(ident::m, argExpSeq::m(ExpSeq)) ::m;
         error "symbolic functions not supported yet";
         
     elif member(head, {MParam, MLocal}) then
-        print("its a prarm");
+        #print("its a prarm");
         env := EnvStack:-top();
         if env:-isStatic(op(1,ident)) then
             closure := env:-getVal(op(1,ident));       
@@ -318,12 +318,13 @@ peFunction := proc(ident::m, argExpSeq::m(ExpSeq)) ::m;
             # attach lexical environment to the environment of the function
             newEnv:-attachLex(Lex(closure));
             
-            EnvStack:-push(newEnv);            
+            EnvStack:-push(newEnv);
             res := peSpecializeProc(Code(closure));
             EnvStack:-pop();
-            res;
+           
+            # should probably be a proper unfolding
+            M:-ProcBody(res);
         else
-            print("here", argExpSeq);
             MFunction(ident, map(peResidualizeExpr, argExpSeq));
         end if;
 
