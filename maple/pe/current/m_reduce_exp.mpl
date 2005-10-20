@@ -52,9 +52,9 @@ ReduceExp := module()
             if inx and iny then
                 f(x,y)
             elif inx then
-                f(x, ToM(y));
+                f(x, ToM(ToInert(y)));
             elif iny then
-                f(ToM(x), y);
+                f(ToM(ToInert(x)), y);
             else
                 op(x,y);
             end if;
@@ -94,7 +94,7 @@ ReduceExp := module()
     
     
     makeExpseqDynamic := proc()
-        MExpSeq(op(map(x -> `if`(isDynamic(x), x, ToM(x)), [args]))); 
+        MExpSeq(op(map(x -> `if`(isDynamic(x), x, ToM(ToInert(x))), [args]))); 
     end proc;
 
 

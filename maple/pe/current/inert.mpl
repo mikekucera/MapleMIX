@@ -64,7 +64,7 @@ IntermediateForms := module()
                     _Inert_STRING, _Inert_COMPLEX, _Inert_RATIONAL, 
                     _Inert_EXPSEQ, _Inert_LIST, _Inert_SET, 
                     _Inert_PARAM, _Inert_LOCAL, _Inert_NAME, 
-                    _Inert_TABLEREF};
+                    _Inert_TABLEREF, _Inert_PROC};
 
     isExpr := rcurry(member, expressionForms);
 

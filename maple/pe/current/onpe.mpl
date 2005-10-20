@@ -71,7 +71,7 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
     EnvStack:-push(env);
 
     # get the m form of the procedure
-    m := M:-ToM(p);
+    m := M:-ToM(ToInert(eval(p)));
 
     # specialize
     use procName = "ModuleApply" in
@@ -153,7 +153,7 @@ peResidualizeExpr := proc(m::m)
     if Header(res) = Closure then
         Code(res);
     else
-	    `if`(M:-IsM(res), res, M:-ToM(res));
+	    `if`(M:-IsM(res), res, M:-ToM(ToInert(res)));
 	end if;
 end proc;
 
@@ -330,13 +330,13 @@ peFunction := proc(ident::m, argExpSeq::m(ExpSeq)) ::m;
 
     elif head = MAssignedName then        
 	    # get the code for the actual function from the underlying interpreter
-	    m := M:-ToM(convert(op(1,ident), name));
+	    m := M:-ToM(ToInert(eval(convert(op(1,ident), name))));
 	    newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
 	    
 	    #build a new environment for the function
 	    EnvStack:-push(newEnv);
 	    newName := cat(op(1,ident), "_", genNum());
-	    peSpecializeProc(m, newName); 
+	    peSpecializeProc(m, newName);
 	    EnvStack:-pop();    
 		    
 	    MFunction(MName(newName), newArgs); # return residualized function call
@@ -376,7 +376,7 @@ build_module := proc(n::string)::inert;
             if localName = n then
                 localIndex := nops(lexicalLocals) + 1;
             else
-                if not member(localName, locals, localIndex) then
+                if not member(localName, locals, localIndex) then #nasty!
                     return _Inert_FUNCTION(args); #error(cat("'", localName, "' is not a module local"));
                 end if;                
             end if;

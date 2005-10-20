@@ -1,7 +1,7 @@
 
 ToM := module()
     export ModuleApply;    
-    local toM, ParamStack, LocalStack,
+    local MapStack,
     	  itom, itom2, mapitom,  m, gen, createMap, getVar;
 
     m := table();
@@ -10,20 +10,14 @@ ToM := module()
     # TODO, replace New in NameGenerator with ModuleApply
     gen := NameGenerator("m");
     
-    ModuleApply := proc(x)::m;        	    	
-    	ParamStack := SimpleStack();
-    	LocalStack := SimpleStack();    	
-    	res := `if`(type(x, procedure), toM(eval(x)), toM(x));    	
-		ParamStack := 'ParamStack';
-		LocalStack := 'LocalStack';
+    
+    ModuleApply := proc(x::inert)::m;        	    	
+    	MapStack := SimpleStack();
+    	res := itom(x);
+		MapStack := 'MapStack';
 		res;
     end proc;        
- 
-    # converts any value to M
- 	toM := proc(x)::m;
- 		itom(ToInert(x));
- 	end proc;
-    
+
     # maps param and local indices to their names
     createMap := proc(varSeq)
         tbl := table();
@@ -35,8 +29,19 @@ ToM := module()
         tbl;
     end proc;
     
-    getVar := proc(stack, x)
-        tbl := stack:-top();
+    createLexMap := proc(lexicalseq)
+        tbl := table();
+        i := 1;
+        for lexpair in lexicalseq do
+            tbl[i] := op([2,1],lexpair);
+            i := i + 1;
+        end do;
+        tbl;
+    end proc;
+
+    getVar := proc(mapname, x)
+        maps := MapStack:-top();
+        tbl := maps[mapname];
     	if assigned(tbl[x]) then
     		tbl[x];
     	else
@@ -44,10 +49,11 @@ ToM := module()
     	end if;
     end proc;
     
-    getLexVar := proc(stack, x)
-        top := stack:-pop();
-        res := getVar(stack, x);
-        stack:-push(top);
+    getLexVar := proc(mapname, x)        
+        maps := MapStack:-pop();
+        lexIndex := maps['lex'][x];
+        res := getVar(mapname, lexIndex);
+        MapStack:-push(maps);
         res;
     end proc;
 
@@ -88,11 +94,11 @@ ToM := module()
     m[MFunction] := MFunction;
     
     m[_Inert_NAME]     := MName;
-    m[_Inert_LOCAL]    := x -> MLocal(getVar(LocalStack, x));
-    m[_Inert_PARAM]    := x -> MParam(getVar(ParamStack, x));
+    m[_Inert_LOCAL]    := x -> MLocal(getVar('locals', x));
+    m[_Inert_PARAM]    := x -> MParam(getVar('params', x));
     
-    m[_Inert_LEXICAL_LOCAL] := x -> MLexicalLocal(getLexVar(LocalStack, x));
-    m[_Inert_LEXICAL_PARAM] := x -> MLexicalParam(getLexVar(ParamStack, x));
+    m[_Inert_LEXICAL_LOCAL] := x -> MLexicalLocal(getLexVar('locals', x));
+    m[_Inert_LEXICAL_PARAM] := x -> MLexicalParam(getLexVar('params', x));
     m[_Inert_LEXICALPAIR]  := MLexicalPair @ itom2;
         
     m[_Inert_ASSIGNEDNAME] := MAssignedName;
@@ -117,8 +123,8 @@ ToM := module()
     m[_Inert_RATIONAL]  := MRational @ itom2;
     m[_Inert_COMPLEX]   := MComplex  @ itom2;
 
-    m[_Inert_LIST]      := MList     @ mapitom;
-    m[_Inert_SET]       := MSet      @ mapitom;
+    m[_Inert_LIST]      := MList @ mapitom;
+    m[_Inert_SET]       := MSet  @ mapitom;
 
     m[_Inert_EXPSEQ]    := MExpSeq @ mapitom;
     m[_Inert_SUM]       := MSum    @ mapitom;
@@ -132,10 +138,11 @@ ToM := module()
     m[_Inert_EOP]            := MEop            @ mapitom;
                                             
     m[_Inert_PROC] := proc()
-        paramMap := createMap([args][1]);
-        localMap := createMap([args][2]);
-        ParamStack:-push(paramMap);
-        LocalStack:-push(localMap);
+        maps := table();
+        maps['params'] := createMap([args][1]);
+        maps['locals'] := createMap([args][2]);
+        maps['lex']    := createLexMap([args][8]);
+        MapStack:-push(maps);
         MProc(mapitom(args));
     end proc;
     
@@ -143,8 +150,7 @@ ToM := module()
     # here. Actually its needed because the locals and params in the lexical 
     # pairs refer to the outer environment.
     m[_Inert_LEXICALSEQ] := proc()
-         ParamStack:-pop();
-         LocalStack:-pop();
+         MapStack:-pop();
          MLexicalSeq(mapitom(args));
     end proc;
 
