@@ -16,7 +16,7 @@ OnENV := module()
                    attachLex, removeLex, getLex,
                    getVal, hasTypeInfo,
                    isStatic, isDynamic,
-                   setDynamic, clone, combine, display;
+                   setDynamic, clone, combine, overwrite, display;
             
             # initialize "instance" variables
             valEnv  := table();
@@ -114,6 +114,18 @@ OnENV := module()
                 end do;
                                 
                 newenv;
+            end proc;
+            
+            overwrite := proc(onenv)
+                valEnv  := table();
+                typeEnv := table();
+                for i in op(onenv:-valIndices()) do
+                    putVal(i, onenv:-getVal(i));
+                end do;
+                for i in op(onenv:-typeIndices()) do
+                    putType(i, onenv:-getType(i));
+                end do;
+                NULL;
             end proc;
 
             display := proc()

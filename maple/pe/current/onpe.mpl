@@ -42,12 +42,6 @@ Code := proc(x) option inline; op(2,x) end proc;
 #    end if;
 #end proc;
 
-
-growEnvStack := proc()
-    EnvStack:-push(EnvStack:-top():-clone());
-end proc;
-
-
 ############################################################################
 # The specializer
 ############################################################################
@@ -78,9 +72,9 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
         peSpecializeProc(m, procName);
         EnvStack := 'EnvStack';
         # build a module from the global list of procs and return that
-        #return eval(FromInert(build_module(procName)));
+        return eval(FromInert(build_module(procName)));
         
-        return copy(code);
+        #return copy(code);
     end use;
 end proc;
 
@@ -165,7 +159,7 @@ pe[MReturn] := MReturn @ peResidualizeExpr;
 pe[MStatSeq] := proc()
     q := SimpleQueue();
     for i from 1 to nargs do
-        print("statseq", [args][i]);
+        #print("statseq", [args][i]);
         res := peM([args][i]);
         if nops([res]) > 0 then
             q:-enqueue(res);
@@ -180,22 +174,28 @@ end proc;
 
 pe[MIfThenElse] := proc(cond, s1, s2)
     reduced := M:-ReduceExp(cond, EnvStack:-top());
+    
+    # Can't just copy the environment and put a new copy on the stack
+    # because there may exist closures that referece the environment.
     if M:-IsM(reduced) then
-        growEnvStack();
+        env := EnvStack:-top();
+        original := env:-clone();
+        
         reds1 := peM(s1);
-        thenEnv := EnvStack:-pop();
-        growEnvStack();
+        thenEnv := env:-clone();
+        env:-overwrite(original);
         reds2 := peM(s2);
-        elseEnv := EnvStack:-pop();
-        EnvStack:-pop();
-        EnvStack:-push(thenEnv:-combine(elseEnv));
+        elseEnv := env:-clone();
+        
+        # TODO, is this required? no because of INF
+        env:-overwrite(thenEnv:-combine(elseEnv));
         
         # if reds1 and reds2 are both empty then its a no-op
         if reds1 = MStatSeq() and reds2 = MStatSeq() then
             MStatSeq();
         else
             MIfThenElse(reduced, reds1, reds2);
-        end if;
+        end if;        
     else
         peM(`if`(reduced, s1, s2))
     end if;
@@ -321,6 +321,7 @@ peFunction := proc(ident::m, argExpSeq::m(ExpSeq)) ::m;
             EnvStack:-push(newEnv);
             res := peSpecializeProc(Code(closure));
             EnvStack:-pop();
+            newEnv:-removeLex();
            
             # should probably be a proper unfolding
             M:-ProcBody(res);
