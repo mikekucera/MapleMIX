@@ -3,17 +3,19 @@
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
     local callStack, code, genVar, genNum,
-          CallStack;
+          CallStack, OnENV;
     export PartiallyEvaluate;
 
     
 $include "pe_stack.mpl"
+
+$include "pe_onenv.mpl";
     
 ##################################################################################
 
 
 getStaticValue := proc(m::m)
-    res := M:-ReduceExp(m, OnENV:-NewOnENV());
+    res := M:-ReduceExp(m, OnENV());
     `if`(M:-IsM(res), FAIL, res);
 end proc;
 
@@ -64,7 +66,7 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
     code := table();
 
     #create initial environment
-    env := OnENV:-NewOnENV();
+    env := OnENV();
     for eqn in vallist do
         env:-putVal(lhs(eqn),rhs(eqn));
     end do;
@@ -263,7 +265,7 @@ end proc;
 # for calling a function, returns a new environment for the function and
 # the new reduced argument list
 peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
-    env := OnENV:-NewOnENV();
+    env := OnENV();
 	i := 0;
 	top := callStack:-topEnv();
 	

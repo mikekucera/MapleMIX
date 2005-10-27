@@ -28,10 +28,6 @@ $include "inert.mpl"
 
 Save(IntermediateForms);
 
-$include "on_env.mpl"
-
-Save(OnENV);
-
-$include "onpe.mpl"
+$include "pe_def.mpl"
 
 Save(OnPE);
