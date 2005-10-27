@@ -40,7 +40,7 @@ ReduceExp := module()
     ];
 
 
-    isStatic := x -> evalb( not IsM(x) or member(op(0, x), {_Tag_STATICEXPSEQ, _Tag_STATICTABLE}) );
+    isStatic := x -> evalb( not M:-IsM(x) or member(op(0, x), {_Tag_STATICEXPSEQ, _Tag_STATICTABLE}) );
     isDynamic := `not` @ isStatic;
     allStatic := curry(andmap, isStatic); 
 
@@ -52,9 +52,9 @@ ReduceExp := module()
             if inx and iny then
                 f(x,y)
             elif inx then
-                f(x, ToM(ToInert(y)));
+                f(x, M:-ToM(ToInert(y)));
             elif iny then
-                f(ToM(ToInert(x)), y);
+                f(M:-ToM(ToInert(x)), y);
             else
                 op(x,y);
             end if;
@@ -94,7 +94,7 @@ ReduceExp := module()
     
     
     makeExpseqDynamic := proc()
-        MExpSeq(op(map(x -> `if`(isDynamic(x), x, ToM(ToInert(x))), [args]))); 
+        MExpSeq(op(map(x -> `if`(isDynamic(x), x, M:-ToM(ToInert(x))), [args]))); 
     end proc;
 
 
@@ -168,7 +168,7 @@ ReduceExp := module()
 
 
     # exported expression reducing function
-    ModuleApply := proc(exp::m, env) local residual;
+    ModuleApply := proc(exp::m, env := OnENV()) local residual;
     
         # TODO, reduction of a proc should be different
         if Header(exp) = MProc then

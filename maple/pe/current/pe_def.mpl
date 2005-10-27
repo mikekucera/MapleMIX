@@ -10,12 +10,14 @@ OnPE := module()
 $include "pe_stack.mpl"
 
 $include "pe_onenv.mpl";
+
+$include "pe_reduce_exp.mpl"
     
 ##################################################################################
 
 
 getStaticValue := proc(m::m)
-    res := M:-ReduceExp(m, OnENV());
+    res := ReduceExp(m);
     `if`(M:-IsM(res), FAIL, res);
 end proc;
 
@@ -28,9 +30,6 @@ Header := proc(x) option inline; op(0,x) end proc;
 Lex  := proc(x) option inline; op(1,x) end proc;
 Code := proc(x) option inline; op(2,x) end proc;
 
-reduce := proc(e, env := callStack:-topEnv())
-    M:-ReduceExp(e, env);
-end proc;
 
 ##################################################################################
 
@@ -136,7 +135,7 @@ end proc;
 
 # pe for an expression that is to be residualized
 peResidualizeExpr := proc(m::m)
-    res := reduce(m);
+    res := ReduceExp(m, callStack:-topEnv());
     if Header(res) = Closure then
         Code(res);
     else
@@ -165,7 +164,7 @@ end proc;
 
 
 pe[MIfThenElse] := proc(cond, s1, s2)
-    reduced := reduce(cond);
+    reduced := ReduceExp(cond, callStack:-topEnv());
     
     # Can't just copy the environment and put a new copy on the stack
     # because there may exist closures that referece the environment.
@@ -198,7 +197,7 @@ end proc;
 
 pe[MAssign] := proc(n::m(Local), expr::m)
 	env := callStack:-topEnv();
-    reduced := reduce(expr, env);
+    reduced := ReduceExp(expr, env);
     if M:-IsM(reduced) then
         MAssign(n, reduced);
     else
@@ -271,7 +270,7 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
 	
     processArg := proc(argExp)
         i := i + 1;
-        reduced := reduce(argExp, top);
+        reduced := ReduceExp(argExp, top);
         if not M:-IsM(reduced) then
             # put static argument value into environment
             env:-putVal(op(op(i, params)), reduced);
