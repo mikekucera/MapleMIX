@@ -29,14 +29,16 @@ ReduceExp := module()
         MInt      = (x -> x), 
         MFloat    = ((x,y) -> FromInert(_Inert_FLOAT(ToInert(x),ToInert(y)))),
         MString   = (x -> x),
-        #MName     = rcurry(convert, symbol),
+        
+        MAssignedName = massignedname,
+        MName         = mname,
         
         MRational = `/`,
         MComplex  = complex,
         MExpSeq   = expseq,
         MList     = literalList,
-        MSet      = literalSet
-        
+        MSet      = literalSet,
+        MMember   = mmember
     ];
 
 
@@ -66,7 +68,7 @@ ReduceExp := module()
 
 
     complex := proc()
-        if nargs = 1 then
+        if nargs = 1 then                               
             args[1] * I;
         else
             args[1] + args[2] * I;
@@ -100,7 +102,7 @@ ReduceExp := module()
 
     # it will receive a reduced expression sequence
     pureFunc := proc(env)
-        proc(n, expseq)
+        proc(f, expseq)
             # special case for call to typechecking function
             #if getHeader(n) = MASSIGNEDNAME and getVal(n) = "type" and nops(expseq) = 2 then
             #
@@ -121,14 +123,16 @@ ReduceExp := module()
             #            print("subtype failed", lastexception);
             #        end try;
             #    end if;
-            #
-            if Header(expseq) = _Tag_STATICEXPSEQ then # if all arguments are static then call the pure func
-                return apply(convert(op(1,n), name), op(expseq));
+            
+
+            if type(f, procedure) and Header(expseq) = _Tag_STATICEXPSEQ then
+                f(op(expseq));
+            elif type(f, name) and Header(expseq) = _Tag_STATICEXPSEQ then
+                apply(convert(op(1,f), name), op(expseq));
+            else
+                MFunction(f, expseq);
             end if;
 
-            #residualize
-            # perhaps all function calls should be split out of expressions, for unfolding
-            MFunction(n, expseq);
         end proc;
     end proc;
 
@@ -145,6 +149,19 @@ ReduceExp := module()
     #        end if;                 
     #    end proc;
     #end proc;
+
+    mmember := proc(n1, n2)
+        if type(n1, `module`) then
+            n1[n2];
+        else
+            MMember(n1, M:-ToM(eval(n2)));
+        end if;              
+    end proc;
+
+    
+    # same thing for now I guess
+    massignedname := n -> convert(n, name);
+    mname := n -> convert(n, name);
 
 
     # evaluates static variables
@@ -178,7 +195,6 @@ ReduceExp := module()
         residual := eval(exp, [op(subsList), 
                                MParam = evalName(env, MParam), 
                                MLocal = evalName(env, MLocal),
-                               MName  = evalName(env, MName),
                                MSingleUse = evalName(env, MSingleUse),
                                #MTableref = binOp(MTableref, tableref(env)), 
                                MLexicalLocal = evalLex(env, MLexicalLocal),
@@ -186,9 +202,10 @@ ReduceExp := module()
                                MFunction = pureFunc(env)
                               ]);
 
-        eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 
+        r := eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 
                         _Tag_STATICTABLE = ((x,v) -> x)]);
-
+        #print("results", r);
+        r;
     end proc;
     
 end module;

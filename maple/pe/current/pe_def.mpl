@@ -81,9 +81,9 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
         peSpecializeProc(m, procName);
         callStack := 'callStack';
         # build a module from the global list of procs and return that
-        return eval(FromInert(build_module(procName)));
+        #return eval(FromInert(build_module(procName)));
         
-        #return copy(code);
+        return copy(code);
     end use;
 end proc;
 
@@ -290,49 +290,88 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
 end proc;
 
 
+peFunction := proc(f::m, argExpSeq::m(ExpSeq)) ::m;
+    print("peFunction");
+    fun := ReduceExp(f, callStack:-topEnv());
+    
+    if M:-IsM(fun) then
+        MFunction(fun, map(peResidualizeExpr, argExpSeq));
+        
+    elif type(fun, procedure) then
+        print("its a procedure, ya!");
+        # get the code for the actual function from the underlying interpreter
+        print(ToInert(eval(fun)));
+	    m := M:-ToM(ToInert(eval(fun)));
+	    
+	    print("got the code for the proc", fun);
+	    print(m);
+	    
+	    error "stop here";
+	    
+	    newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
+	    #build a new environment for the function
+	    callStack:-push(newEnv);
+	    newName := cat(op(1,f), "_", genNum());
+	    peSpecializeProc(m, newName);
+	    callStack:-pop();    		    
+	    MFunction(MName(newName), newArgs); # return residualized function call
+	    
+    elif Header(fun) = Closure then
+        ewEnv, newArgs := peArgList(M:-Params(Code(fun)), argExpSeq);
+        # attach lexical environment to the environment of the function
+        newEnv:-attachLex(Lex(fun));
+        callStack:-push(newEnv);
+        res := peSpecializeProc(Code(fun));
+        callStack:-pop();
+        newEnv:-removeLex();       
+        # should probably be a proper unfolding
+        M:-ProcBody(res);
+
+    end if;
+end proc;
+
 
 # Assumes nested function calls have already been stripped out of the argument expressions.
 # Always returns a function call, code for specialized function will be in the 'code' module variable.
-peFunction := proc(ident::m, argExpSeq::m(ExpSeq)) ::m;
-    head := M:-Header(ident);
-    
-    if head = Name then
-        error "symbolic functions not supported yet";
-        
-    elif member(head, {MParam, MLocal}) then
-        #print("its a prarm");
-        env := callStack:-topEnv();
-        if env:-isStatic(op(1,ident)) then
-            closure := env:-getVal(op(1,ident));       
-            newEnv, newArgs := peArgList(M:-Params(Code(closure)), argExpSeq);
-            # attach lexical environment to the environment of the function
-            newEnv:-attachLex(Lex(closure));
-            
-            callStack:-push(newEnv);
-            res := peSpecializeProc(Code(closure));
-            callStack:-pop();
-            newEnv:-removeLex();
-           
-            # should probably be a proper unfolding
-            M:-ProcBody(res);
-        else
-            MFunction(ident, map(peResidualizeExpr, argExpSeq));
-        end if;
-
-    elif head = MAssignedName then        
-	    # get the code for the actual function from the underlying interpreter
-	    m := M:-ToM(ToInert(eval(convert(op(1,ident), name))));
-	    newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
-	    
-	    #build a new environment for the function
-	    callStack:-push(newEnv);
-	    newName := cat(op(1,ident), "_", genNum());
-	    peSpecializeProc(m, newName);
-	    callStack:-pop();    
-		    
-	    MFunction(MName(newName), newArgs); # return residualized function call
-    end if;
-end proc;
+#peFunction := proc(ident::m, argExpSeq::m(ExpSeq)) ::m;
+#    head := M:-Header(ident);
+#    
+#    if head = Name then
+#        error "symbolic functions not supported yet";
+#        
+#    elif member(head, {MParam, MLocal}) then
+#        env := callStack:-topEnv();
+#        if env:-isStatic(op(1,ident)) then
+#            closure := env:-getVal(op(1,ident));       
+#            newEnv, newArgs := peArgList(M:-Params(Code(closure)), argExpSeq);
+#            # attach lexical environment to the environment of the function
+#            newEnv:-attachLex(Lex(closure));
+#            
+#            callStack:-push(newEnv);
+#            res := peSpecializeProc(Code(closure));
+#            callStack:-pop();
+#            newEnv:-removeLex();
+#           
+#            # should probably be a proper unfolding
+#            M:-ProcBody(res);
+#        else
+#            MFunction(ident, map(peResidualizeExpr, argExpSeq));
+#        end if;
+#
+#    elif head = MAssignedName then        
+#	    # get the code for the actual function from the underlying interpreter
+#	    m := M:-ToM(ToInert(eval(convert(op(1,ident), name))));
+#	    newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
+#	    
+#	    #build a new environment for the function
+#	    callStack:-push(newEnv);
+#	    newName := cat(op(1,ident), "_", genNum());
+#	    peSpecializeProc(m, newName);
+#	    callStack:-pop();    
+#		    
+#	    MFunction(MName(newName), newArgs); # return residualized function call
+#   end if;
+#end proc;
 
 
 

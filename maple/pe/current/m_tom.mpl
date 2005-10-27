@@ -40,6 +40,7 @@ ToM := module()
     end proc;
 
     getVar := proc(mapname, x)
+        print("getVar", mapname, x);
         maps := MapStack:-top();
         tbl := maps[mapname];
     	if assigned(tbl[x]) then
@@ -92,6 +93,7 @@ ToM := module()
     # TODO, why do I have to do this?
     m[MSingleUse] := MSingleUse;
     m[MFunction] := MFunction;
+    m['string'] := () -> args;
     
     m[_Inert_NAME]     := MName;
     m[_Inert_LOCAL]    := x -> MLocal(getVar('locals', x));
@@ -101,7 +103,7 @@ ToM := module()
     m[_Inert_LEXICAL_PARAM] := x -> MLexicalParam(getLexVar('params', x));
     m[_Inert_LEXICALPAIR]  := MLexicalPair @ itom2;
         
-    m[_Inert_ASSIGNEDNAME] := MAssignedName;
+    m[_Inert_ASSIGNEDNAME] := MAssignedName @ mapitom;
 
     m[_Inert_INTPOS]   := MInt;
     m[_Inert_INTNEG]   := MInt @ `-`;
@@ -128,7 +130,10 @@ ToM := module()
 
     m[_Inert_EXPSEQ]    := MExpSeq @ mapitom;
     m[_Inert_SUM]       := MSum    @ mapitom;
-    m[_Inert_PROD]      := MProd   @ mapitom;    
+    m[_Inert_PROD]      := MProd   @ mapitom;
+    
+    m[_Inert_MEMBER]    := MMember    @ mapitom;
+    m[_Inert_ATTRIBUTE] := MAttribute @ mapitom;
     
     m[_Inert_PARAMSEQ]       := MParamSeq       @ mapitom;
     m[_Inert_LOCALSEQ]       := MLocalSeq       @ mapitom;
@@ -161,7 +166,13 @@ ToM := module()
         MStatSeq(op(map(f, [args])));        
     end proc;
     
-    m[_Inert_FUNCTION] := () ->split([args][2], curry(MStandaloneFunction, itom([args][1])));
+    m[_Inert_FUNCTION] := proc(n, expseq)
+        if member(convert(op(1,n), name), intrinsic) then
+            split(expseq, x -> MStandaloneExpr(MFunction(itom(n), x)));
+        else
+            split(expseq, curry(MStandaloneFunction, itom(n)));
+        end if;
+    end proc;
     
     m[_Inert_ASSIGN] := (name, expr) -> split(expr, curry(MAssign, itom(name)));
     

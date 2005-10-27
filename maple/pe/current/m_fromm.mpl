@@ -58,13 +58,17 @@ FromM := module()
 	end proc;
 
     
+    inrt['string'] := () -> args;
     
     inrt[MName]      := _Inert_NAME;    
     inrt[MParam]     := n -> _Inert_PARAM(MapStack:-top()['params'](n));
     inrt[MLocal]     := n -> _Inert_LOCAL(MapStack:-top()['locals'](n));    
     inrt[MGeneratedName] := inrt[MLocal];
     
-    inrt[MAssignedName] := _Inert_ASSIGNEDNAME;
+    inrt[MAssignedName] := _Inert_ASSIGNEDNAME @ mapmtoi;
+    
+    inrt[MMember]    := _Inert_MEMBER    @ mapmtoi;
+    inrt[MAttribute] := _Inert_ATTRIBUTE @ mapmtoi;
     
     inrt[MInt] := x -> `if`(x < 0, _Inert_INTNEG(-x), _Inert_INTPOS(x));
     inrt[MString] := _Inert_STRING;
