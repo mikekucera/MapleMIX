@@ -10,7 +10,6 @@
 
 
 funcPrefixType := proc(prefix, f)
-   try
    if nargs = 2 then
        type(f, function) and StringTools:-RegMatch(cat("^", prefix), op(0, f));
    elif nargs = 3 then
@@ -18,7 +17,28 @@ funcPrefixType := proc(prefix, f)
    else 
        error("must be called with 1 or 2 args");
    end if;
-   catch:
-       print("f", f);
-   end try;
+end proc:
+
+
+# tables that throw exceptions if you try to look up a key that doesn't exist
+`index/err` := proc(Idx::list,Tbl::table,Entry::list)
+    if (nargs = 2) then
+        if (assigned(Tbl[op(Idx)])) then 
+            eval(Tbl[op(Idx)]);
+        else 
+            error cat("no mapping for: ", op(Idx));
+        end if;
+    else
+        Tbl[op(Idx)] := op(Entry);
+    end if;
+end proc:
+
+# debugging table, prints out the key on every lookup
+`index/deb` := proc(Idx::list,Tbl::table,Entry::list)
+    if (nargs = 2) then
+        print("lookup: ", op(Idx));
+        eval(Tbl[op(Idx)]);
+    else
+        Tbl[op(Idx)] := op(Entry);
+    end if;
 end proc:

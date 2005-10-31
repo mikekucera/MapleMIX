@@ -5,13 +5,12 @@ ToM := module()
     	  itom, itom2, mapitom,  m, gen, createMap, getVar;
 
     m := table();
-    itom, itom2, mapitom := createTableProcs(m);
     
-    # TODO, replace New in NameGenerator with ModuleApply
+    itom, itom2, mapitom := createTableProcs(m);
+
     gen := NameGenerator("m");
     
-    
-    ModuleApply := proc(x::inert)::m;        	    	
+    ModuleApply := proc(x::inert)
     	MapStack := SimpleStack();
     	res := itom(x);
 		MapStack := 'MapStack';
@@ -29,45 +28,54 @@ ToM := module()
         tbl;
     end proc;
     
+    # maps lexical indicies to their names
     createLexMap := proc(lexicalseq)
         tbl := table();
         i := 1;
         for lexpair in lexicalseq do
-            tbl[i] := op([2,1],lexpair);
+            tbl[i] := op([1,1],lexpair);
             i := i + 1;
         end do;
         tbl;
     end proc;
 
     getVar := proc(mapname, x)
-        print("getVar", mapname, x);
         maps := MapStack:-top();
         tbl := maps[mapname];
-    	if assigned(tbl[x]) then
+    	#if assigned(tbl[x]) then
     		tbl[x];
-    	else
-    		error cat("(in ToM), No var found for name: ", x)
-    	end if;
+    	#else
+    	#	error cat("(in ToM), No var found for index: ", mapname, " ", x)
+    	#end if;
     end proc;
     
-    getLexVar := proc(mapname, x)        
-        maps := MapStack:-pop();
-        lexIndex := maps['lex'][x];
-        res := getVar(mapname, lexIndex);
-        MapStack:-push(maps);
-        res;
+    getLexVar := proc(x)
+        MapStack:-top()['lex'][x];
     end proc;
 
+    
+    isStandalone := proc(x)
+        member(x, {_Inert_SUM, _Inert_PROD, _Inert_POWER, 
+                   _Inert_CATENATE, _Inert_EQUATION, _Inert_LESSEQ, 
+                   _Inert_LESSTHAN, _Inert_IMPLIES, _Inert_AND, 
+                   _Inert_OR, _Inert_XOR, _Inert_NOT, 
+                   _Inert_INTPOS, _Inert_INTNEG, _Inert_FLOAT, 
+                   _Inert_STRING, _Inert_COMPLEX, _Inert_RATIONAL, 
+                   _Inert_EXPSEQ, _Inert_LIST, _Inert_SET, 
+                   _Inert_PARAM, _Inert_LOCAL, _Inert_NAME, 
+                   _Inert_TABLEREF, _Inert_MEMBER});
+    end proc;
+    
     
     # takes an inert expression and splits it
     splitAssigns := proc(e::inert)
         q := SimpleQueue();          
 
-        # generation of table is a side effect of nested proc
+        # generation of assigns is a side effect of nested proc
         examineFunc := proc(f)
             local newvar;
             if member(convert(op(1, f), name), intrinsic) then
-                MFunction(mapitom(args));
+                MFunction(args);
             else
                 newvar := gen();    
                 q:-enqueue(MAssignToFunction(MGeneratedName(newvar), MFunction(mapitom(args))));                
@@ -75,7 +83,23 @@ ToM := module()
             end if; 
         end proc;
         
-        res := eval(e, [_Inert_FUNCTION = examineFunc]);
+        # eval doesn't work properly for statments, so must remove nested lambdas
+        lambdas := table();
+        lamGen := NameGenerator("lambda");
+        removeLambda := proc()
+            marker := lamGen();
+            lambdas[marker] := _Inert_PROC(args);
+            MarkedLambda(marker);
+        end proc;
+        
+        # replace lambdas after the expression has been split
+        replaceLambda := proc(marker);
+            lambdas[marker];        
+        end proc;        
+
+        res := eval(e,   [_Inert_PROC = removeLambda]);
+        res := eval(res, [_Inert_FUNCTION = examineFunc]);
+        res := eval(res, [MarkedLambda = replaceLambda]);
         return q:-toList(), itom(res);
     end proc;
 
@@ -90,20 +114,22 @@ ToM := module()
         end if;
     end proc;    
     
-    # TODO, why do I have to do this?
-    m[MSingleUse] := MSingleUse;
-    m[MFunction] := MFunction;
-    m['string'] := () -> args;
     
-    m[_Inert_NAME]     := MName;
+    m['string'] := () -> args;
+    m['Integer'] := () -> args;
+    m[MSingleUse] := MSingleUse;
+    
+    m[_Inert_NAME]     := MName @ mapitom;
     m[_Inert_LOCAL]    := x -> MLocal(getVar('locals', x));
     m[_Inert_PARAM]    := x -> MParam(getVar('params', x));
     
-    m[_Inert_LEXICAL_LOCAL] := x -> MLexicalLocal(getLexVar('locals', x));
-    m[_Inert_LEXICAL_PARAM] := x -> MLexicalParam(getLexVar('params', x));
-    m[_Inert_LEXICALPAIR]  := MLexicalPair @ itom2;
+    m[_Inert_LEXICAL_LOCAL] := MLexicalLocal @ getLexVar;
+    m[_Inert_LEXICAL_PARAM] := MLexicalParam @ getLexVar;
+    m[_Inert_LEXICALPAIR]   := MLexicalPair  @ itom2;
+    m[_Inert_LOCALNAME]     := MLocalName    @ mapitom;
         
     m[_Inert_ASSIGNEDNAME] := MAssignedName @ mapitom;
+    m[_Inert_ASSIGNEDLOCALNAME] := MAssignedLocalName @ mapitom;
 
     m[_Inert_INTPOS]   := MInt;
     m[_Inert_INTNEG]   := MInt @ `-`;
@@ -131,6 +157,12 @@ ToM := module()
     m[_Inert_EXPSEQ]    := MExpSeq @ mapitom;
     m[_Inert_SUM]       := MSum    @ mapitom;
     m[_Inert_PROD]      := MProd   @ mapitom;
+    m[_Inert_ERROR]     := MError  @ mapitom;
+    m[_Inert_TABLEREF]  := MTableref @ mapitom;
+    m[_Inert_ARGS]      := MArgs @ mapitom;
+    m[_Inert_NARGS]     := MNargs @ mapitom;
+    m[_Inert_UNEVAL]    := MUneval @ mapitom;
+    m[_Inert_RANGE]     := MRange @ mapitom;
     
     m[_Inert_MEMBER]    := MMember    @ mapitom;
     m[_Inert_ATTRIBUTE] := MAttribute @ mapitom;
@@ -143,6 +175,7 @@ ToM := module()
     m[_Inert_EOP]            := MEop            @ mapitom;
                                             
     m[_Inert_PROC] := proc()
+        
         maps := table();
         maps['params'] := createMap([args][1]);
         maps['locals'] := createMap([args][2]);
@@ -156,14 +189,20 @@ ToM := module()
     # pairs refer to the outer environment.
     m[_Inert_LEXICALSEQ] := proc()
          MapStack:-pop();
-         MLexicalSeq(mapitom(args));
+         res := MLexicalSeq(mapitom(args));
     end proc;
 
-    m[_Inert_STATSEQ] := proc() local standaloneExpr;    
-        standaloneExpr := rcurry(split, MStandaloneExpr);
-        f := x -> ssop(`if`(IntermediateForms:-isExpr(op(0,x)), standaloneExpr, itom)(x));
-        #TODO: if result is a single statment then don't wrap it in a statseq
-        MStatSeq(op(map(f, [args])));        
+    m[_Inert_STATSEQ] := proc() local standaloneExpr;
+        processInert := proc(x)
+            if op(0,x) = _Inert_PROC then
+                MStandaloneExpr(itom(x))
+            elif isStandalone(x) then
+                ssop(split(x, MStandaloneExpr))
+            else
+                itom(x)
+            end if;
+        end proc;   
+        MStatSeq(op(map(processInert, [args])));
     end proc;
     
     m[_Inert_FUNCTION] := proc(n, expseq)
@@ -173,6 +212,10 @@ ToM := module()
             split(expseq, curry(MStandaloneFunction, itom(n)));
         end if;
     end proc;
+    
+    # MFunction is introduced prematurely by the expression splitter
+    m[MFunction] := MFunction @ mapitom;
+    
     
     m[_Inert_ASSIGN] := (name, expr) -> split(expr, curry(MAssign, itom(name)));
     

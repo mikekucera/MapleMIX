@@ -19,6 +19,8 @@ Save(`type/inert`);
 Save(`type/m`);
 Save(`type/tag`);
 Save(funcPrefixType);
+Save(`index/err`);
+Save(`index/deb`);
 
 $include "m_def.mpl"
 
