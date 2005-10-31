@@ -33,6 +33,18 @@ FromM := module()
     end proc;
 
 
+    # maps lexical names to their lexpairs
+    createLexMap := proc(lexicalseq)
+        tbl := table();
+        i := 1;
+        for lexpair in lexicalseq do
+            tbl[op([1,1],lexpair)] := lexpair;
+            i := i + 1;
+        end do;
+        tbl;
+    end proc;
+
+
     # returns two functions used to generate locals
  	createLocalMappingFunctions := proc()
 	    local tbl, q, c;	    
@@ -58,13 +70,16 @@ FromM := module()
 	end proc;
 
     
-    inrt['string'] := () -> args;
+    inrt['string']  := () -> args;
+    inrt['Integer'] := () -> args;
     
-    inrt[MName]      := _Inert_NAME;    
     inrt[MParam]     := n -> _Inert_PARAM(MapStack:-top()['params'](n));
     inrt[MLocal]     := n -> _Inert_LOCAL(MapStack:-top()['locals'](n));    
-    inrt[MGeneratedName] := inrt[MLocal];
+    inrt[MGeneratedName]     := inrt[MLocal];
+    inrt[MLocalName]         := _Inert_LOCALNAME @ mapmtoi;
+    inrt[MAssignedLocalName] := _Inert_ASSIGNEDLOCALNAME @ mapmtoi;
     
+    inrt[MName]         := _Inert_NAME @ mapmtoi;   
     inrt[MAssignedName] := _Inert_ASSIGNEDNAME @ mapmtoi;
     
     inrt[MMember]    := _Inert_MEMBER    @ mapmtoi;
@@ -96,13 +111,24 @@ FromM := module()
     inrt[MSum]    := _Inert_SUM    @ mapmtoi;
     inrt[MProd]   := _Inert_PROD   @ mapmtoi;
     
-    inrt[MReturn] := _Inert_RETURN @ mapmtoi;
+    inrt[MTableref] := _Inert_TABLEREF @ mapmtoi;
+    inrt[MArgs]     := _Inert_ARGS     @ mapmtoi;
+    inrt[MNargs]    := _Inert_NARGS    @ mapmtoi;
+    
+    inrt[MReturn]  := _Inert_RETURN  @ mapmtoi;
+    inrt[MError]   := _Inert_ERROR   @ mapmtoi;
+    inrt[MUneval]  := _Inert_UNEVAL  @ mapmtoi;
+    inrt[MRange]   := _Inert_RANGE   @ mapmtoi;
+    inrt[MInequat] := _Inert_INEQUAT @ mapmtoi;
+    inrt[MForIn]   := _Inert_FORIN   @ mapmtoi;
+    inrt[MForFrom] := _Inert_FORFROM @ mapmtoi;
         
     inrt[MParamSeq]       := _Inert_PARAMSEQ       @ mapmtoi;
     inrt[MLocalSeq]       := _Inert_LOCALSEQ       @ mapmtoi;
     inrt[MOptionSeq]      := _Inert_OPTIONSEQ      @ mapmtoi;
     inrt[MDescriptionSeq] := _Inert_DESCRIPTIONSEQ @ mapmtoi;
     inrt[MGlobalSeq]      := _Inert_GLOBALSEQ      @ mapmtoi;
+    inrt[MLexicalPair]    := _Inert_LEXICALPAIR @ mapmtoi;
     
     inrt[MEop]            := _Inert_EOP            @ mapmtoi;
     
@@ -116,17 +142,20 @@ FromM := module()
     
     
     inrt[MProc] := proc()
+        
         maps := table();
         # function that maps param names to their indicies
         maps['params'] := createParamMap([args][1]);
         # first is a function that keeps track of locals encountered
         # second is a function that generates the new local list
         maps['locals'], newLocalList := createLocalMappingFunctions();
-        # queue of lexical pairs created for the current proc
+        # the current lexical sequence, which may become smaller
+        maps['lexseq'] := createLexMap([args][8]);
+        # queue that will become the new lexical sequence
         maps['lexqueue'] := SimpleQueue();
         # table mapping a lexical's name to its index in the lexical queue
         maps['lextbl'] := table();
-        
+                
         MapStack:-push(maps);
         inertProc := _Inert_PROC(mapmtoi(args));
         MapStack:-pop();
@@ -139,26 +168,27 @@ FromM := module()
         _Inert_LEXICALSEQ(op(lexQueue:-toList()));
     end proc;
     
-        
     replaceLexical := proc(f, m, n)
-        top := MapStack:-top();
-
-        lexTbl := top['lextbl'];
-        lexQueue := top['lexqueue'];
+        maps := MapStack:-top();        
+        lexTbl := maps['lextbl'];
 
         if assigned(lexTbl[n]) then
             lexTbl[n];
         else
-            # get the var's index in the outer(lexical) scope
-            temp := MapStack:-pop();
-            index := MapStack:-top()[m](n);
-            MapStack:-push(temp);
+            if MapStack:-depth() > 1 and f = _Inert_LOCAL then
+                temp := MapStack:-pop();
+				index := MapStack:-top()['locals'](n);
+                MapStack:-push(temp);
+                lexpair := _Inert_LEXICALPAIR(_Inert_NAME(n), _Inert_LOCAL(index));
+            else
+                lexpair := mtoi(maps['lexseq'][n]);
+            end if;
             
-            lexpair := _Inert_LEXICALPAIR(_Inert_NAME(n), f(index));            
+            lexQueue := maps['lexqueue'];
             lexQueue:-enqueue(lexpair);
-            l := lexQueue:-length();            
-            lexTbl[n] := l;
-            l;
+            index := lexQueue:-length();
+            lexTbl[n] := index;
+            index;
         end if;
     end proc;
     

@@ -93,9 +93,9 @@ ToM := module()
         end proc;
         
         # replace lambdas after the expression has been split
-        replaceLambda := proc(marker);
-            lambdas[marker];        
-        end proc;        
+        replaceLambda := proc(marker)
+            lambdas[marker]
+        end proc;
 
         res := eval(e,   [_Inert_PROC = removeLambda]);
         res := eval(res, [_Inert_FUNCTION = examineFunc]);
@@ -163,6 +163,9 @@ ToM := module()
     m[_Inert_NARGS]     := MNargs @ mapitom;
     m[_Inert_UNEVAL]    := MUneval @ mapitom;
     m[_Inert_RANGE]     := MRange @ mapitom;
+    m[_Inert_INEQUAT]   := MInequat @ mapitom;
+    m[_Inert_FORFROM]   := MForFrom @ mapitom;
+    m[_Inert_FORIN]     := MForIn @ mapitom;
     
     m[_Inert_MEMBER]    := MMember    @ mapitom;
     m[_Inert_ATTRIBUTE] := MAttribute @ mapitom;
@@ -175,7 +178,6 @@ ToM := module()
     m[_Inert_EOP]            := MEop            @ mapitom;
                                             
     m[_Inert_PROC] := proc()
-        
         maps := table();
         maps['params'] := createMap([args][1]);
         maps['locals'] := createMap([args][2]);
