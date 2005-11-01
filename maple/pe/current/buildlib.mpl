@@ -9,6 +9,10 @@ end try;
 
 savelibname := "lib":
 
+$include "utils.mpl"
+
+Save(printmod);
+
 $include "gen.mpl"
 
 Save(NameGenerator);

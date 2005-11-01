@@ -25,5 +25,5 @@ printmod := proc(m)
     
     kernelopts(opaquemodules=true);
     NULL;
-end proc;
+end proc:
 

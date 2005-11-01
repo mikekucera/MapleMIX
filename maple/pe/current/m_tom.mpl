@@ -54,16 +54,15 @@ ToM := module()
     end proc;
 
     
-    isStandalone := proc(x)
-        member(x, {_Inert_SUM, _Inert_PROD, _Inert_POWER, 
-                   _Inert_CATENATE, _Inert_EQUATION, _Inert_LESSEQ, 
-                   _Inert_LESSTHAN, _Inert_IMPLIES, _Inert_AND, 
-                   _Inert_OR, _Inert_XOR, _Inert_NOT, 
-                   _Inert_INTPOS, _Inert_INTNEG, _Inert_FLOAT, 
-                   _Inert_STRING, _Inert_COMPLEX, _Inert_RATIONAL, 
-                   _Inert_EXPSEQ, _Inert_LIST, _Inert_SET, 
-                   _Inert_PARAM, _Inert_LOCAL, _Inert_NAME, 
-                   _Inert_TABLEREF, _Inert_MEMBER});
+    isStandalone := proc(x)        
+        member(op(0,x), 
+            {_Inert_SUM, _Inert_PROD, _Inert_POWER, _Inert_CATENATE, 
+             _Inert_EQUATION, _Inert_LESSEQ, _Inert_LESSTHAN, _Inert_IMPLIES, 
+             _Inert_AND, _Inert_OR, _Inert_XOR, _Inert_NOT, _Inert_INTPOS, 
+             _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING, _Inert_COMPLEX, 
+             _Inert_RATIONAL, _Inert_EXPSEQ, _Inert_LIST, _Inert_SET, 
+             _Inert_PARAM, _Inert_LOCAL, _Inert_NAME, _Inert_TABLEREF, 
+             _Inert_MEMBER});
     end proc;
     
     

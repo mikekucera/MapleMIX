@@ -2,11 +2,13 @@
 
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
-    local callStack, code, genVar, genNum,
+    local callStack, code, genVar, genNum, mcache,
           CallStack, OnENV;
-    export PartiallyEvaluate;
+    export ModuleApply, PartiallyEvaluate;
 
-    
+ModuleApply := PartiallyEvaluate;
+
+
 $include "pe_stack.mpl"
 
 $include "pe_onenv.mpl";
@@ -31,7 +33,46 @@ Lex  := proc(x) option inline; op(1,x) end proc;
 Code := proc(x) option inline; op(2,x) end proc;
 
 
-##################################################################################
+################################################################################
+
+
+lift := proc(x)
+    print("lifting", x);
+    if Header(x) = Closure then
+        Code(x);
+    elif M:-IsM(x) then
+        x;
+    else
+	    M:-ToM(ToInert(x));
+	end if;
+end proc;
+
+
+# lifts all static values that are embedded in the residual code
+# meant to be used as a post-process
+liftCode := proc()
+    for pn in map(op, [indices(code)]) do
+        code[pn] := eval(code[pn], 
+        	[MStandaloneExpr = (MStandaloneExpr@lift),
+        	 MReturn = (MReturn@lift)]);
+    end do;
+    NULL;
+end proc;
+
+# caches M code of procedures so don't need to call ToM unneccesarily
+getMCode := proc(fun)
+    if assigned(mcache[eval(fun)]) then
+        print("getting from cache");
+        mcache[eval(fun)];
+    else
+        print("adding to cache");
+        m := M:-ToM(ToInert(eval(fun)));
+        mcache[eval(fun)] := m;
+        m;
+    end;
+end proc;
+
+################################################################################
 
 
 # takes an environment and an inert param
@@ -59,32 +100,35 @@ Code := proc(x) option inline; op(2,x) end proc;
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
 PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
-    # set up globals
-    genVar := NameGenerator:-New("x");
-    genNum := NameGenerator:-New("");
+    # set up module locals
+    genVar := NameGenerator("x");
+    genNum := NameGenerator("");
+    callStack := CallStack();
     code := table();
+    mcache := table();
 
     #create initial environment
     env := OnENV();
     for eqn in vallist do
         env:-putVal(lhs(eqn),rhs(eqn));
     end do;
-
-    callStack := CallStack();
     callStack:-push(env);
 
-    # get the m form of the procedure
+    # perform partial evaluation
     m := M:-ToM(ToInert(eval(p)));
-
-    # specialize
-    use procName = "ModuleApply" in
-        peSpecializeProc(m, procName);
-        callStack := 'callStack';
-        # build a module from the global list of procs and return that
-        #return eval(FromInert(build_module(procName)));
-        
-        return copy(code);
-    end use;
+    peSpecializeProc(m, "ModuleApply");           
+    liftCode();    
+    res :=  (eval @ FromInert @ build_module)("ModuleApply");
+    
+    # unassign module locals
+    genVar := 'genVar';
+    genNum := 'genNum';
+    callStack := 'callStack';
+    code := 'code';
+    mcache := 'mcache';        
+    
+    return res;
+    #return copy(code);
 end proc;
 
 
@@ -135,15 +179,11 @@ end proc;
 
 # pe for an expression that is to be residualized
 peResidualizeExpr := proc(m::m)
-    res := ReduceExp(m, callStack:-topEnv());
-    if Header(res) = Closure then
-        Code(res);
-    else
-	    `if`(M:-IsM(res), res, M:-ToM(ToInert(res)));
-	end if;
+    ReduceExp(m, callStack:-topEnv());
 end proc;
 
 
+# TODO, are these the only places that static values will be residualized?
 pe[MStandaloneExpr] := MStandaloneExpr @ peResidualizeExpr;
 pe[MReturn] := MReturn @ peResidualizeExpr;
 
@@ -290,24 +330,14 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
 end proc;
 
 
-peFunction := proc(f::m, argExpSeq::m(ExpSeq)) ::m;
-    print("peFunction");
+peFunction := proc(f::m, argExpSeq::m(ExpSeq)) :: m;
     fun := ReduceExp(f, callStack:-topEnv());
     
     if M:-IsM(fun) then
         MFunction(fun, map(peResidualizeExpr, argExpSeq));
         
     elif type(fun, procedure) then
-        print("its a procedure, ya!");
-        # get the code for the actual function from the underlying interpreter
-        print(ToInert(eval(fun)));
-	    m := M:-ToM(ToInert(eval(fun)));
-	    
-	    print("got the code for the proc", fun);
-	    print(m);
-	    
-	    error "stop here";
-	    
+	    m := getMCode(fun);
 	    newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
 	    #build a new environment for the function
 	    callStack:-push(newEnv);
@@ -329,51 +359,6 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq)) ::m;
 
     end if;
 end proc;
-
-
-# Assumes nested function calls have already been stripped out of the argument expressions.
-# Always returns a function call, code for specialized function will be in the 'code' module variable.
-#peFunction := proc(ident::m, argExpSeq::m(ExpSeq)) ::m;
-#    head := M:-Header(ident);
-#    
-#    if head = Name then
-#        error "symbolic functions not supported yet";
-#        
-#    elif member(head, {MParam, MLocal}) then
-#        env := callStack:-topEnv();
-#        if env:-isStatic(op(1,ident)) then
-#            closure := env:-getVal(op(1,ident));       
-#            newEnv, newArgs := peArgList(M:-Params(Code(closure)), argExpSeq);
-#            # attach lexical environment to the environment of the function
-#            newEnv:-attachLex(Lex(closure));
-#            
-#            callStack:-push(newEnv);
-#            res := peSpecializeProc(Code(closure));
-#            callStack:-pop();
-#            newEnv:-removeLex();
-#           
-#            # should probably be a proper unfolding
-#            M:-ProcBody(res);
-#        else
-#            MFunction(ident, map(peResidualizeExpr, argExpSeq));
-#        end if;
-#
-#    elif head = MAssignedName then        
-#	    # get the code for the actual function from the underlying interpreter
-#	    m := M:-ToM(ToInert(eval(convert(op(1,ident), name))));
-#	    newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
-#	    
-#	    #build a new environment for the function
-#	    callStack:-push(newEnv);
-#	    newName := cat(op(1,ident), "_", genNum());
-#	    peSpecializeProc(m, newName);
-#	    callStack:-pop();    
-#		    
-#	    MFunction(MName(newName), newArgs); # return residualized function call
-#   end if;
-#end proc;
-
-
 
 
 ########################################################################################

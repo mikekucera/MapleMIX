@@ -202,10 +202,8 @@ ReduceExp := module()
                                MFunction = pureFunc(env)
                               ]);
 
-        r := eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 
+        eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 
                         _Tag_STATICTABLE = ((x,v) -> x)]);
-        #print("results", r);
-        r;
     end proc;
     
 end module;
