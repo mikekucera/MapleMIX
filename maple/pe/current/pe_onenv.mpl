@@ -11,8 +11,10 @@ OnENV := module()
     NewOnENV := proc()
         module()
             local valEnv, typeEnv, keyType,
-                  getIndices, addProc, getProc, lex;
+                  getIndices, addProc, getProc, lex,
+                  argsVal;
             export putVal, putType, valIndices, typeIndices, getType,
+                   setArgs, getArgs,
                    attachLex, removeLex, getLex,
                    getVal, hasTypeInfo,
                    isStatic, isDynamic,
@@ -33,6 +35,13 @@ OnENV := module()
                 lex := 'lex';
             end proc;
         
+            
+            setArgs := proc(x)
+                argsVal := x;
+            end proc;
+
+            getArgs  := () -> argsVal;
+
             
         
             # normalizes all keys to the same type

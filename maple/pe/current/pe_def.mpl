@@ -3,8 +3,8 @@
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
     local callStack, code, genVar, genNum, mcache,
-          CallStack, OnENV;
-    export ModuleApply, PartiallyEvaluate;
+          CallStack;
+    export ModuleApply, PartiallyEvaluate, OnENV;
 
 ModuleApply := PartiallyEvaluate;
 
@@ -40,6 +40,10 @@ lift := proc(x)
     print("lifting", x);
     if Header(x) = Closure then
         Code(x);
+    elif Header(x) = SModuleLocal then
+        error "cannot lift a module local yet";
+    elif Header(x) = SArgs then
+        MArgs();
     elif M:-IsM(x) then
         x;
     else
@@ -62,13 +66,9 @@ end proc;
 # caches M code of procedures so don't need to call ToM unneccesarily
 getMCode := proc(fun)
     if assigned(mcache[eval(fun)]) then
-        print("getting from cache");
         mcache[eval(fun)];
     else
-        print("adding to cache");
-        m := M:-ToM(ToInert(eval(fun)));
-        mcache[eval(fun)] := m;
-        m;
+        mcache[eval(fun)] := M:-ToM(ToInert(eval(fun)));
     end;
 end proc;
 
@@ -99,7 +99,7 @@ end proc;
 
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
+PartiallyEvaluate := proc(p::procedure)
     # set up module locals
     genVar := NameGenerator("x");
     genNum := NameGenerator("");
@@ -107,18 +107,14 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
     code := table();
     mcache := table();
 
-    #create initial environment
-    env := OnENV();
-    for eqn in vallist do
-        env:-putVal(lhs(eqn),rhs(eqn));
-    end do;
-    callStack:-push(env);
+    callStack:-push(OnENV());
 
     # perform partial evaluation
     m := M:-ToM(ToInert(eval(p)));
     peSpecializeProc(m, "ModuleApply");           
-    liftCode();    
+    liftCode();
     res :=  (eval @ FromInert @ build_module)("ModuleApply");
+    #return copy(code);
     
     # unassign module locals
     genVar := 'genVar';
@@ -128,7 +124,6 @@ PartiallyEvaluate := proc(p::procedure, vallist::list(`=`) := [])
     mcache := 'mcache';        
     
     return res;
-    #return copy(code);
 end proc;
 
 
@@ -157,6 +152,9 @@ end proc;
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 # probably won't be needed if I go with the sp-function approach
 isUnfoldable := proc(inertFunctionCall::m(Function), inertProcedure::m(Proc))
+
+	# TODO, can't unfold if the function uses MArgs
+
     if not callStack:-inConditional() then
         true;
     else
@@ -276,6 +274,8 @@ pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
     funcName := op([1,1], residualFunctionCall);
     residualProcedure := code[funcName];
         
+    print("MAssignToFunction", residualFunctionCall, residualProcedure);
+    
     if isUnfoldable(residualFunctionCall, residualProcedure) then
         code[funcName] := evaln(code[funcName]); # remove mapping from code        
         # transform the body of the proc, prepare it for unfolding
@@ -301,33 +301,65 @@ pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
 end proc;
 
 
+peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
+   env := OnENV();
+   top := callStack:-topEnv();
+   i := 0;
+   allStaticSoFar := true;
+   q := SimpleQueue();
+   argsTbl := table();
+   
+   for arg in argExpSeq do
+       i := i + 1;
+       reduced := ReduceExp(arg, top);
+       
+       if M:-IsM(reduced) then
+           allStaticSoFar := false;
+           q:-enqueue(reduced);
+       else
+           if allStaticSoFar then
+               if i <= nops(params) then
+                   env:-putVal(op(op(i, params)), reduced);
+               end if;
+               argsTbl[i] := reduced;
+           else
+               q:-enqueue(reduced);
+           end if;
+       end if;
+   end do;
+   
+   env:-setArgs(argsTbl);
+    
+   return env, MExpSeq(op(q:-toList()));
+end proc;
+
+
+
 # for calling a function, returns a new environment for the function and
 # the new reduced argument list
-peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
-    env := OnENV();
-	i := 0;
-	top := callStack:-topEnv();
-	
-    processArg := proc(argExp)
-        i := i + 1;
-        reduced := ReduceExp(argExp, top);
-        if not M:-IsM(reduced) then
-            # put static argument value into environment
-            env:-putVal(op(op(i, params)), reduced);
-            NULL;
-        # TODO this needs to work with any expressions, not just single variables
-        #elif isInertVariable(reduced) and top:-hasTypeInfo?(getVal(reduced)) then
-        #     env:-addTypeSet(getVal(reduced), top:-getTypes(getVal(reduced)));
-        #     reduced;
-        else
-            reduced;
-        end if;
-    end proc;
- 
-    # reduce the argument expressions, these expressions should not be side effecting
-    reduced := map(processArg, argExpSeq);
-    return env, reduced;
-end proc;
+#peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
+#    env := OnENV();
+#	i := 0;
+#	top := callStack:-topEnv();
+#	
+#    processArg := proc(argExp)
+#        i := i + 1;
+#        reduced := ReduceExp(argExp, top);
+#        
+#        
+#        if not M:-IsM(reduced) then
+#            # put static argument value into environment
+#            env:-putVal(op(op(i, params)), reduced);
+#            NULL;
+#        else
+#            reduced;
+#        end if;
+#    end proc;
+# 
+#    # reduce the argument expressions, these expressions should not be side effecting
+#    reduced := map(processArg, argExpSeq);
+#    return env, reduced;
+#end proc;
 
 
 peFunction := proc(f::m, argExpSeq::m(ExpSeq)) :: m;
@@ -347,7 +379,7 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq)) :: m;
 	    MFunction(MName(newName), newArgs); # return residualized function call
 	    
     elif Header(fun) = Closure then
-        ewEnv, newArgs := peArgList(M:-Params(Code(fun)), argExpSeq);
+        newEnv, newArgs := peArgList(M:-Params(Code(fun)), argExpSeq);
         # attach lexical environment to the environment of the function
         newEnv:-attachLex(Lex(fun));
         callStack:-push(newEnv);
@@ -356,7 +388,19 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq)) :: m;
         newEnv:-removeLex();       
         # should probably be a proper unfolding
         M:-ProcBody(res);
-
+    
+    elif Header(fun) = SModuleLocal and type(op(2,fun), procedure) then
+        print("yo");
+        p := op(2, fun);
+        
+        m := getMCode(p);
+        print("m code", m);
+        newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
+        print(newEnv);
+        print(newArgs);
+        error "hard stop";
+    else
+        error "received unknown form";
     end if;
 end proc;
 

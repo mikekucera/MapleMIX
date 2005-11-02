@@ -38,7 +38,7 @@ ReduceExp := module()
         MExpSeq   = expseq,
         MList     = literalList,
         MSet      = literalSet,
-        MMember   = mmember
+        MMember   = mmember        
     ];
 
 
@@ -138,28 +138,43 @@ ReduceExp := module()
 
 
     # evaluates table references as expressions
-    #tableref := proc(env)
-    #    proc(tbl::tag(STATICTABLE), eseq::tag(STATICEXPSEQ))
-    #        actualTable := op(2, tbl);
-    #        ref := op(1, eseq);
-    #        if assigned(actualTable[ref]) then
-    #            actualTable[ref];
-    #        else
-    #           MTABLEREF(tbl, eseq);
-    #        end if;                 
-    #    end proc;
-    #end proc;
-
-    mmember := proc(n1, n2)
-        if type(n1, `module`) then
-            n1[n2];
+    tableref := env -> proc(tbl, eseq) # know that both args are static
+        if op(0, tbl) = _Tag_STATICTABLE then    
+	        actualTable := op(2, tbl);
+	        ref := op(eseq);
+	        if assigned(actualTable[ref]) then
+	            actualTable[ref];
+	        else
+	           MTableref(tbl, eseq);
+	        end if;   
+        elif op(0, tbl) = SArgs then
+            argsTbl := op(1, tbl);
+            ref := op(eseq);
+            if assigned(argsTbl[ref]) then
+                argsTbl[ref];
+            else
+                MTableref(MArgs(), eseq);
+            end if;            
         else
-            MMember(n1, M:-ToM(eval(n2)));
-        end if;              
+            error "unknown table reference"
+        end if;
     end proc;
-
     
-    # same thing for now I guess
+
+    mmember := proc(x1, x2)
+        if type(x1, `module`) then
+            SModuleLocal(x1, x1[x2]);
+        elif op(0,x1) = SModuleLocal and type(op(2,x1), `module`) then
+            SModuleLocal(x1, op(2,x1)[x2]);
+        elif M:-IsM(x1) then
+            MMember(x1, M:-ToM(ToInert(eval(x2))));
+        else
+            MMember(M:-ToM(ToInert(eval(x1))), M:-ToM(ToInert(eval(x2))));
+        end if;
+    end proc;
+    
+    margs  := env -> () -> SArgs(env:-getArgs());
+    
     massignedname := n -> convert(n, name);
     mname := n -> convert(n, name);
 
@@ -167,12 +182,12 @@ ReduceExp := module()
     # evaluates static variables
     evalName := (env, f) -> proc(x)
          if env:-isStatic(x) then
-            val := env:-getVal(x);
-            if type(val, table) then
-                _Tag_STATICTABLE(f(x), val);
-            else
-                val;
-            end if;
+             val := env:-getVal(x);
+             if type(val, table) then
+                 _Tag_STATICTABLE(f(x), val);
+             else
+                 val;
+             end if;
          else
              f(x);
          end if;
@@ -189,17 +204,18 @@ ReduceExp := module()
     
         # TODO, reduction of a proc should be different
         if Header(exp) = MProc then
-            return Closure(env, exp);            
+            return Closure(env, exp);
         end if;
     
         residual := eval(exp, [op(subsList), 
                                MParam = evalName(env, MParam), 
                                MLocal = evalName(env, MLocal),
                                MSingleUse = evalName(env, MSingleUse),
-                               #MTableref = binOp(MTableref, tableref(env)), 
+                               MTableref = binOp(MTableref, tableref(env)), 
                                MLexicalLocal = evalLex(env, MLexicalLocal),
                                MLexicalParam = evalLex(env, MLexicalParam),
-                               MFunction = pureFunc(env)
+                               MFunction = pureFunc(env),
+                               MArgs     = margs(env)
                               ]);
 
         eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 
