@@ -3,7 +3,7 @@ Unfold := module()
     export UnfoldStandalone, UnfoldIntoAssign; 
     local addAssigns, removeReturns, renameAllLocals;
 
-    renameAllLocals := proc(m::m(StatSeq), genVarName::procedure)
+    renameAllLocals := proc(m::m(StatSeq), genVarName)
         local names, rename;
         names := table();
 
@@ -12,7 +12,7 @@ Unfold := module()
                 if assigned(names[n]) then
                     f(names[n]);
                 else
-                    newname := genVarName();
+                    newname := genVarName(n);
                     names[n] := newname;
                     f(newname);
                 end if;
@@ -35,7 +35,7 @@ Unfold := module()
     # TODO: Will be unsound if the procedure contains a return within a dynamic if within a loop.
     # specCall must be the residual call to the specialized procedure, consisting of only dynamic argument expressions,
     # the static ones should have been removed.
-    UnfoldStandalone := proc(specProc::m(Proc), specCall::m(Function), genVarName::procedure) ::m(StatSeq);       
+    UnfoldStandalone := proc(specProc::m(Proc), specCall::m(Function), genVarName) ::m(StatSeq);       
         body := ProcBody(specProc);
         params := Params(specProc);        
         body, newNames := renameAllLocals(body, genVarName);
@@ -46,14 +46,13 @@ Unfold := module()
         i := 1;
         for argExpr in argExpressions while i <= nops(params) do
             if not M:-IsM(argExpr) then next end if;
-            
+
             header := Header(argExpr);
             paramName := op([i,1], params);
-            print(header, paramName);
             
             # variables can be substituted directly without fear of duplication
             if member(header, {MParam, MLocal}) then
-                body := subs(MParam(paramName) = argExpr, body);            
+                body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
             else
                 let := MAssign(MGeneratedName(newNames[paramName]), argExpr);
                 lets:-enqueue(let);
@@ -69,7 +68,7 @@ Unfold := module()
     # For now only supports single assigment, multiple assignment should be trivial.
     # Requires input to be in if normal form.
     # actually in this case removal of returns isn't needed
-    UnfoldIntoAssign := proc(specProc::m(Proc), specCall::m(Function), genVarName::procedure, assignTo::m(GeneratedName)) ::m(StatSeq);
+    UnfoldIntoAssign := proc(specProc::m(Proc), specCall::m(Function), genVarName, assignTo::m(GeneratedName)) ::m(StatSeq);
         newbody := UnfoldStandalone(specProc, specCall, genVarName);
         newbody := FlattenStatSeq(newbody);
         

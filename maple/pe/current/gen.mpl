@@ -1,19 +1,25 @@
 
 NameGenerator := module()
-    export New, ModuleApply;
-
-    # returns a closure that generates unique names (as strings)
-    # this can be replaced later with something more fancy if necessary
-
-    New := proc(n::string)::procedure;
-        local val;
-        val := 0;
-        return proc()
-            val := val + 1;
-            cat(n, val);
-        end proc;
+    export ModuleApply;
+    
+    ModuleApply := proc(default::string := "x")
+    	module()
+    	    export ModuleApply;
+    	    local vals, getVal;   	    
+    	    
+    	    getVal := proc(prefix)
+    	        if assigned(vals[prefix]) then
+    	            vals[prefix] := vals[prefix] + 1;
+    	        else
+    	            vals[prefix] := 1;
+    	        end if;
+    	    end proc;
+    	    
+    	    ModuleApply := proc(prefix::string := default)
+    	        cat(prefix, getVal(prefix))
+    	    end proc;
+    	    	
+    	end module;
     end proc;
     
-    ModuleApply := New;
-
 end module:

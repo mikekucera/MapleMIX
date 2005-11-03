@@ -2,7 +2,7 @@
 
 OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
-    local callStack, code, genVar, genNum, mcache,
+    local callStack, code, gen, mcache,
           CallStack;
     export ModuleApply, PartiallyEvaluate, OnENV;
 
@@ -47,7 +47,7 @@ Code := proc(x) option inline; op(2,x) end proc;
 
 lift := proc(x)
     head := Header(x);    
-    if member(head, {MInt, MString, MParam, MLocal, MGeneratedName}) then
+    if member(head, {MInt, MString, MParam, MLocal, MGeneratedName, MSingleUse}) then
         x;
     elif head = Closure then
         Code(x);
@@ -105,8 +105,7 @@ end proc;
 # sets up the partial evaluation
 PartiallyEvaluate := proc(p::procedure)
     # set up module locals
-    genVar := NameGenerator("x");
-    genNum := NameGenerator("");
+    gen := NameGenerator();
     callStack := CallStack();
     code := table();
     mcache := table();
@@ -121,8 +120,7 @@ PartiallyEvaluate := proc(p::procedure)
     #return copy(code);
     
     # unassign module locals
-    genVar := 'genVar';
-    genNum := 'genNum';
+    gen := 'gen';
     callStack := 'callStack';
     code := 'code';
     mcache := 'mcache';        
@@ -260,7 +258,7 @@ pe[MStandaloneFunction] := proc(n::m({AssignedName, Param, Local}))
 	
 	    if isUnfoldable(residualFunctionCall, residualProcedure) then
 	        code[funcName] := evaln(code[funcName]); # remove mapping from code        
-	        M:-Unfold:-UnfoldStandalone(residualProcedure, residualFunctionCall, genVar);
+	        M:-Unfold:-UnfoldStandalone(residualProcedure, residualFunctionCall, gen);
 	    else
 	        residualFunctionCall;
 	    end if;
@@ -277,13 +275,11 @@ pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
     
     funcName := op([1,1], residualFunctionCall);
     residualProcedure := code[funcName];
-        
-    print("MAssignToFunction", residualFunctionCall, residualProcedure);
     
     if isUnfoldable(residualFunctionCall, residualProcedure) then
         code[funcName] := evaln(code[funcName]); # remove mapping from code        
         # transform the body of the proc, prepare it for unfolding
-        res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, residualFunctionCall, genVar, var);
+        res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, residualFunctionCall, gen, var);
         flattened := M:-FlattenStatSeq(res);
 
         # If resulting statseq has only one statment
@@ -363,7 +359,7 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq)) :: m;
 	    newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
 	    #build a new environment for the function
 	    callStack:-push(newEnv);
-	    newName := cat(op(1,f), "_", genNum());
+	    newName := gen(cat(op(1,f),"_"));
 	    peSpecializeProc(m, newName);
 	    callStack:-pop();    		    
 	    MFunction(MName(newName), newArgs); # return residualized function call
@@ -380,14 +376,11 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq)) :: m;
         M:-ProcBody(res);
     
     elif Header(fun) = SModuleLocal and type(op(2,fun), procedure) then
-        print("yo");
+
         p := op(2, fun);
         
         m := getMCode(p);
-        print("m code", m);
         newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
-        print(newEnv);
-        print(newArgs);
         error "hard stop";
     else
         error "received unknown form";
