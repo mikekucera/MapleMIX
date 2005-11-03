@@ -147,9 +147,10 @@ ReduceExp := module()
 	        else
 	           MTableref(tbl, eseq);
 	        end if;   
-        elif op(0, tbl) = SArgs then
+        elif op(0, tbl) = SArgs then # TODO, what if eseq is not static, then binop took care of it
             argsTbl := op(1, tbl);
             ref := op(eseq);
+            
             if assigned(argsTbl[ref]) then
                 argsTbl[ref];
             else
@@ -174,6 +175,7 @@ ReduceExp := module()
     end proc;
     
     margs  := env -> () -> SArgs(env:-getArgs());
+    mnargs := env -> () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
     
     massignedname := n -> convert(n, name);
     mname := n -> convert(n, name);
@@ -215,7 +217,8 @@ ReduceExp := module()
                                MLexicalLocal = evalLex(env, MLexicalLocal),
                                MLexicalParam = evalLex(env, MLexicalParam),
                                MFunction = pureFunc(env),
-                               MArgs     = margs(env)
+                               MArgs     = margs(env),
+                               MNargs    = mnargs(env)
                               ]);
 
         eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 

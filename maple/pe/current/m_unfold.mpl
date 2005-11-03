@@ -19,7 +19,9 @@ Unfold := module()
             end proc;
         end proc;
 
-        eval(m, [MLocal=rename(MGeneratedName)]);
+        body := eval(m, [MLocal=rename(MGeneratedName), 
+                         MParam=rename(MGeneratedName)]);
+        return body, names;
     end proc;
 
 
@@ -35,25 +37,32 @@ Unfold := module()
     # the static ones should have been removed.
     UnfoldStandalone := proc(specProc::m(Proc), specCall::m(Function), genVarName::procedure) ::m(StatSeq);       
         body := ProcBody(specProc);
-        params := Params(specProc);
-        
-        body := (removeReturns @ renameAllLocals)(body, genVarName);        
+        params := Params(specProc);        
+        body, newNames := renameAllLocals(body, genVarName);
+        body := removeReturns(body);
         argExpressions := op(2, specCall);
         
-        # process each dynamic argument expression in the function call
-        # TODO: Let insertion
+        lets := SimpleQueue();
         i := 1;
-        for argExpr in argExpressions do
+        for argExpr in argExpressions while i <= nops(params) do
+            if not M:-IsM(argExpr) then next end if;
+            
             header := Header(argExpr);
-            if member(header, {MParam, MLocal}) then       
-                body := subs(MParam(op([i,1], params)) = argExpr, body);
+            paramName := op([i,1], params);
+            print(header, paramName);
+            
+            # variables can be substituted directly without fear of duplication
+            if member(header, {MParam, MLocal}) then
+                body := subs(MParam(paramName) = argExpr, body);            
             else
-                error "only supports dynamic argument expressions that are local variables (for now)";
+                let := MAssign(MGeneratedName(newNames[paramName]), argExpr);
+                lets:-enqueue(let);
             end if;
             i := i + 1;
+            
         end do;
 
-        return body;       
+        return MStatSeq(op(lets:-toList()), op(body));       
     end proc;
 
 

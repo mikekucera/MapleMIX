@@ -12,9 +12,9 @@ OnENV := module()
         module()
             local valEnv, typeEnv, keyType,
                   getIndices, addProc, getProc, lex,
-                  argsVal;
+                  argsVal, nargsVal;
             export putVal, putType, valIndices, typeIndices, getType,
-                   setArgs, getArgs,
+                   setArgs, getArgs, setNargs, getNargs, hasNargs,
                    attachLex, removeLex, getLex,
                    getVal, hasTypeInfo,
                    isStatic, isDynamic,
@@ -39,8 +39,14 @@ OnENV := module()
             setArgs := proc(x)
                 argsVal := x;
             end proc;
+            setNargs := proc(x)
+                nargsVal := x;
+            end proc;
 
             getArgs  := () -> argsVal;
+            getNargs := () -> nargsVal;
+            
+            hasNargs := () -> assigned(nargsVal);
 
             
         

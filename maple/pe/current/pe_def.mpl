@@ -17,6 +17,14 @@ $include "pe_reduce_exp.mpl"
     
 ##################################################################################
 
+# caches M code of procedures so don't need to call ToM unneccesarily
+getMCode := proc(fun)
+    if assigned(mcache[eval(fun)]) then
+        mcache[eval(fun)];
+    else
+        mcache[eval(fun)] := M:-ToM(ToInert(eval(fun)));
+    end;
+end proc;
 
 getStaticValue := proc(m::m)
     res := ReduceExp(m);
@@ -36,16 +44,19 @@ Code := proc(x) option inline; op(2,x) end proc;
 ################################################################################
 
 
+
 lift := proc(x)
-    print("lifting", x);
-    if Header(x) = Closure then
+    head := Header(x);    
+    if member(head, {MInt, MString, MParam, MLocal, MGeneratedName}) then
+        x;
+    elif head = Closure then
         Code(x);
-    elif Header(x) = SModuleLocal then
+    elif head = SModuleLocal then
         error "cannot lift a module local yet";
-    elif Header(x) = SArgs then
+    elif head = SArgs then
         MArgs();
     elif M:-IsM(x) then
-        x;
+        map(procname, x);
     else
 	    M:-ToM(ToInert(x));
 	end if;
@@ -63,14 +74,7 @@ liftCode := proc()
     NULL;
 end proc;
 
-# caches M code of procedures so don't need to call ToM unneccesarily
-getMCode := proc(fun)
-    if assigned(mcache[eval(fun)]) then
-        mcache[eval(fun)];
-    else
-        mcache[eval(fun)] := M:-ToM(ToInert(eval(fun)));
-    end;
-end proc;
+
 
 ################################################################################
 
@@ -301,65 +305,51 @@ pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
 end proc;
 
 
-peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
-   env := OnENV();
-   top := callStack:-topEnv();
-   i := 0;
-   allStaticSoFar := true;
-   q := SimpleQueue();
-   argsTbl := table();
-   
-   for arg in argExpSeq do
-       i := i + 1;
-       reduced := ReduceExp(arg, top);
-       
-       if M:-IsM(reduced) then
-           allStaticSoFar := false;
-           q:-enqueue(reduced);
-       else
-           if allStaticSoFar then
-               if i <= nops(params) then
-                   env:-putVal(op(op(i, params)), reduced);
-               end if;
-               argsTbl[i] := reduced;
-           else
-               q:-enqueue(reduced);
-           end if;
-       end if;
-   end do;
-   
-   env:-setArgs(argsTbl);
-    
-   return env, MExpSeq(op(q:-toList()));
+
+peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))	   	   	
+   	env := OnENV(); # new env for function call
+   	allNotExpSeqSoFar := true; # true until something possibly an expseq is reached   	
+   	fullCall := SimpleQueue(); # residual function call including statics
+   	redCall  := SimpleQueue(); # residual function call without statics   	 
+   	argsTbl := table(); # mappings for args
+   	
+   	top := callStack:-topEnv(); 
+   	i := 0; 
+   	
+   	for arg in argExpSeq do
+   	    i := i + 1;
+   	    reduced := ReduceExp(arg, top);   	    
+   	    fullCall:-enqueue(reduced);
+   	    
+   	    if M:-IsM(reduced) then
+   	        redCall:-enqueue(reduced);
+   	        if Header(reduced) = MParam and allNotExpSeqSoFar then
+   	            argsTbl[i] := reduced;
+   	        else
+   	            allNotExpSeqSoFar := false;
+   	        end if;   	    
+   	    else
+   	        if allNotExpSeqSoFar then
+   	            if i <= nops(params) then
+   	                env:-putVal(op(op(i, params)), reduced);
+   	            end if;
+   	            argsTbl[i] := reduced;
+   	        else
+   	            redCall:-enqueue(reduced);
+   	        end if;   	    
+   	    end if;
+   	end do;
+ 
+    if allNotExpSeqSoFar then
+        env:-setNargs(i);
+    end if;
+ 
+    env:-setArgs(argsTbl);    
+    toExpSeq := q -> MExpSeq(op(q:-toList()));    
+    #print("fullCall", fullCall:-toList()); print("redCall", redCall:-toList());    
+    return env, toExpSeq(redCall);
 end proc;
 
-
-
-# for calling a function, returns a new environment for the function and
-# the new reduced argument list
-#peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
-#    env := OnENV();
-#	i := 0;
-#	top := callStack:-topEnv();
-#	
-#    processArg := proc(argExp)
-#        i := i + 1;
-#        reduced := ReduceExp(argExp, top);
-#        
-#        
-#        if not M:-IsM(reduced) then
-#            # put static argument value into environment
-#            env:-putVal(op(op(i, params)), reduced);
-#            NULL;
-#        else
-#            reduced;
-#        end if;
-#    end proc;
-# 
-#    # reduce the argument expressions, these expressions should not be side effecting
-#    reduced := map(processArg, argExpSeq);
-#    return env, reduced;
-#end proc;
 
 
 peFunction := proc(f::m, argExpSeq::m(ExpSeq)) :: m;
