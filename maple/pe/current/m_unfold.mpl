@@ -35,16 +35,15 @@ Unfold := module()
     # TODO: Will be unsound if the procedure contains a return within a dynamic if within a loop.
     # specCall must be the residual call to the specialized procedure, consisting of only dynamic argument expressions,
     # the static ones should have been removed.
-    UnfoldStandalone := proc(specProc::m(Proc), specCall::m(Function), genVarName) ::m(StatSeq);       
+    UnfoldStandalone := proc(specProc::m(Proc), specCall::m(ExpSeq), fullCall::m(ExpSeq), genVarName) ::m(StatSeq);       
         body := ProcBody(specProc);
         params := Params(specProc);        
         body, newNames := renameAllLocals(body, genVarName);
         body := removeReturns(body);
-        argExpressions := op(2, specCall);
         
         lets := SimpleQueue();
         i := 1;
-        for argExpr in argExpressions while i <= nops(params) do
+        for argExpr in specCall while i <= nops(params) do
             if not M:-IsM(argExpr) then next end if;
 
             header := Header(argExpr);
@@ -68,8 +67,8 @@ Unfold := module()
     # For now only supports single assigment, multiple assignment should be trivial.
     # Requires input to be in if normal form.
     # actually in this case removal of returns isn't needed
-    UnfoldIntoAssign := proc(specProc::m(Proc), specCall::m(Function), genVarName, assignTo::m(GeneratedName)) ::m(StatSeq);
-        newbody := UnfoldStandalone(specProc, specCall, genVarName);
+    UnfoldIntoAssign := proc(specProc::m(Proc), specCall::m(ExpSeq), fullCall::m(ExpSeq), genVarName, assignTo::m(GeneratedName)) ::m(StatSeq);
+        newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
         newbody := FlattenStatSeq(newbody);
         
         last  := Last(newbody);        
@@ -83,6 +82,7 @@ Unfold := module()
 
     # assumes returns have been removed and code is in if normal form
     addAssigns := proc(code::m, var::string)
+        print("addAssigns", code, var);
         # TODO need to add support for loops and other structures
         doAdd := proc(c)        
 	        header := Header(c);	        	        

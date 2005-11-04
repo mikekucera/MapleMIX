@@ -140,35 +140,38 @@ peSpecializeProc := proc(m::m, n := "") #void
     body := M:-AddImplicitReturns(body);
     body := peM(body);
 
-    env := callStack:-topEnv();
-    newParamList := select(x -> env:-isDynamic(op(1,x)), params);
-    c := subsop(1=newParamList, 5=body, m);
+    if not M:-UsesArgsOrNargs(body) then
+        env := callStack:-topEnv();
+        newParamList := select(x -> env:-isDynamic(op(1,x)), params);
+        newProc := subsop(1=newParamList, 5=body, m);
+    else
+        newProc := subsop(5=body,m);
+    end if;
+    
+    # TODO, add a marker to the m code of the procedure that specifies if the
+    # code uses args/nargs, so UsesArgsOrNargs won't have to be called again
     
     if n <> "" then
-       code[n] := c;
+       code[n] := newProc;
     end if;
-    c;    
+    newProc;    
 end proc; 
 
 
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 # probably won't be needed if I go with the sp-function approach
-isUnfoldable := proc(inertFunctionCall::m(Function), inertProcedure::m(Proc))
-
-	# TODO, can't unfold if the function uses MArgs
-
+isUnfoldable := proc(inertProcedure::m(Proc))
     if not callStack:-inConditional() then
-        true;
-    else
-        flattened := flattenStatseq(getProcBody(inertProcedure));
-        evalb( nops(flattened) = 1 and op([1,0], flattened) = _Inert_RETURN and isStaticValue(op([1,1], flattened)) );
-    end if;      
+        return true;
+    end if;
+    flattened := flattenStatseq(getProcBody(inertProcedure));
+    # if all the func does is return a static value then there is no reason not to unfold
+    evalb( nops(flattened) = 1 and op([1,0], flattened) = _Inert_RETURN and isStaticValue(op([1,1], flattened)) );
 end proc;
 
 
 # partially evaluates an arbitrary M code
-peM := proc(m::m) # returns inert code or NULL
-    local header;
+peM := proc(m::m) local header; # returns inert code or NULL    
     header := M:-Header(m);
     if assigned(pe[header]) then
         return pe[header](op(m));
@@ -177,15 +180,8 @@ peM := proc(m::m) # returns inert code or NULL
 end proc;
 
 
-# pe for an expression that is to be residualized
-peResidualizeExpr := proc(m::m)
-    ReduceExp(m, callStack:-topEnv());
-end proc;
-
-
-# TODO, are these the only places that static values will be residualized?
-pe[MStandaloneExpr] := MStandaloneExpr @ peResidualizeExpr;
-pe[MReturn] := MReturn @ peResidualizeExpr;
+pe[MStandaloneExpr] := e -> MStandaloneExpr(ReduceExp(e, callStack:-topEnv()));
+pe[MReturn] := e -> MReturn(ReduceExp(e, callStack:-topEnv()));
 
 
 pe[MStatSeq] := proc()
@@ -249,41 +245,21 @@ end proc;
 
 
 pe[MStandaloneFunction] := proc(n::m({AssignedName, Param, Local}))
-    residual := peFunction(args);
-    
-    if M:-Header(residual) = MFunction then
-        residualFunctionCall := residual;
-	    funcName := op([1,1], residualFunctionCall);
-	    residualProcedure := code[funcName];
-	
-	    if isUnfoldable(residualFunctionCall, residualProcedure) then
-	        code[funcName] := evaln(code[funcName]); # remove mapping from code        
-	        M:-Unfold:-UnfoldStandalone(residualProcedure, residualFunctionCall, gen);
-	    else
-	        residualFunctionCall;
-	    end if;
-	else
-	    residual;	    	    
-	end if;
+    unfold := proc(residualProcedure, redCall, fullCall)
+        M:-Unfold:-UnfoldStandalone(residualProcedure, redCall, fullCall, gen);
+    end proc;
+    peFunction(args, unfold, ()-> args);    
 end proc;
 
 
 
-pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
-    varName := op(var);
-    residualFunctionCall := peFunction(op(funcCall));
-    
-    funcName := op([1,1], residualFunctionCall);
-    residualProcedure := code[funcName];
-    
-    if isUnfoldable(residualFunctionCall, residualProcedure) then
-        code[funcName] := evaln(code[funcName]); # remove mapping from code        
-        # transform the body of the proc, prepare it for unfolding
-        res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, residualFunctionCall, gen, var);
+pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))     
+    unfold := proc(residualProcedure, redCall, fullCall)
+        res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         flattened := M:-FlattenStatSeq(res);
 
-        # If resulting statseq has only one statment
-        # It must be an assign because thats what UnfoldIntoAssign does
+        # If resulting statseq has only one statment then
+        # it must be an assign because thats what UnfoldIntoAssign does
         if nops(flattened) = 1 then            
             assign := op(flattened);
             expr := op(2, assign);
@@ -291,13 +267,12 @@ pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
             if val <> FAIL then
                 varName := op([1,1], assign);
                 callStack:-topEnv():-putVal(varName, val);                
-                return;            
+                return NULL;            
             end if;
         end if;
         flattened;
-    else
-        MAssign(var, residualFunctionCall);
-    end if;
+    end proc;    
+    peFunction(op(funcCall), unfold, x -> MAssign(var, x));    
 end proc;
 
 
@@ -335,37 +310,46 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
    	        end if;   	    
    	    end if;
    	end do;
- 
     if allNotExpSeqSoFar then
         env:-setNargs(i);
     end if;
  
     env:-setArgs(argsTbl);    
     toExpSeq := q -> MExpSeq(op(q:-toList()));    
-    #print("fullCall", fullCall:-toList()); print("redCall", redCall:-toList());    
-    return env, toExpSeq(redCall);
+    return env, toExpSeq(redCall), toExpSeq(fullCall);
 end proc;
 
 
 
-peFunction := proc(f::m, argExpSeq::m(ExpSeq)) :: m;
+# takes continuations to be applied if f results in a procedure
+peFunction := proc(f::m, argExpSeq::m(ExpSeq), unfold::procedure, residualize::procedure) :: m;
     fun := ReduceExp(f, callStack:-topEnv());
     
     if M:-IsM(fun) then
+        # don't know what function was called, residualize call
         MFunction(fun, map(peResidualizeExpr, argExpSeq));
         
     elif type(fun, procedure) then
 	    m := getMCode(fun);
-	    newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
+	    newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);
 	    #build a new environment for the function
 	    callStack:-push(newEnv);
 	    newName := gen(cat(op(1,f),"_"));
-	    peSpecializeProc(m, newName);
-	    callStack:-pop();    		    
-	    MFunction(MName(newName), newArgs); # return residualized function call
+	    newProc := peSpecializeProc(m, newName);
+	    callStack:-pop();
+	    
+	    if isUnfoldable(newProc) then
+	        code[newName] := evaln(code[newName]); # remove mapping from code
+	        unfold(newProc, redCall, fullCall);
+	    elif M:-UsesArgsOrNargs(Body(newProc)) then
+	        residualize(fullCall)
+	    else
+	        residualize(redCall)
+	    end if;
 	    
     elif Header(fun) = Closure then
-        newEnv, newArgs := peArgList(M:-Params(Code(fun)), argExpSeq);
+        # TODO, the full functionality of peArgList is not needed here
+        newEnv, _ := peArgList(M:-Params(Code(fun)), argExpSeq); 
         # attach lexical environment to the environment of the function
         newEnv:-attachLex(Lex(fun));
         callStack:-push(newEnv);
@@ -377,11 +361,11 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq)) :: m;
     
     elif Header(fun) = SModuleLocal and type(op(2,fun), procedure) then
 
-        p := op(2, fun);
-        
-        m := getMCode(p);
-        newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
         error "hard stop";
+        #p := op(2, fun);        
+        #m := getMCode(p);
+        #newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
+        
     else
         error "received unknown form";
     end if;

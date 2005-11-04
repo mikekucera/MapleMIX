@@ -1,7 +1,7 @@
 
 M := module()
     export Print, ToM, FromM, ReduceExp, IsM, TransformIfNormalForm, Unfold,
-           EndsWithReturn, FlattenStatSeq, AddImplicitReturns,
+           EndsWithReturn, FlattenStatSeq, AddImplicitReturns, UsesArgsOrNargs,
            Params, Locals, ProcBody, Header, Last, Front,
            Cond, Then, Else,
            ssop, remseq;
@@ -43,6 +43,12 @@ M := module()
         end proc;        
         doPrint(0, m);        
     end proc;
+    
+    # returns true if the given procedure body contains a use of MArgs or MNargs
+    UsesArgsOrNargs := proc(m::m(StatSeq)) :: boolean;
+        evalb(hasfun(m, {MNargs, MArgs}))    
+    end proc;
+    
     
     # returns true iff the given statment is a return or is a statseq that ends with a return
     EndsWithReturn := proc(m::m)
