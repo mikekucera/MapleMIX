@@ -36,11 +36,12 @@ OnENV := module()
             end proc;
         
             
-            setArgs := proc(x)
-                argsVal := x;
+            setArgs := proc(tbl)
+                argsVal := tbl;
             end proc;
-            setNargs := proc(x)
-                nargsVal := x;
+            
+            setNargs := proc(num)
+                nargsVal := num;
             end proc;
 
             getArgs  := () -> argsVal;

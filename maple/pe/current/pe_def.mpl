@@ -4,7 +4,7 @@ OnPE := module()
     description "simple online partial evaluator for a subset of Maple";
     local callStack, code, gen, mcache,
           CallStack;
-    export ModuleApply, PartiallyEvaluate, OnENV;
+    export ModuleApply, PartiallyEvaluate, OnENV, ReduceExp;
 
 ModuleApply := PartiallyEvaluate;
 
@@ -54,6 +54,7 @@ lift := proc(x)
     elif head = SModuleLocal then
         error "cannot lift a module local yet";
     elif head = SArgs then
+        print("lifting Sargs");
         MArgs();
     elif M:-IsM(x) then
         map(procname, x);
@@ -67,9 +68,8 @@ end proc;
 # meant to be used as a post-process
 liftCode := proc()
     for pn in map(op, [indices(code)]) do
-        code[pn] := eval(code[pn], 
-        	[MStandaloneExpr = (MStandaloneExpr@lift),
-        	 MReturn = (MReturn@lift)]);
+        body := M:-ProcBody(code[pn]);
+        code[pn] := subsop(5=lift(body), code[pn]);
     end do;
     NULL;
 end proc;
@@ -110,14 +110,16 @@ PartiallyEvaluate := proc(p::procedure)
     code := table();
     mcache := table();
 
-    callStack:-push(OnENV());
+    newEnv := OnENV();
+    newEnv:-setArgs(table());
+    callStack:-push(newEnv);
 
     # perform partial evaluation
     m := M:-ToM(ToInert(eval(p)));
     peSpecializeProc(m, "ModuleApply");           
     liftCode();
-    res :=  (eval @ FromInert @ build_module)("ModuleApply");
-    #return copy(code);
+    #res :=  (eval @ FromInert @ build_module)("ModuleApply");
+    return copy(code);
     
     # unassign module locals
     gen := 'gen';
@@ -288,13 +290,15 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
    	
    	for arg in argExpSeq do
    	    i := i + 1;
+   	    print("reducing arg");
    	    reduced := ReduceExp(arg, top);   	    
+   	    print();
    	    fullCall:-enqueue(reduced);
    	    
    	    if M:-IsM(reduced) then
    	        redCall:-enqueue(reduced);
    	        if Header(reduced) = MParam and allNotExpSeqSoFar then
-   	            argsTbl[i] := reduced;
+   	            #argsTbl[i] := reduced;
    	            # unsound, what if proc dosen't unfold?
    	        else
    	            allNotExpSeqSoFar := false;
@@ -335,7 +339,10 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq), unfold::procedure, residualize::p
 	    #build a new environment for the function
 	    callStack:-push(newEnv);
 	    newName := gen(cat(op(1,f),"_"));
+	    
+	    print("peFunction before peS");
 	    newProc := peSpecializeProc(m, newName);
+	    print("peFunction after peSepecializeProc");
 	    
 	    callStack:-pop();
 	    

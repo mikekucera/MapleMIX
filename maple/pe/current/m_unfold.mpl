@@ -36,6 +36,8 @@ Unfold := module()
     # specCall must be the residual call to the specialized procedure, consisting of only dynamic argument expressions,
     # the static ones should have been removed.
     UnfoldStandalone := proc(specProc::m(Proc), specCall::m(ExpSeq), fullCall::m(ExpSeq), genVarName) ::m(StatSeq);       
+        print("specCall", specCall);
+        print("fullCall", fullCall);
         body := ProcBody(specProc);
         params := Params(specProc);        
         body, newNames := renameAllLocals(body, genVarName);
@@ -45,6 +47,7 @@ Unfold := module()
         lets := SimpleQueue();
         i := 1;
         for argExpr in specCall while i <= nops(params) do
+            print("argExpr", argExpr);
             if not M:-IsM(argExpr) then next end if;
 
             header := Header(argExpr);
@@ -59,17 +62,31 @@ Unfold := module()
             end if;
             i := i + 1;            
         end do;
+                
+        # let insert args and nargs if needed
+        letNargs := NULL;
+        if UsesNargs(specProc) then
+            argsName  := genVarName("args");
+            nargsName := genVarName("nargs");
+            letNargs := 
+                MAssign(MGeneratedName(nargsName), 
+                        MFunction(MAssignedName("nops", "PROC", 
+                                                MAttribute(MName("protected", MAttribute(MName("protected"))))), 
+                                  MExpSeq(MGeneratedName(argsName))));
+            body := subs(MNargs() = MGeneratedName(nargsName), body);
+        end if;
         
         # let insert nargs if needed
-        if UsesArgs(specProc) then
-            print("let inserting args");
-        end if;
-        
-        if UsesNargs(specProc) then
-            print("let insert nargs");
-        end if;
+        letArgs := NULL;
+        if letNargs <> NULL or UsesArgs(specProc) then
+            if not assigned(argsName) then
+                argsName := genVarName("args");
+            end if;
+            letArgs := MAssign(MGeneratedName(argsName), fullCall);
+            body := subs(MArgs() = MGeneratedName(argsName), body);
+        end if;        
 
-        return MStatSeq(op(lets:-toList()), op(body));       
+        return MStatSeq(op(lets:-toList()), letArgs, letNargs, op(body));       
     end proc;
 
 
