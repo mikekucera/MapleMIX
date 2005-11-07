@@ -182,7 +182,8 @@ ToM := module()
         maps['locals'] := createMap([args][2]);
         maps['lex']    := createLexMap([args][8]);
         MapStack:-push(maps);
-        MProc(mapitom(args));
+        # add placeholders for flags
+        MProc(mapitom(args), MFlags( MArgsFlag(UNKNOWN), MNargsFlag(UNKNOWN) ));
     end proc;
     
     # The lexical sequence comes after the proc body so its ok to pop the stacks 

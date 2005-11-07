@@ -41,6 +41,7 @@ Unfold := module()
         body, newNames := renameAllLocals(body, genVarName);
         body := removeReturns(body);
         
+        # let insert the variables
         lets := SimpleQueue();
         i := 1;
         for argExpr in specCall while i <= nops(params) do
@@ -56,9 +57,17 @@ Unfold := module()
                 let := MAssign(MGeneratedName(newNames[paramName]), argExpr);
                 lets:-enqueue(let);
             end if;
-            i := i + 1;
-            
+            i := i + 1;            
         end do;
+        
+        # let insert nargs if needed
+        if UsesArgs(specProc) then
+            print("let inserting args");
+        end if;
+        
+        if UsesNargs(specProc) then
+            print("let insert nargs");
+        end if;
 
         return MStatSeq(op(lets:-toList()), op(body));       
     end proc;

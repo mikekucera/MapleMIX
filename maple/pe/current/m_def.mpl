@@ -1,11 +1,12 @@
 
 M := module()
     export Print, ToM, FromM, ReduceExp, IsM, TransformIfNormalForm, Unfold,
-           EndsWithReturn, FlattenStatSeq, AddImplicitReturns, UsesArgsOrNargs,
+           EndsWithReturn, FlattenStatSeq, AddImplicitReturns, 
+           SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs,
            Params, Locals, ProcBody, Header, Last, Front,
            Cond, Then, Else,
            ssop, remseq;
-    local intrinsic, createTableProcs;
+    local intrinsic, createTableProcs, usesFlag, setFlag;
     
     # set of builtin function names
     intrinsic := {anames(builtin)};
@@ -44,11 +45,39 @@ M := module()
         doPrint(0, m);        
     end proc;
     
-    # returns true if the given procedure body contains a use of MArgs or MNargs
-    UsesArgsOrNargs := proc(m::m(StatSeq)) :: boolean;
-        evalb(hasfun(m, {MNargs, MArgs}))    
+    
+    SetArgsFlags := proc(p::m(Proc)) :: m(Proc);    
+        setFlag(setFlag(p, 1, MArgs), 2, MNargs);
     end proc;
     
+    setFlag := proc(m, flag, fun)
+        val := hasfun(m, fun);
+        subsop([10,flag,1] = val, m);
+    end proc;
+    
+    
+    # returns true if the given procedure body contains a use of MArgs or MNargs
+    UsesArgsOrNargs := proc(m::m(Proc)) :: boolean;
+        UsesArgs(m) or UsesNargs(m);
+    end proc;
+    
+    # throws an exception
+    UsesArgs := proc(m::m(Proc)) :: boolean;
+        evalb(usesFlag(m, 1));
+    end proc;
+    
+    UsesNargs := proc(m::m(Proc)) :: boolean;
+        evalb(usesFlag(m, 2));
+    end proc;
+    
+    usesFlag := proc(m, flag)
+        val := op([10,flag,1], m);
+        if val = UNKNOWN then
+            error "query for " || flag || " set to UNKNOWN";
+        end if;
+        val;
+    end proc;
+   
     
     # returns true iff the given statment is a return or is a statseq that ends with a return
     EndsWithReturn := proc(m::m)

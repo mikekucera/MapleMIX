@@ -131,25 +131,24 @@ end proc;
 
 
 # takes inert code and assumes static variables are on top of callStack
+# called before unfold
 peSpecializeProc := proc(m::m, n := "") #void    
     params := M:-Params(m);
     body   := M:-ProcBody(m);
 
-    # PARTIAL EVALUATION
     body := M:-TransformIfNormalForm(body);
     body := M:-AddImplicitReturns(body);
-    body := peM(body);
-
-    if not M:-UsesArgsOrNargs(body) then
+    
+    body := peM(body); # Partial Evaluation
+    
+    newProc := subsop(5=body, m);    
+    newProc := M:-SetArgsFlags(newProc);
+    
+    if not M:-UsesArgsOrNargs(newProc) then
         env := callStack:-topEnv();
         newParamList := select(x -> env:-isDynamic(op(1,x)), params);
-        newProc := subsop(1=newParamList, 5=body, m);
-    else
-        newProc := subsop(5=body,m);
+        newProc := subsop(1=newParamList, newProc);
     end if;
-    
-    # TODO, add a marker to the m code of the procedure that specifies if the
-    # code uses args/nargs, so UsesArgsOrNargs won't have to be called again
     
     if n <> "" then
        code[n] := newProc;
@@ -296,6 +295,7 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
    	        redCall:-enqueue(reduced);
    	        if Header(reduced) = MParam and allNotExpSeqSoFar then
    	            argsTbl[i] := reduced;
+   	            # unsound, what if proc dosen't unfold?
    	        else
    	            allNotExpSeqSoFar := false;
    	        end if;   	    
@@ -336,6 +336,7 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq), unfold::procedure, residualize::p
 	    callStack:-push(newEnv);
 	    newName := gen(cat(op(1,f),"_"));
 	    newProc := peSpecializeProc(m, newName);
+	    
 	    callStack:-pop();
 	    
 	    if isUnfoldable(newProc) then

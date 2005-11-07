@@ -128,9 +128,10 @@ FromM := module()
     inrt[MOptionSeq]      := _Inert_OPTIONSEQ      @ mapmtoi;
     inrt[MDescriptionSeq] := _Inert_DESCRIPTIONSEQ @ mapmtoi;
     inrt[MGlobalSeq]      := _Inert_GLOBALSEQ      @ mapmtoi;
-    inrt[MLexicalPair]    := _Inert_LEXICALPAIR @ mapmtoi;
+    inrt[MLexicalPair]    := _Inert_LEXICALPAIR    @ mapmtoi;
     
-    inrt[MEop]            := _Inert_EOP            @ mapmtoi;
+    inrt[MEop]   := _Inert_EOP            @ mapmtoi;
+    inrt[MFlags] := NULL;
     
     inrt[MStandaloneExpr] := mapmtoi;
     
