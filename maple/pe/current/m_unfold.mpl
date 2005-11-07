@@ -36,8 +36,6 @@ Unfold := module()
     # specCall must be the residual call to the specialized procedure, consisting of only dynamic argument expressions,
     # the static ones should have been removed.
     UnfoldStandalone := proc(specProc::m(Proc), specCall::m(ExpSeq), fullCall::m(ExpSeq), genVarName) ::m(StatSeq);       
-        print("specCall", specCall);
-        print("fullCall", fullCall);
         body := ProcBody(specProc);
         params := Params(specProc);        
         body, newNames := renameAllLocals(body, genVarName);
@@ -47,7 +45,6 @@ Unfold := module()
         lets := SimpleQueue();
         i := 1;
         for argExpr in specCall while i <= nops(params) do
-            print("argExpr", argExpr);
             if not M:-IsM(argExpr) then next end if;
 
             header := Header(argExpr);
@@ -72,7 +69,7 @@ Unfold := module()
                 MAssign(MGeneratedName(nargsName), 
                         MFunction(MAssignedName("nops", "PROC", 
                                                 MAttribute(MName("protected", MAttribute(MName("protected"))))), 
-                                  MExpSeq(MGeneratedName(argsName))));
+                                  MExpSeq(MList(MExpSeq(MGeneratedName(argsName))))));
             body := subs(MNargs() = MGeneratedName(nargsName), body);
         end if;
         
@@ -108,7 +105,6 @@ Unfold := module()
 
     # assumes returns have been removed and code is in if normal form
     addAssigns := proc(code::m, var::string)
-        print("addAssigns", code, var);
         # TODO need to add support for loops and other structures
         doAdd := proc(c)        
 	        header := Header(c);	        	        

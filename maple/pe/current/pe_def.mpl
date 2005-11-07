@@ -46,15 +46,16 @@ Code := proc(x) option inline; op(2,x) end proc;
 
 
 lift := proc(x)
-    head := Header(x);    
-    if member(head, {MInt, MString, MParam, MLocal, MGeneratedName, MSingleUse}) then
+    head := Header(x);
+    if member(head, {MInt, MString, MParam, 
+                     MLocal, MGeneratedName, MSingleUse, 
+                     MAssignedName}) then
         x;
     elif head = Closure then
         Code(x);
     elif head = SModuleLocal then
         error "cannot lift a module local yet";
     elif head = SArgs then
-        print("lifting Sargs");
         MArgs();
     elif M:-IsM(x) then
         map(procname, x);
@@ -118,8 +119,8 @@ PartiallyEvaluate := proc(p::procedure)
     m := M:-ToM(ToInert(eval(p)));
     peSpecializeProc(m, "ModuleApply");           
     liftCode();
-    #res :=  (eval @ FromInert @ build_module)("ModuleApply");
-    return copy(code);
+    res :=  (eval @ FromInert @ build_module)("ModuleApply");
+    #return copy(code);
     
     # unassign module locals
     gen := 'gen';
@@ -290,9 +291,7 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
    	
    	for arg in argExpSeq do
    	    i := i + 1;
-   	    print("reducing arg");
    	    reduced := ReduceExp(arg, top);   	    
-   	    print();
    	    fullCall:-enqueue(reduced);
    	    
    	    if M:-IsM(reduced) then
@@ -340,9 +339,7 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq), unfold::procedure, residualize::p
 	    callStack:-push(newEnv);
 	    newName := gen(cat(op(1,f),"_"));
 	    
-	    print("peFunction before peS");
 	    newProc := peSpecializeProc(m, newName);
-	    print("peFunction after peSepecializeProc");
 	    
 	    callStack:-pop();
 	    

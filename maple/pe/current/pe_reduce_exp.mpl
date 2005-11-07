@@ -203,7 +203,6 @@ ReduceExp := module()
 
     # exported expression reducing function
     ModuleApply := proc(exp::m, env := OnENV()) local residual;
-        print("reducing ", exp);
         # TODO, reduction of a proc should be different
         if Header(exp) = MProc then
             return Closure(env, exp);
@@ -221,10 +220,9 @@ ReduceExp := module()
                                MNargs    = mnargs(env)
                               ]);
 
-        r := eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 
-                        _Tag_STATICTABLE = ((x,v) -> x)]);
-        print("reduced", r);
-        r;
+        eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 
+                             _Tag_STATICTABLE = ((x,v) -> x),
+                             SArgs = (x -> MArgs())]);
     end proc;
     
 end module;
