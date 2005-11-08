@@ -1,0 +1,108 @@
+Here are some test cases.  They are not easy test cases.  But I did *try* to order them by increasing difficulty
+
+0?)
+> interface(verboseproc=3):
+> print(WeierstrassP);
+proc(z::algebraic, g2::algebraic, g3::algebraic)
+local res;
+option `Copyright (c) 2001 by Waterloo Maple Inc. All right\
+s reserved.`;
+   if nargs <> 3 then
+       error "expecting 3 arguments but got %1", nargs
+   elif
+   type(z, 'complex(float)') or type(g2, 'complex(float)')
+    or type(g3, 'complex(float)') then
+       res := evalf('procname'(z, g2, g3));
+       if type(res, 'complex(float)') then return res end if
+   elif type([z, g2, g3], 'list(complex(extended_numeric))')
+    and hastype([z, g2, g3], 'undefined') then
+       NumericTools:-ThrowUndefined(z*g2*g3,
+       'preserve' = 'real')
+   elif ormap('type', [z, g2, g3], 'infinity') then
+       return 'procname'(args)
+   end if;
+   if z = 0 then zero_handler(z, g2, g3)
+   elif op(0, z) = 'RootOf' then
+       rootof_handler(procname, z, g2, g3)
+   else default_handler(z, g2, g3)
+   end if
+end proc
+
+In the above, zero_handler, rootof_handler and default_handler are all *constant* lexicals.  They should be unfolded into the code, and otherwise everything else should stay the same.
+
+Probably this should be implemented in an UnfoldLexicals function, separate from PartiallyEvaluate, as you don't actually have enough information to properly decide to unfold in the above.  This is a simple program transformation, but likely a difficult partial-evaluation decision.
+
+1)
+with(Domains):
+xx := proc() local C,x,m,m2;
+   C := DUP(Q,x);
+   m := C[Input](x4-10*x2+1);
+   m2 := C[`^`](m,2);
+   return C[Output](m2);
+end proc;
+
+Running xx gives:
+> xx();
+
+                          2        4       6    8
+                  1 - 20 x  + 102 x  - 20 x  + x
+
+Partially-evaluating it should do the same!  This is, in some sense, easy, because *everything* is static.  But it does require a fair amount of underlying stuff to be implemented in your code.  This one might be easier than 0.
+
+2a) proc(n::integer, x::symbol) int(x^n,x) end;
+The above should residualize to a procedure with some top-level ifs on n.
+
+2b) proc(x::symbol) sum(1/n^x,n=1..infinity) end
+Should residualize to a procedure with some ifs on Re(x), with Zeta(x) in one of the branches
+
+3) proc(a::numeric, b::numeric) evalf[10](Int(exp(-1/x2),x=a..b)) end
+Should residualize to a procedure with case expressions on a,b that each contain simple expressions to evaluate that integral numerically
+
+4) the whole linalg package -- the variable _EnvLinalg95 will *never* be true.
+
+Jacques
+
+
+
+
+
+Binary powering
+
+pow2 := proc(n,x) local y;
+  if n=0 then 1
+  elif n=1 then x
+  elif (n mod 2 = 0) then
+      y := pow2(n/2, x);
+      y*y;
+   else x*pow2(n-1,x)
+   end if;
+end proc;
+
+Try it with n=72 or some large number like that, and you'll see the difference with your pow.
+
+Jacques 
+
+
+
+
+
+See http://www.ecs.soton.ac.uk/~dre00r/PEMatlab.html
+
+That Matlab code can be translated very easily to Maple code.  And then very similar transformations can be done.  Of course, an automated PE might proceed very differently than the by-hand optimization, but should nevertheless be able to do something very similar.  I don't expect you to be able to fully do this, as it requires too much type analysis to get it 'right'.  It still makes for an interesting test case, to see what can be done.
+
+Jacques
+
+
+
+
+Another test case
+
+proc(a::integer, b::integer, c::integer) `rtable/Product`(Vector(2,[b,c],datatype=anything),a) end
+
+That should reduce immensely.  Probably to something like
+Vector[column](2,{(1) = a*b, (2) = a*c},datatype = anything,storage = rectangular,order = Fortran_order,shape = [])
+or (even better), an rtable() call with similar arguments.
+
+The ::integer on the inputs should not in fact matter, I think.  This is a little harder than the Domains example, but likely easier than many of the others I gave you.
+
+Jacques
