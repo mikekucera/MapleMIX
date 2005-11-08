@@ -35,6 +35,16 @@ isStaticValue := proc(m::m)
     evalb(getStaticValue(m) <> FAIL);
 end proc;
 
+# map all locals in the localseq to generated escaped locals
+#mapLocalsToSymbols := proc(env, locals::m(LocalSeq))
+#    for n in locals do
+#        s := op(1,n);
+#        env:-putVal(s, `tools/gensym`(s));
+#    end do;
+#    NULL
+#end proc;
+
+
 Header := proc(x) option inline; op(0,x) end proc;
 # for dealing with closures
 Lex  := proc(x) option inline; op(1,x) end proc;
@@ -47,9 +57,9 @@ Code := proc(x) option inline; op(2,x) end proc;
 
 lift := proc(x)
     head := Header(x);
-    if member(head, {MInt, MString, MParam, 
+    if member(head, {MInt, MString, MParam, MName,
                      MLocal, MGeneratedName, MSingleUse, 
-                     MAssignedName}) then
+                     MAssignedName, MLocalName}) then
         x;
     elif head = Closure then
         Code(x);
@@ -111,12 +121,14 @@ PartiallyEvaluate := proc(p::procedure)
     code := table();
     mcache := table();
 
+    m := getMCode(p);
+    
     newEnv := OnENV();
     newEnv:-setArgs(table());
+    #mapLocalsToSymbols(newEnv, M:-Locals(m));
     callStack:-push(newEnv);
 
-    # perform partial evaluation
-    m := M:-ToM(ToInert(eval(p)));
+    # perform partial evaluation    
     peSpecializeProc(m, "ModuleApply");           
     liftCode();
     res :=  (eval @ FromInert @ build_module)("ModuleApply");
@@ -335,6 +347,7 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq), unfold::procedure, residualize::p
     elif type(fun, procedure) then
 	    m := getMCode(fun);
 	    newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);
+	    #mapLocalsToSymbols(newEnv, M:-Locals(m));
 	    #build a new environment for the function
 	    callStack:-push(newEnv);
 	    newName := gen(cat(op(1,f),"_"));
@@ -356,6 +369,7 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq), unfold::procedure, residualize::p
         # TODO, the full functionality of peArgList is not needed here
         newEnv, _ := peArgList(M:-Params(Code(fun)), argExpSeq); 
         # attach lexical environment to the environment of the function
+        #mapLocalsToSymbols(newEnv, M:-Locals(Code(fun)));
         newEnv:-attachLex(Lex(fun));
         callStack:-push(newEnv);
         res := peSpecializeProc(Code(fun));
