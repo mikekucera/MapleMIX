@@ -27,3 +27,8 @@ printmod := proc(m)
     NULL;
 end proc:
 
+printma := proc(m)
+    ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(m))]));
+    print(eval(ma));
+    print();
+end proc:

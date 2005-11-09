@@ -50,6 +50,8 @@ Header := proc(x) option inline; op(0,x) end proc;
 Lex  := proc(x) option inline; op(1,x) end proc;
 Code := proc(x) option inline; op(2,x) end proc;
 
+Package := proc(x) option inline; op(1,x) end proc;
+Member := proc(x) option inline; op(2,x) end proc;
 
 ################################################################################
 
@@ -63,8 +65,8 @@ lift := proc(x)
         x;
     elif head = Closure then
         Code(x);
-    elif head = SModuleLocal then
-        error "cannot lift a module local yet";
+    elif head = SPackageLocal then
+        error "cannot lift a package local yet, coming soon";
     elif head = SArgs then
         MArgs();
     elif M:-IsM(x) then
@@ -201,6 +203,7 @@ pe[MReturn] := e -> MReturn(ReduceExp(e, callStack:-topEnv()));
 pe[MStatSeq] := proc()
     q := SimpleQueue();
     for i from 1 to nargs do
+        print("stat", Header(args[i]));
         res := peM([args][i]);
         if nops([res]) > 0 then
             q:-enqueue(res);
@@ -303,7 +306,7 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
    	
    	for arg in argExpSeq do
    	    i := i + 1;
-   	    reduced := ReduceExp(arg, top);   	    
+   	    reduced := ReduceExp(arg, top);
    	    fullCall:-enqueue(reduced);
    	    
    	    if M:-IsM(reduced) then
@@ -337,39 +340,17 @@ end proc;
 
 
 # takes continuations to be applied if f results in a procedure
-peFunction := proc(f::m, argExpSeq::m(ExpSeq), unfold::procedure, residualize::procedure) :: m;
+peFunction := proc(f, argExpSeq::m(ExpSeq), unfold::procedure, residualize::procedure) :: m;
     fun := ReduceExp(f, callStack:-topEnv());
     
     if M:-IsM(fun) then
         # don't know what function was called, residualize call
         MFunction(fun, map(peResidualizeExpr, argExpSeq));
         
-    elif type(fun, procedure) then
-	    m := getMCode(fun);
-	    newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);
-	    #mapLocalsToSymbols(newEnv, M:-Locals(m));
-	    #build a new environment for the function
-	    callStack:-push(newEnv);
-	    newName := gen(cat(op(1,f),"_"));
-	    
-	    newProc := peSpecializeProc(m, newName);
-	    
-	    callStack:-pop();
-	    
-	    if isUnfoldable(newProc) then
-	        code[newName] := evaln(code[newName]); # remove mapping from code
-	        unfold(newProc, redCall, fullCall);
-	    elif M:-UsesArgsOrNargs(Body(newProc)) then
-	        residualize(fullCall)
-	    else
-	        residualize(redCall)
-	    end if;
-	    
     elif Header(fun) = Closure then
         # TODO, the full functionality of peArgList is not needed here
-        newEnv, _ := peArgList(M:-Params(Code(fun)), argExpSeq); 
+        newEnv, a, b := peArgList(M:-Params(Code(fun)), argExpSeq); 
         # attach lexical environment to the environment of the function
-        #mapLocalsToSymbols(newEnv, M:-Locals(Code(fun)));
         newEnv:-attachLex(Lex(fun));
         callStack:-push(newEnv);
         res := peSpecializeProc(Code(fun));
@@ -377,18 +358,53 @@ peFunction := proc(f::m, argExpSeq::m(ExpSeq), unfold::procedure, residualize::p
         newEnv:-removeLex();       
         # should probably be a proper unfolding
         M:-ProcBody(res);
-    
-    elif Header(fun) = SModuleLocal and type(op(2,fun), procedure) then
-
-        error "hard stop";
-        #p := op(2, fun);        
-        #m := getMCode(p);
-        #newEnv, newArgs := peArgList(M:-Params(m), argExpSeq);
         
+    elif type(fun, procedure) then
+        newName := gen(cat(op(1,f),"_"));
+        peRegularFunction(fun, argExpSeq, unfold, residualize, newName);
+    
+    elif Header(fun) = SPackageLocal and type(Member(fun), `procedure`) then
+        newName := gen("fun");
+        lex := Package(fun);
+        peRegularFunction(Member(fun), argExpSeq, unfold, residualize, newName, lex);
+
+	elif type(fun, `module`) then
+	    if member(convert("ModuleApply",name), fun) then
+	        ma := fun:-ModuleApply;
+	    else
+            ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(fun))]));
+            if ma = NULL then error "package does not contain ModuleApply" end if;
+        end if;
+	    peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"), fun);
+	    
     else
         error "received unknown form";
     end if;
 end proc;
+
+
+# partial evaluation of a known procedure
+peRegularFunction := proc(fun::procedure, argExpSeq::m(ExpSeq), unfold, residualize, newName, lex)
+    m := getMCode(fun);
+    newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);
+
+    if nargs > 5 then # if a lexical environment was give
+        newEnv:-attachLex(lex);
+    end if;
+    callStack:-push(newEnv);
+    newProc := peSpecializeProc(m, newName);
+    callStack:-pop();
+    
+    if isUnfoldable(newProc) then
+        code[newName] := evaln(code[newName]); # remove mapping from code
+        unfold(newProc, redCall, fullCall);
+    elif M:-UsesArgsOrNargs(Body(newProc)) then
+        residualize(fullCall)
+    else
+        residualize(redCall)
+    end if;
+end proc;
+
 
 
 ########################################################################################

@@ -163,16 +163,17 @@ ReduceExp := module()
     
 
     mmember := proc(x1, x2)
-        if type(x1, `module`) then
-            SModuleLocal(x1, x1[x2]);
-        elif op(0,x1) = SModuleLocal and type(op(2,x1), `module`) then
-            SModuleLocal(x1, op(2,x1)[x2]);
+        if type(x1, `package`) then
+            SPackageLocal(x1, x1[x2]);
+        elif op(0,x1) = SPackageLocal and type(op(2,x1), `package`) then
+            SPackageLocal(x1, op(2,x1)[x2]);
         elif M:-IsM(x1) then
             MMember(x1, M:-ToM(ToInert(eval(x2))));
         else
             MMember(M:-ToM(ToInert(eval(x1))), M:-ToM(ToInert(eval(x2))));
         end if;
     end proc;
+    
     
     margs  := env -> () -> SArgs(env:-getArgs());
     mnargs := env -> () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
@@ -182,19 +183,34 @@ ReduceExp := module()
 
 
     # evaluates static variables
-    evalName := (env, f) -> proc(x)
-         if env:-isStatic(x) then
-             val := env:-getVal(x);
-             if type(val, table) then
-                 _Tag_STATICTABLE(f(x), val);
-             else
-                 val;
-             end if;
-         else
-             f(x);
-         end if;
+    evalName := proc(env, f)
+        if type(env, `onenv`) then
+            proc(x)
+                if env:-isStatic(x) then
+                    val := env:-getVal(x);
+                    if type(val, table) then
+                        _Tag_STATICTABLE(f(x), val);
+                    else
+                        val;
+                    end if;
+                else
+                    f(x);
+                end if;
+            end proc;
+        elif type(env, `module`) then 
+            proc(x)
+                n := convert(x,name);
+                if member(n,env) then
+                    env[n];
+                else
+                    error cat("module does not export ", x);
+                end if;
+            end proc;
+        else
+            proc() error "no lexical environment available" end proc;
+        end if
     end proc;
-    
+  
     
     evalLex := proc(env, f)
         evalName(env:-getLex(), f);
@@ -203,6 +219,7 @@ ReduceExp := module()
 
     # exported expression reducing function
     ModuleApply := proc(exp::m, env := OnENV()) local residual;
+    
         # TODO, reduction of a proc should be different
         if Header(exp) = MProc then
             return Closure(env, exp);
@@ -221,8 +238,8 @@ ReduceExp := module()
                               ]);
 
         eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 
-                             _Tag_STATICTABLE = ((x,v) -> x),
-                             SArgs = (x -> MArgs())]);
+                        _Tag_STATICTABLE = ((x,v) -> x),
+                        SArgs = (x -> MArgs())]);
     end proc;
     
 end module;

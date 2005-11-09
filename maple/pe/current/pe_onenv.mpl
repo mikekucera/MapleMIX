@@ -4,7 +4,7 @@
 
 OnENV := module()
     export NewOnENV, ModuleApply;
-    description "Online knowledge environment";
+    description "Online knowledge environment";   
     
     ModuleApply := NewOnENV;
     

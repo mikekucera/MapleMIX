@@ -12,6 +12,7 @@ savelibname := "lib":
 $include "utils.mpl"
 
 Save(printmod);
+Save(printma);
 
 $include "gen.mpl"
 
@@ -22,6 +23,7 @@ $include "types.mpl"
 Save(`type/inert`);
 Save(`type/m`);
 Save(`type/tag`);
+Save(`type/onenv`);
 Save(funcPrefixType);
 Save(`index/err`);
 Save(`index/deb`);

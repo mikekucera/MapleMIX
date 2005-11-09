@@ -8,6 +8,9 @@
 # type of M forms
 `type/m`     := curry(funcPrefixType, 'M'):
 
+ 
+`type/onenv` := (x) -> type(x, `module`('putVal', 'getVal')):
+
 
 funcPrefixType := proc(prefix, f)
    if nargs = 2 then
