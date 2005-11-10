@@ -197,14 +197,9 @@ ReduceExp := module()
                     f(x);
                 end if;
             end proc;
-        elif type(env, `module`) then 
-            proc(x)
-                n := convert(x,name);
-                if member(n,env) then
-                    env[n];
-                else
-                    error cat("module does not export ", x);
-                end if;
+        elif type(env, table) then  # must be lexical table
+            proc(x)    
+                FromInert(M:-FromM(env[x]));
             end proc;
         else
             proc() error "no lexical environment available" end proc;

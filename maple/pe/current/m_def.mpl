@@ -3,6 +3,7 @@ M := module()
     export Print, ToM, FromM, ReduceExp, IsM, TransformIfNormalForm, Unfold,
            EndsWithReturn, FlattenStatSeq, AddImplicitReturns, 
            SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs,
+           CreateLexMap,
            Params, Locals, ProcBody, Header, Last, Front,
            Cond, Then, Else,
            ssop, remseq;
@@ -134,6 +135,18 @@ M := module()
     end proc;
     
     
+    # maps lexical names to their lexpairs
+    CreateLexMap := proc(lexicalseq::m(LexicalSeq), f := (()->args))
+        tbl := table();
+        i := 1;
+        for lexpair in lexicalseq do
+            tbl[op([1,1],lexpair)] := f(lexpair);
+            i := i + 1;
+        end do;
+        tbl;
+    end proc;
+    
+    
     # TODO, proc that returns true if the body of the given MProc is a single statment
     
     
@@ -144,9 +157,11 @@ M := module()
     Front    := proc(x) option inline; op(1..-2, x) end proc;
     
     # for procs
-    Params   := proc(x) option inline; op(1,x) end proc:
-    Locals   := proc(x) option inline; op(2,x) end proc:
-    ProcBody := proc(x) option inline; op(5,x) end proc:
+    Params    := proc(x) option inline; op(1,x) end proc:
+    Locals    := proc(x) option inline; op(2,x) end proc:
+    ProcBody  := proc(x) option inline; op(5,x) end proc:
+    GlobalSeq := proc(x) option inline; op(7,x) end proc:
+    LexSeq    := proc(x) option inline; op(8,x) end proc:
     
     # for MIfThenElse
     Cond := proc(x) option inline; op(1, x) end proc;

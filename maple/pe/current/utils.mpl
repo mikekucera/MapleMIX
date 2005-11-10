@@ -27,8 +27,20 @@ printmod := proc(m)
     NULL;
 end proc:
 
+# these two procs arent really needed if you set opaquemodules=false
+getma := proc(m)
+	op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(m))]));
+end proc:
+
+
 printma := proc(m)
-    ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(m))]));
+    ma := getma(m);
     print(eval(ma));
     print();
+end proc:
+
+
+
+getlocal := proc(m::`module`, n)
+    op(select(x->evalb(convert(x,string)=n), [op(3,eval(m))]));
 end proc:

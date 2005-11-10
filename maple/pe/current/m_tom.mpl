@@ -29,7 +29,7 @@ ToM := module()
     end proc;
     
     # maps lexical indicies to their names
-    createLexMap := proc(lexicalseq)
+    createLexIndexMap := proc(lexicalseq)
         tbl := table();
         i := 1;
         for lexpair in lexicalseq do
@@ -180,7 +180,7 @@ ToM := module()
         maps := table();
         maps['params'] := createMap([args][1]);
         maps['locals'] := createMap([args][2]);
-        maps['lex']    := createLexMap([args][8]);
+        maps['lex']    := createLexIndexMap([args][8]);
         MapStack:-push(maps);
         # add placeholders for flags
         MProc(mapitom(args), MFlags( MArgsFlag(UNKNOWN), MNargsFlag(UNKNOWN) ));

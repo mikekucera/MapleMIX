@@ -13,6 +13,8 @@ $include "utils.mpl"
 
 Save(printmod);
 Save(printma);
+Save(getma);
+Save(getlocal);
 
 $include "gen.mpl"
 

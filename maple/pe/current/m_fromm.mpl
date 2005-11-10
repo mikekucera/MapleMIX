@@ -33,16 +33,6 @@ FromM := module()
     end proc;
 
 
-    # maps lexical names to their lexpairs
-    createLexMap := proc(lexicalseq)
-        tbl := table();
-        i := 1;
-        for lexpair in lexicalseq do
-            tbl[op([1,1],lexpair)] := lexpair;
-            i := i + 1;
-        end do;
-        tbl;
-    end proc;
 
 
     # returns two functions used to generate locals
@@ -151,7 +141,7 @@ FromM := module()
         # second is a function that generates the new local list
         maps['locals'], newLocalList := createLocalMappingFunctions();
         # the current lexical sequence, which may become smaller
-        maps['lexseq'] := createLexMap([args][8]);
+        maps['lexseq'] := CreateLexMap([args][8]);
         # queue that will become the new lexical sequence
         maps['lexqueue'] := SimpleQueue();
         # table mapping a lexical's name to its index in the lexical queue

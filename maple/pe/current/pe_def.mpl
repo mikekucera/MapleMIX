@@ -117,6 +117,9 @@ end proc;
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
 PartiallyEvaluate := proc(p::procedure)
+    before := kernelopts(opaquemodules);
+    kernelopts(opaquemodules=false);
+
     # set up module locals
     gen := NameGenerator();
     callStack := CallStack();
@@ -140,7 +143,8 @@ PartiallyEvaluate := proc(p::procedure)
     gen := 'gen';
     callStack := 'callStack';
     code := 'code';
-    mcache := 'mcache';        
+    mcache := 'mcache';
+    kernelopts(opaquemodules=before);     
     
     return res;
 end proc;
@@ -364,9 +368,8 @@ peFunction := proc(f, argExpSeq::m(ExpSeq), unfold::procedure, residualize::proc
         peRegularFunction(fun, argExpSeq, unfold, residualize, newName);
     
     elif Header(fun) = SPackageLocal and type(Member(fun), `procedure`) then
-        newName := gen("fun");
-        lex := Package(fun);
-        peRegularFunction(Member(fun), argExpSeq, unfold, residualize, newName, lex);
+        mem := Member(fun);
+        peRegularFunction(mem, argExpSeq, unfold, residualize, gen("fun"));
 
 	elif type(fun, `module`) then
 	    if member(convert("ModuleApply",name), fun) then
@@ -375,7 +378,7 @@ peFunction := proc(f, argExpSeq::m(ExpSeq), unfold::procedure, residualize::proc
             ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(fun))]));
             if ma = NULL then error "package does not contain ModuleApply" end if;
         end if;
-	    peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"), fun);
+	    peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
 	    
     else
         error "received unknown form";
@@ -384,13 +387,14 @@ end proc;
 
 
 # partial evaluation of a known procedure
-peRegularFunction := proc(fun::procedure, argExpSeq::m(ExpSeq), unfold, residualize, newName, lex)
-    m := getMCode(fun);
+peRegularFunction := proc(fun::procedure, argExpSeq::m(ExpSeq), unfold, residualize, newName)
+	m := getMCode(fun);
+	
     newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);
+    lexMap := M:-CreateLexMap(M:-LexSeq(m), curry(op,2));
+    newEnv:-attachLex(lexMap);
+    
 
-    if nargs > 5 then # if a lexical environment was give
-        newEnv:-attachLex(lex);
-    end if;
     callStack:-push(newEnv);
     newProc := peSpecializeProc(m, newName);
     callStack:-pop();
