@@ -207,7 +207,15 @@ pe[MReturn] := e -> MReturn(ReduceExp(e, callStack:-topEnv()));
 pe[MStatSeq] := proc()
     q := SimpleQueue();
     for i from 1 to nargs do
-        print("stat", Header(args[i]));
+    
+        print("stat");
+        if member(Header(args[i]), {MIfThenElse}) then
+	        print(Header(args[i]));
+	    else
+	        print(args[i]);
+	    end if;
+	    print();
+	    
         res := peM([args][i]);
         if nops([res]) > 0 then
             q:-enqueue(res);
@@ -265,7 +273,7 @@ end proc;
 
 
 
-pe[MStandaloneFunction] := proc(n::m({AssignedName, Param, Local}))
+pe[MStandaloneFunction] := proc()
     unfold := proc(residualProcedure, redCall, fullCall)
         M:-Unfold:-UnfoldStandalone(residualProcedure, redCall, fullCall, gen);
     end proc;
