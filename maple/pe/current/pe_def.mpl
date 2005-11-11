@@ -208,13 +208,15 @@ pe[MStatSeq] := proc()
     q := SimpleQueue();
     for i from 1 to nargs do
     
-        print("stat");
-        if member(Header(args[i]), {MIfThenElse}) then
-	        print(Header(args[i]));
-	    else
-	        print(args[i]);
+        if false then
+            print("stat");
+            if member(Header(args[i]), {MIfThenElse}) then
+    	        print(Header(args[i]));
+    	    else
+    	        print(args[i]);
+    	    end if;
+    	    print();
 	    end if;
-	    print();
 	    
         res := peM([args][i]);
         if nops([res]) > 0 then
