@@ -130,6 +130,7 @@ FromM := module()
     inrt[MFunction]           := _Inert_FUNCTION @ mapmtoi;
     inrt[MAssign]             := _Inert_ASSIGN   @ mapmtoi;
     inrt[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
+    inrt[MTableAssign]        := _Inert_ASSIGN   @ mapmtoi;
     
     
     inrt[MProc] := proc()

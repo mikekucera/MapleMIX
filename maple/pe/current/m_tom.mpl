@@ -111,7 +111,13 @@ ToM := module()
         else
         	MStatSeq(op(assigns), k(reduced));
         end if;
-    end proc;    
+    end proc;
+    
+    # version of split that returns the results instead of applying a continuation    
+    splitReturn := proc(expr)
+        assigns, reduced := splitAssigns(expr);
+        return MStatSeq(op(assigns)), reduced;
+    end proc;
     
     
     m['string'] := () -> args;
@@ -219,7 +225,15 @@ ToM := module()
     m[MFunction] := MFunction @ mapitom;
     
     
-    m[_Inert_ASSIGN] := (name, expr) -> split(expr, curry(MAssign, itom(name)));
+    m[_Inert_ASSIGN] := proc(target, expr)
+        if Header(target) = _Inert_TABLEREF then
+            assigns, strippedTarget := splitReturn(target);
+            MStatSeq(op(assigns), split(expr, curry(MTableAssign, strippedTarget)));
+        else
+            split(expr, curry(MAssign, itom(target)))
+        end if;
+    end proc;
+    
     
     m[_Inert_RETURN] := e -> split(e, MReturn);
 

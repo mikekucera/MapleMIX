@@ -6,6 +6,7 @@ M := module()
            CreateLexMap,
            Params, Locals, ProcBody, Header, Last, Front,
            Cond, Then, Else,
+           Var, IndexExp,
            ssop, remseq;
     local intrinsic, createTableProcs, usesFlag, setFlag;
     
@@ -167,6 +168,10 @@ M := module()
     Cond := proc(x) option inline; op(1, x) end proc;
     Then := proc(x) option inline; op(2, x) end proc;    
 	Else := proc(x) option inline; op(3, x) end proc;
+	
+	# for MTableRef
+	Var      := proc(x) option inline; op(1, x) end proc;
+	IndexExp := proc(x) option inline; op(2, x) end proc;
 	
 	
 

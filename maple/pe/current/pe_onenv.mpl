@@ -86,10 +86,10 @@ OnENV := module()
             end proc;
                     
                     
-            # a variable is static if it is mapped to a single value and thats all
+            # a variable is static if it is mapped
             isStatic := key -> assigned(valEnv[keyType(key)]);
             
-            # a variable has dynamic properties if it is not fully static
+            
             isDynamic := key -> not isStatic(key);
             
             # returns true if there exists a type environment mapping

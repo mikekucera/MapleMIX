@@ -208,7 +208,8 @@ pe[MStatSeq] := proc()
     q := SimpleQueue();
     for i from 1 to nargs do
     
-        if false then
+        if true then
+            print();
             print("stat");
             if member(Header(args[i]), {MIfThenElse}) then
     	        print(Header(args[i]));
@@ -219,6 +220,7 @@ pe[MStatSeq] := proc()
 	    end if;
 	    
         res := peM([args][i]);
+        callStack:-topEnv():-display();
         if nops([res]) > 0 then
             q:-enqueue(res);
             if M:-EndsWithReturn(res) then 
@@ -272,6 +274,30 @@ pe[MAssign] := proc(n::m(Local), expr::m)
         NULL;
     end if;
 end proc;  
+
+
+pe[MTableAssign] := proc(tr::m(Tableref), expr::m)
+    env := callStack:-topEnv();
+    red1 := ReduceExp(M:-IndexExp(tr), env);
+    red2 := ReduceExp(expr, env);
+    
+    if not (M:-IsM(red1) or M:-IsM(red2)) then
+        var := M:-Var(tr);
+        if env:-isDynamic(op(var)) then
+            # tables can be implicitly created in Maple, so create a table on-the-fly if needed
+            tbl := table();
+            env:-putVal(op(var), tbl);
+        else
+            tbl := env:-getVal(op(var));
+        end if;
+        tbl[red1] := red2;
+        NULL;
+    else
+        MTableAssign(subsop(2=red1, tr), red2);
+    end if;
+    
+end proc;
+
 
 
 

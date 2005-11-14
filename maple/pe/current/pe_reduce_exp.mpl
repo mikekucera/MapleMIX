@@ -94,10 +94,6 @@ ReduceExp := module()
         end if;
     end proc;
     
-    
-    makeExpseqDynamic := proc()
-        MExpSeq(op(map(x -> `if`(isDynamic(x), x, M:-ToM(ToInert(x))), [args]))); 
-    end proc;
 
 
     # it will receive a reduced expression sequence
@@ -147,7 +143,7 @@ ReduceExp := module()
 	        else
 	           MTableref(tbl, eseq);
 	        end if;   
-        elif op(0, tbl) = SArgs then # TODO, what if eseq is not static, then binop took care of it
+        elif op(0, tbl) = SArgs then
             argsTbl := op(1, tbl);
             ref := op(eseq);
             
@@ -232,7 +228,7 @@ ReduceExp := module()
                                MNargs    = mnargs(env)
                               ]);
 
-        eval(residual, [_Tag_STATICEXPSEQ = makeExpseqDynamic, 
+        eval(residual, [_Tag_STATICEXPSEQ = (() -> args), 
                         _Tag_STATICTABLE = ((x,v) -> x),
                         SArgs = (x -> MArgs())]);
     end proc;
