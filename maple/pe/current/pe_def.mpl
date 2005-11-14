@@ -14,7 +14,7 @@ $include "pe_stack.mpl"
 $include "pe_onenv.mpl";
 
 $include "pe_reduce_exp.mpl"
-    
+
 ##################################################################################
 
 # caches M code of procedures so don't need to call ToM unneccesarily
@@ -26,23 +26,14 @@ getMCode := proc(fun)
     end;
 end proc;
 
-getStaticValue := proc(m::m)
-    res := ReduceExp(m);
+getStaticValue := proc(x)
+    res := ReduceExp(x);
     `if`(M:-IsM(res), FAIL, res);
 end proc;
 
-isStaticValue := proc(m::m)
-    evalb(getStaticValue(m) <> FAIL);
+isStaticValue := proc(x)
+    evalb(getStaticValue(x) <> FAIL);
 end proc;
-
-# map all locals in the localseq to generated escaped locals
-#mapLocalsToSymbols := proc(env, locals::m(LocalSeq))
-#    for n in locals do
-#        s := op(1,n);
-#        env:-putVal(s, `tools/gensym`(s));
-#    end do;
-#    NULL
-#end proc;
 
 
 Header := proc(x) option inline; op(0,x) end proc;
@@ -60,7 +51,7 @@ Member := proc(x) option inline; op(2,x) end proc;
 lift := proc(x)
     head := Header(x);
     if member(head, {MInt, MString, MParam, MName,
-                     MLocal, MGeneratedName, MSingleUse, 
+                     MLocal, MGeneratedName, MSingleUse,
                      MAssignedName, MLocalName}) then
         x;
     elif head = Closure then
@@ -117,8 +108,7 @@ end proc;
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
 PartiallyEvaluate := proc(p::procedure)
-    before := kernelopts(opaquemodules);
-    kernelopts(opaquemodules=false);
+    before := kernelopts(opaquemodules=false);
 
     # set up module locals
     gen := NameGenerator();
@@ -127,25 +117,25 @@ PartiallyEvaluate := proc(p::procedure)
     mcache := table();
 
     m := getMCode(p);
-    
+
     newEnv := OnENV();
     newEnv:-setArgs(table());
     #mapLocalsToSymbols(newEnv, M:-Locals(m));
     callStack:-push(newEnv);
 
-    # perform partial evaluation    
-    peSpecializeProc(m, "ModuleApply");           
+    # perform partial evaluation
+    peSpecializeProc(m, "ModuleApply");
     liftCode();
     res :=  (eval @ FromInert @ build_module)("ModuleApply");
     #return copy(code);
-    
+
     # unassign module locals
     gen := 'gen';
     callStack := 'callStack';
     code := 'code';
     mcache := 'mcache';
-    kernelopts(opaquemodules=before);     
-    
+    kernelopts(opaquemodules=before);
+
     return res;
 end proc;
 
@@ -153,29 +143,29 @@ end proc;
 
 # takes inert code and assumes static variables are on top of callStack
 # called before unfold
-peSpecializeProc := proc(m::m, n := "") #void    
+peSpecializeProc := proc(m::m, n := "") #void
     params := M:-Params(m);
     body   := M:-ProcBody(m);
 
     body := M:-TransformIfNormalForm(body);
     body := M:-AddImplicitReturns(body);
-    
+
     body := peM(body); # Partial Evaluation
-    
-    newProc := subsop(5=body, m);    
+
+    newProc := subsop(5=body, m);
     newProc := M:-SetArgsFlags(newProc);
-    
+
     if not M:-UsesArgsOrNargs(newProc) then
         env := callStack:-topEnv();
         newParamList := select(x -> env:-isDynamic(op(1,x)), params);
         newProc := subsop(1=newParamList, newProc);
     end if;
-    
+
     if n <> "" then
        code[n] := newProc;
     end if;
-    newProc;    
-end proc; 
+    newProc;
+end proc;
 
 
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
@@ -184,14 +174,17 @@ isUnfoldable := proc(inertProcedure::m(Proc))
     if not callStack:-inConditional() then
         return true;
     end if;
-    flattened := flattenStatseq(getProcBody(inertProcedure));
-    # if all the func does is return a static value then there is no reason not to unfold
-    evalb( nops(flattened) = 1 and op([1,0], flattened) = _Inert_RETURN and isStaticValue(op([1,1], flattened)) );
+    flattened := M:-FlattenStatSeq(M:-ProcBody(inertProcedure));
+    # if all the func does is return a static value then there is no
+    # reason not to unfold
+    evalb( nops(flattened) = 1 # function body has only one statement
+       and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
+       and isStaticValue(op([1,1], flattened)) )
 end proc;
 
 
 # partially evaluates an arbitrary M code
-peM := proc(m::m) local header; # returns inert code or NULL    
+peM := proc(m::m) local header; # returns inert code or NULL
     header := M:-Header(m);
     if assigned(pe[header]) then
         return pe[header](op(m));
@@ -207,8 +200,8 @@ pe[MReturn] := e -> MReturn(ReduceExp(e, callStack:-topEnv()));
 pe[MStatSeq] := proc()
     q := SimpleQueue();
     for i from 1 to nargs do
-    
-        if true then
+
+        if false then
             print();
             print("stat");
             if member(Header(args[i]), {MIfThenElse}) then
@@ -218,13 +211,12 @@ pe[MStatSeq] := proc()
     	    end if;
     	    print();
 	    end if;
-	    
+
         res := peM([args][i]);
-        callStack:-topEnv():-display();
         if nops([res]) > 0 then
             q:-enqueue(res);
-            if M:-EndsWithReturn(res) then 
-                break 
+            if M:-EndsWithReturn(res) then
+                break
             end if;
         end if;
     end do;
@@ -234,30 +226,30 @@ end proc;
 
 pe[MIfThenElse] := proc(cond, s1, s2)
     reduced := ReduceExp(cond, callStack:-topEnv());
-    
+
     # Can't just copy the environment and put a new copy on the stack
     # because there may exist closures that referece the environment.
     if M:-IsM(reduced) then
         callStack:-setConditional();
         env := callStack:-topEnv();
         original := env:-clone();
-        
+
         reds1 := peM(s1);
         thenEnv := env:-clone();
         env:-overwrite(original);
         reds2 := peM(s2);
         elseEnv := env:-clone();
-        
+
         # TODO, is this required? no because of INF
         env:-overwrite(thenEnv:-combine(elseEnv));
         callStack:-setConditional(false);
-        
+
         # if reds1 and reds2 are both empty then its a no-op
         if reds1 = MStatSeq() and reds2 = MStatSeq() then
             MStatSeq();
         else
             MIfThenElse(reduced, reds1, reds2);
-        end if;        
+        end if;
     else
         peM(`if`(reduced, s1, s2))
     end if;
@@ -273,14 +265,14 @@ pe[MAssign] := proc(n::m(Local), expr::m)
         env:-putVal(op(n), reduced);
         NULL;
     end if;
-end proc;  
+end proc;
 
 
 pe[MTableAssign] := proc(tr::m(Tableref), expr::m)
     env := callStack:-topEnv();
     red1 := ReduceExp(M:-IndexExp(tr), env);
     red2 := ReduceExp(expr, env);
-    
+
     if not (M:-IsM(red1) or M:-IsM(red2)) then
         var := M:-Var(tr);
         if env:-isDynamic(op(var)) then
@@ -295,7 +287,7 @@ pe[MTableAssign] := proc(tr::m(Tableref), expr::m)
     else
         MTableAssign(subsop(2=red1, tr), red2);
     end if;
-    
+
 end proc;
 
 
@@ -305,50 +297,49 @@ pe[MStandaloneFunction] := proc()
     unfold := proc(residualProcedure, redCall, fullCall)
         M:-Unfold:-UnfoldStandalone(residualProcedure, redCall, fullCall, gen);
     end proc;
-    peFunction(args, unfold, ()-> args);    
+    peFunction(args, unfold, ()-> MStandaloneFunction(args));
 end proc;
 
 
 
-pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))     
+pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
     unfold := proc(residualProcedure, redCall, fullCall)
         res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         flattened := M:-FlattenStatSeq(res);
-
         # If resulting statseq has only one statment then
         # it must be an assign because thats what UnfoldIntoAssign does
-        if nops(flattened) = 1 then            
+        if nops(flattened) = 1 then
             assign := op(flattened);
             expr := op(2, assign);
             val := getStaticValue(expr);
             if val <> FAIL then
                 varName := op([1,1], assign);
-                callStack:-topEnv():-putVal(varName, val);                
-                return NULL;            
+                callStack:-topEnv():-putVal(varName, val);
+                return NULL;
             end if;
         end if;
         flattened;
-    end proc;    
-    peFunction(op(funcCall), unfold, x -> MAssign(var, x));    
+    end proc;
+    peFunction(op(funcCall), unfold, () -> MAssign(var, MFunction(args)));
 end proc;
 
 
 
-peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))	   	   	
+peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
    	env := OnENV(); # new env for function call
-   	allNotExpSeqSoFar := true; # true until something possibly an expseq is reached   	
+   	allNotExpSeqSoFar := true; # true until something possibly an expseq is reached
    	fullCall := SimpleQueue(); # residual function call including statics
-   	redCall  := SimpleQueue(); # residual function call without statics   	 
+   	redCall  := SimpleQueue(); # residual function call without statics
    	argsTbl := table(); # mappings for args
-   	
-   	top := callStack:-topEnv(); 
-   	i := 0; 
-   	
+
+   	top := callStack:-topEnv();
+   	i := 0;
+
    	for arg in argExpSeq do
    	    i := i + 1;
    	    reduced := ReduceExp(arg, top);
    	    fullCall:-enqueue(reduced);
-   	    
+
    	    if M:-IsM(reduced) then
    	        redCall:-enqueue(reduced);
    	        if Header(reduced) = MParam and allNotExpSeqSoFar then
@@ -356,7 +347,7 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
    	            # unsound, what if proc dosen't unfold?
    	        else
    	            allNotExpSeqSoFar := false;
-   	        end if;   	    
+   	        end if;
    	    else
    	        if allNotExpSeqSoFar then
    	            if i <= nops(params) then
@@ -365,44 +356,44 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
    	            argsTbl[i] := reduced;
    	        else
    	            redCall:-enqueue(reduced);
-   	        end if;   	    
+   	        end if;
    	    end if;
    	end do;
     if allNotExpSeqSoFar then
         env:-setNargs(i);
     end if;
- 
-    env:-setArgs(argsTbl);    
-    toExpSeq := q -> MExpSeq(op(q:-toList()));    
+
+    env:-setArgs(argsTbl);
+    toExpSeq := q -> MExpSeq(op(q:-toList()));
     return env, toExpSeq(redCall), toExpSeq(fullCall);
 end proc;
 
 
 
 # takes continuations to be applied if f results in a procedure
-peFunction := proc(f, argExpSeq::m(ExpSeq), unfold::procedure, residualize::procedure) :: m;
+peFunction := proc(f, argExpSeq::m(ExpSeq), unfold::procedure, residualize::procedure)
     fun := ReduceExp(f, callStack:-topEnv());
-    
+
     if M:-IsM(fun) then
         # don't know what function was called, residualize call
         MFunction(fun, map(peResidualizeExpr, argExpSeq));
-        
+
     elif Header(fun) = Closure then
         # TODO, the full functionality of peArgList is not needed here
-        newEnv, a, b := peArgList(M:-Params(Code(fun)), argExpSeq); 
+        newEnv, a, b := peArgList(M:-Params(Code(fun)), argExpSeq);
         # attach lexical environment to the environment of the function
         newEnv:-attachLex(Lex(fun));
         callStack:-push(newEnv);
         res := peSpecializeProc(Code(fun));
         callStack:-pop();
-        newEnv:-removeLex();       
+        newEnv:-removeLex();
         # should probably be a proper unfolding
         M:-ProcBody(res);
-        
+
     elif type(fun, procedure) then
         newName := gen(cat(op(1,f),"_"));
         peRegularFunction(fun, argExpSeq, unfold, residualize, newName);
-    
+
     elif Header(fun) = SPackageLocal and type(Member(fun), `procedure`) then
         mem := Member(fun);
         peRegularFunction(mem, argExpSeq, unfold, residualize, gen("fun"));
@@ -415,7 +406,7 @@ peFunction := proc(f, argExpSeq::m(ExpSeq), unfold::procedure, residualize::proc
             if ma = NULL then error "package does not contain ModuleApply" end if;
         end if;
 	    peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
-	    
+
     else
         error "received unknown form";
     end if;
@@ -425,23 +416,23 @@ end proc;
 # partial evaluation of a known procedure
 peRegularFunction := proc(fun::procedure, argExpSeq::m(ExpSeq), unfold, residualize, newName)
 	m := getMCode(fun);
-	
+
     newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);
     lexMap := M:-CreateLexMap(M:-LexSeq(m), curry(op,2));
     newEnv:-attachLex(lexMap);
-    
+
 
     callStack:-push(newEnv);
     newProc := peSpecializeProc(m, newName);
     callStack:-pop();
-    
+
     if isUnfoldable(newProc) then
         code[newName] := evaln(code[newName]); # remove mapping from code
         unfold(newProc, redCall, fullCall);
-    elif M:-UsesArgsOrNargs(Body(newProc)) then
-        residualize(fullCall)
+    elif M:-UsesArgsOrNargs(newProc) then
+        residualize(MString(newName), fullCall)
     else
-        residualize(redCall)
+        residualize(MString(newName), redCall)
     end if;
 end proc;
 
@@ -454,20 +445,20 @@ end proc;
 build_module := proc(n::string)::inert;
     # get a list of names of module locals
     locals := remove(x -> evalb(x=n), ListTools:-Flatten([indices(code)]));
-  
+
     # each non exported proc will need a local index
     procLocalIndex := 0;
 
     # will be mapped over each residualized procedure
     processProc := proc(eqn)
         procName, p := lhs(eqn), M:-FromM(rhs(eqn));
-        
+
         procLocalIndex := procLocalIndex + `if`(procName = n, 0, 1);
-        
+
         lexicalLocals := []; #list of lexical pairs(equations) of local name to index
 
         # used to evaluate each name reference
-        
+
         processFuncCall := proc(n)
             if M:-Header(n) = _Inert_ASSIGNEDNAME then
                 return _Inert_FUNCTION(args);
@@ -479,37 +470,37 @@ build_module := proc(n::string)::inert;
             else
                 if not member(localName, locals, localIndex) then #nasty!
                     return _Inert_FUNCTION(args); #error(cat("'", localName, "' is not a module local"));
-                end if;                
+                end if;
             end if;
-            
+
             if member(localName=localIndex, lexicalLocals, lexicalIndex) then
                 subsop(1=_Inert_LEXICAL_LOCAL(lexicalIndex), _Inert_FUNCTION(args));
             else
                 lexicalLocals := [op(lexicalLocals), localName=localIndex];
                 subsop(1=_Inert_LEXICAL_LOCAL(nops(lexicalLocals)), _Inert_FUNCTION(args));
             end if;
-            
+
         end proc;
-        
-        
-        body := eval(M:-ProcBody(p), _Inert_FUNCTION = processFuncCall);        
-        
+
+
+        body := eval(M:-ProcBody(p), _Inert_FUNCTION = processFuncCall);
+
         f := proc(e)
             _Inert_LEXICALPAIR(_Inert_NAME(lhs(e)),_Inert_LOCAL(rhs(e)));
         end proc;
 
         seq := map(f, lexicalLocals);
-        
+
         lexicalLocals := _Inert_LEXICALSEQ( op(seq) );
         p := subsop(5=body, 8=lexicalLocals, p);
-        
+
         _Inert_ASSIGN(_Inert_LOCAL( `if`(procName = n, nops(locals) + 1, procLocalIndex) ) ,p);
     end proc;
 
     moduleStatseq := _Inert_STATSEQ(op(map(processProc, op(op(code)))));
     locals := _Inert_LOCALSEQ(op(map(_Inert_NAME, [op(locals)])));
     exports := _Inert_EXPORTSEQ(_Inert_NAME(n));
-    
+
     # get a bare bones inert module then substitute
     inertModDef := ToInert('module() end module');
     subsop(2 = locals, 4 = exports, 5 = moduleStatseq, inertModDef);

@@ -13,7 +13,7 @@ ReduceExp := module()
     subsList := [
         MSum      = naryOp(MSum,  `+`),
         MProd     = naryOp(MProd, `*`),
-          
+
         MPower    = binOp(MPower,    `^`),
         MCatenate = binOp(MCatenate, `||`),
         MEquation = binOp(MEquation, `=`),
@@ -23,31 +23,31 @@ ReduceExp := module()
         MAnd      = binOp(MAnd, `and`),
         MOr       = binOp(MOr,  `or`),
         MXor      = binOp(MXor, `xor`),
-                  
-        MNot      = unOp(MNot, `not`),           
-            
-        MInt      = (x -> x), 
+
+        MNot      = unOp(MNot, `not`),
+
+        MInt      = (x -> x),
         MFloat    = ((x,y) -> FromInert(_Inert_FLOAT(ToInert(x),ToInert(y)))),
         MString   = (x -> x),
-        
+
         MAssignedName = massignedname,
         MName         = mname,
-        
+
         MRational = `/`,
         MComplex  = complex,
         MExpSeq   = expseq,
         MList     = literalList,
         MSet      = literalSet,
-        MMember   = mmember        
+        MMember   = mmember
     ];
 
 
     isStatic := x -> evalb( not M:-IsM(x) or member(op(0, x), {_Tag_STATICEXPSEQ, _Tag_STATICTABLE}) );
     isDynamic := `not` @ isStatic;
-    allStatic := curry(andmap, isStatic); 
+    allStatic := curry(andmap, isStatic);
 
-        
-    binOp := proc(f, op)        
+
+    binOp := proc(f, op)
         proc(x, y) local inx, iny;
             inx, iny := isDynamic(x), isDynamic(y);
 
@@ -62,13 +62,13 @@ ReduceExp := module()
             end if;
         end proc;
     end proc;
-    
-    unOp   := (f, op) -> x -> `if`(isDynamic(x), f(x), op(x));    
+
+    unOp   := (f, op) -> x -> `if`(isDynamic(x), f(x), op(x));
     naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
 
 
     complex := proc()
-        if nargs = 1 then                               
+        if nargs = 1 then
             args[1] * I;
         else
             args[1] + args[2] * I;
@@ -79,7 +79,7 @@ ReduceExp := module()
     literalSet  := eseq -> `if`(isStatic(eseq), {op(eseq)}, MSet(eseq));
 
 
-    
+
     # You can't pass a raw expression sequence into another function
     # because each element of the sequence becomes a separate procedure parameter.
     # For example, 5 + (1,2,3) reduces to 11 because the expression reducer
@@ -90,10 +90,10 @@ ReduceExp := module()
         if allStatic([args]) then
             _Tag_STATICEXPSEQ(args);
         else
-            makeExpseqDynamic(args);            
+            makeExpseqDynamic(args);
         end if;
     end proc;
-    
+
 
 
     # it will receive a reduced expression sequence
@@ -119,7 +119,7 @@ ReduceExp := module()
             #            print("subtype failed", lastexception);
             #        end try;
             #    end if;
-            
+
 
             if type(f, procedure) and Header(expseq) = _Tag_STATICEXPSEQ then
                 f(op(expseq));
@@ -135,28 +135,28 @@ ReduceExp := module()
 
     # evaluates table references as expressions
     tableref := env -> proc(tbl, eseq) # know that both args are static
-        if op(0, tbl) = _Tag_STATICTABLE then    
+        if op(0, tbl) = _Tag_STATICTABLE then
 	        actualTable := op(2, tbl);
 	        ref := op(eseq);
 	        if assigned(actualTable[ref]) then
 	            actualTable[ref];
 	        else
 	           MTableref(tbl, eseq);
-	        end if;   
+	        end if;
         elif op(0, tbl) = SArgs then
             argsTbl := op(1, tbl);
             ref := op(eseq);
-            
+
             if assigned(argsTbl[ref]) then
                 argsTbl[ref];
             else
                 MTableref(MArgs(), eseq);
-            end if;            
+            end if;
         else
             error "unknown table reference"
         end if;
     end proc;
-    
+
 
     mmember := proc(x1, x2)
         if type(x1, `package`) then
@@ -169,11 +169,11 @@ ReduceExp := module()
             MMember(M:-ToM(ToInert(eval(x1))), M:-ToM(ToInert(eval(x2))));
         end if;
     end proc;
-    
-    
+
+
     margs  := env -> () -> SArgs(env:-getArgs());
     mnargs := env -> () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
-    
+
     massignedname := n -> convert(n, name);
     mname := n -> convert(n, name);
 
@@ -194,33 +194,33 @@ ReduceExp := module()
                 end if;
             end proc;
         elif type(env, table) then  # must be lexical table
-            proc(x)    
+            proc(x)
                 FromInert(M:-FromM(env[x]));
             end proc;
         else
             proc() error "no lexical environment available" end proc;
         end if
     end proc;
-  
-    
+
+
     evalLex := proc(env, f)
         evalName(env:-getLex(), f);
     end proc;
 
 
     # exported expression reducing function
-    ModuleApply := proc(exp::m, env := OnENV()) local residual;
-    
+    ModuleApply := proc(exp, env := OnENV()) local residual;
+
         # TODO, reduction of a proc should be different
         if Header(exp) = MProc then
             return Closure(env, exp);
         end if;
-    
-        residual := eval(exp, [op(subsList), 
-                               MParam = evalName(env, MParam), 
+
+        residual := eval(exp, [op(subsList),
+                               MParam = evalName(env, MParam),
                                MLocal = evalName(env, MLocal),
                                MSingleUse = evalName(env, MSingleUse),
-                               MTableref = binOp(MTableref, tableref(env)), 
+                               MTableref = binOp(MTableref, tableref(env)),
                                MLexicalLocal = evalLex(env, MLexicalLocal),
                                MLexicalParam = evalLex(env, MLexicalParam),
                                MFunction = pureFunc(env),
@@ -228,9 +228,9 @@ ReduceExp := module()
                                MNargs    = mnargs(env)
                               ]);
 
-        eval(residual, [_Tag_STATICEXPSEQ = (() -> args), 
+        eval(residual, [_Tag_STATICEXPSEQ = (() -> args),
                         _Tag_STATICTABLE = ((x,v) -> x),
-                        SArgs = (x -> MArgs())]);
+                        SArgs = (() -> MArgs())]);
     end proc;
-    
+
 end module;

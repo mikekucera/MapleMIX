@@ -5,9 +5,10 @@
 with(TestTools):
 kernelopts(opaquemodules=false):
 
+libname := libname, "/home/mike/thesis/trunk/maple/pe/current/lib":
 
 
-pow := proc(x, n) 
+pow := proc(x, n)
     if n = 0 then
         return 1;
     else
@@ -15,7 +16,7 @@ pow := proc(x, n)
     end if;
 end proc:
 
-pow2 := proc(x, n) local y; 
+pow2 := proc(x, n) local y;
    if n=0 then 1
    elif n=1 then x
    elif (n mod 2 = 0) then
@@ -34,7 +35,8 @@ end proc:
 
 ped := OnPE(goal):
 
-got := ToInert(eval(ped:-ModuleApply)):
+got := ToInert(eval(ped[ModuleApply])):
+
 expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")),_Inert_LOCALSEQ(),_Inert_OPTIONSEQ(),_Inert_EXPSEQ(),_Inert_STATSEQ(_Inert_PROD(_Inert_PARAM(1),_Inert_PARAM(1),_Inert_PARAM(1))),_Inert_DESCRIPTIONSEQ(),_Inert_GLOBALSEQ(),_Inert_LEXICALSEQ(),_Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1)))):
 
 Try(100, got, expected);
@@ -78,7 +80,8 @@ ped := OnPE(goal):
 got := ToInert(eval(ped:-ModuleApply)):
 expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")), _Inert_LOCALSEQ(_Inert_NAME("y1"), _Inert_NAME("y2")), _Inert_OPTIONSEQ(), _Inert_EXPSEQ(), _Inert_STATSEQ(_Inert_ASSIGN(_Inert_LOCAL(1), _Inert_PARAM(1)), _Inert_ASSIGN(_Inert_LOCAL(2), _Inert_PROD(_Inert_PARAM(1), _Inert_LOCAL(1), _Inert_LOCAL(1))), _Inert_PROD(_Inert_LOCAL(2), _Inert_LOCAL(2))), _Inert_DESCRIPTIONSEQ(), _Inert_GLOBALSEQ(), _Inert_LEXICALSEQ(), _Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1)))):
 
-Try(300, got, expected);
+Try(400, got, expected);
+
 #######################################################################
 
 
