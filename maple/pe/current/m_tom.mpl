@@ -2,7 +2,7 @@
 ToM := module()
     export ModuleApply;    
     local MapStack,
-    	  itom, itom2, mapitom,  m, gen, createMap, getVar;
+    	  itom, itom2, mapitom,  m, gen, createVarMap, getVar;
 
     m := table();
     
@@ -17,41 +17,25 @@ ToM := module()
 		res;
     end proc;        
 
-    # maps param and local indices to their names
-    createMap := proc(varSeq)
-        tbl := table();
-        index := 0;
-        for n in varSeq do     
-            index := index + 1;
-            tbl[index] := op(`if`(op(0,n)=_Inert_DCOLON, [1,1], 1), n);
-        end do; 
-        tbl;
+    createVarMap := proc(varSeq)
+        createMap(varSeq, 
+        proc(tbl, i, var)
+            tbl[i] := op(`if`(op(0,n)=_Inert_DCOLON, [1,1], 1), var)
+        end proc)
     end proc;
+
     
     # maps lexical indicies to their names
     createLexIndexMap := proc(lexicalseq)
-        tbl := table();
-        i := 1;
-        for lexpair in lexicalseq do
-            tbl[i] := op([1,1],lexpair);
-            i := i + 1;
-        end do;
-        tbl;
-    end proc;
-
-    getVar := proc(mapname, x)
-        maps := MapStack:-top();
-        tbl := maps[mapname];
-    	#if assigned(tbl[x]) then
-    		tbl[x];
-    	#else
-    	#	error cat("(in ToM), No var found for index: ", mapname, " ", x)
-    	#end if;
+        createMap(lexicalseq,
+        proc(tbl, i, lexpair)
+            tbl[i] := op([1,1], lexpair)
+        end proc)
     end proc;
     
-    getLexVar := proc(x)
-        MapStack:-top()['lex'][x];
-    end proc;
+
+    getVar := (mapname, x) -> MapStack:-top()[mapname][x];    
+    getLexVar := x -> getVar('lex', x);
 
     
     isStandalone := proc(x)        
@@ -184,8 +168,8 @@ ToM := module()
                                             
     m[_Inert_PROC] := proc()
         maps := table();
-        maps['params'] := createMap([args][1]);
-        maps['locals'] := createMap([args][2]);
+        maps['params'] := createVarMap([args][1]);
+        maps['locals'] := createVarMap([args][2]);
         maps['lex']    := createLexIndexMap([args][8]);
         MapStack:-push(maps);
         # add placeholders for flags

@@ -21,18 +21,13 @@ FromM := module()
 
 
     # returns a table that maps param names to their indices
-    createParamMap := proc(params)
-        local tbl, param, index;
-        tbl := table();
-        index := 1;
-        for param in params do
-            tbl[op(1, param)] := index;
-            index := index + 1;
-        end do;
+    createParamMap := proc(paramseq)
+        f := proc(tbl, i, param)
+            tbl[op(1,param)] := i
+        end proc;
+        tbl := createMap(paramseq, f);
         x -> tbl[x];
     end proc;
-
-
 
 
     # returns two functions used to generate locals
@@ -134,15 +129,15 @@ FromM := module()
 
 
     inrt[MProc] := proc()
-
         maps := table();
+        
         # function that maps param names to their indicies
         maps['params'] := createParamMap([args][1]);
         # first is a function that keeps track of locals encountered
         # second is a function that generates the new local list
         maps['locals'], newLocalList := createLocalMappingFunctions();
         # the current lexical sequence, which may become smaller
-        maps['lexseq'] := CreateLexMap([args][8]);
+        maps['lexseq'] := CreateLexNameMap([args][8]);
         # queue that will become the new lexical sequence
         maps['lexqueue'] := SimpleQueue();
         # table mapping a lexical's name to its index in the lexical queue

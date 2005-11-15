@@ -417,7 +417,7 @@ peRegularFunction := proc(fun::procedure, argExpSeq::m(ExpSeq), unfold, residual
 	m := getMCode(eval(fun));
 
     newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);
-    lexMap := M:-CreateLexMap(M:-LexSeq(m), curry(op,2));
+    lexMap := M:-CreateLexNameMap(M:-LexSeq(m), curry(op,2));
     newEnv:-attachLex(lexMap);
 
 

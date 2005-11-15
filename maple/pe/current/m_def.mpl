@@ -8,7 +8,7 @@ M := module()
            Cond, Then, Else,
            Var, IndexExp,
            ssop, remseq;
-    local intrinsic, createTableProcs, usesFlag, setFlag;
+    local intrinsic, createTableProcs, usesFlag, setFlag, createMap;
     
     # set of builtin function names
     intrinsic := {anames(builtin)};
@@ -28,7 +28,44 @@ M := module()
         return toForm, toForm2, toFormMap;
     end proc;
     
-        
+    # used by ToM and FromM to create mapping tables
+    createMap := proc(seq, yield::procedure)
+        tbl := table();
+        i := 1;
+        for x in seq do
+            yield(tbl, i, x);
+            i := i + 1;
+        end do;
+        tbl;
+    end proc;
+    
+    # maps lexical names to their lexpairs
+    #CreateLexNameMap := proc(lexicalseq::m(LexicalSeq), f := (()->args))
+    #    tbl := table();
+    #    i := 1;
+    #    for lexpair in lexicalseq do
+    #        tbl[op([1,1],lexpair)] := f(lexpair);
+    #        i := i + 1;
+    #    end do;
+    #    tbl;
+    #end proc;
+    
+    CreateLexNameMap := proc(lexicalseq::m(LexicalSeq), f := (()->args))
+        createMap(lexicalseq,
+        proc(tbl, i, lexpair)
+            tbl[op([1,1],lexpair)] := f(lexpair);
+        end proc)
+    end proc;    
+    
+     # maps lexical indicies to their names
+    createLexIndexMap := proc(lexicalseq)
+        createMap(lexicalseq,
+        proc(tbl, i, lexpair)
+            tbl[i] := op([1,1], lexpair)
+        end proc)
+    end proc;
+    
+    
     # used to print out M forms in a (slightly more) readable way
     Print := proc(m::m)
         printspaces := proc(num)
@@ -136,19 +173,7 @@ M := module()
     end proc;
     
     
-    # maps lexical names to their lexpairs
-    CreateLexMap := proc(lexicalseq::m(LexicalSeq), f := (()->args))
-        tbl := table();
-        i := 1;
-        for lexpair in lexicalseq do
-            tbl[op([1,1],lexpair)] := f(lexpair);
-            i := i + 1;
-        end do;
-        tbl;
-    end proc;
     
-    
-    # TODO, proc that returns true if the body of the given MProc is a single statment
     
     
     Header   := proc(x) option inline; op(0,x) end proc:
