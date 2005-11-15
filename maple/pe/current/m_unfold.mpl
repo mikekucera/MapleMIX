@@ -45,7 +45,7 @@ Unfold := module()
         lets := SimpleQueue();
         i := 1;
         for argExpr in specCall while i <= nops(params) do
-            if not M:-IsM(argExpr) then next end if;
+            if type(argExpr, Not(m)) then next end if;
 
             header := Header(argExpr);
             paramName := op([i,1], params);

@@ -41,29 +41,14 @@ ReduceExp := module()
         MMember   = mmember
     ];
 
-
-    isStatic := x -> evalb( not M:-IsM(x) or member(op(0, x), {_Tag_STATICEXPSEQ, _Tag_STATICTABLE}) );
-    isDynamic := `not` @ isStatic;
+    
+    isDynamic := x -> type(x,m);
+    isStatic  := `not` @ isDynamic;
     allStatic := curry(andmap, isStatic);
 
 
-    binOp := proc(f, op)
-        proc(x, y) local inx, iny;
-            inx, iny := isDynamic(x), isDynamic(y);
-
-            if inx and iny then
-                f(x,y)
-            elif inx then
-                f(x, M:-ToM(ToInert(y)));
-            elif iny then
-                f(M:-ToM(ToInert(x)), y);
-            else
-                op(x,y);
-            end if;
-        end proc;
-    end proc;
-
-    unOp   := (f, op) -> x -> `if`(isDynamic(x), f(x), op(x));
+    binOp  := (f, op) -> (x, y) -> `if`(isStatic(x) and isStatic(y), op(x,y), f(x,y));
+    unOp   := (f, op) -> x  -> `if`(isDynamic(x), f(x), op(x));
     naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
 
 
@@ -163,10 +148,8 @@ ReduceExp := module()
             SPackageLocal(x1, x1[x2]);
         elif op(0,x1) = SPackageLocal and type(op(2,x1), `package`) then
             SPackageLocal(x1, op(2,x1)[x2]);
-        elif M:-IsM(x1) then
-            MMember(x1, M:-ToM(ToInert(eval(x2))));
         else
-            MMember(M:-ToM(ToInert(eval(x1))), M:-ToM(ToInert(eval(x2))));
+            MMember(x1, x2);
         end if;
     end proc;
 
@@ -195,7 +178,7 @@ ReduceExp := module()
             end proc;
         elif type(env, table) then  # must be lexical table
             proc(x)
-                FromInert(M:-FromM(env[x]));
+                FromInert(M:-FromM(env[x]));  # calling FromInert on AssignedName results in a pointer to the lexical
             end proc;
         else
             proc() error "no lexical environment available" end proc;

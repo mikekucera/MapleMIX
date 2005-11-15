@@ -1,6 +1,6 @@
 
 M := module()
-    export Print, ToM, FromM, ReduceExp, IsM, TransformIfNormalForm, Unfold,
+    export Print, ToM, FromM, ReduceExp, TransformIfNormalForm, Unfold,
            EndsWithReturn, FlattenStatSeq, AddImplicitReturns, 
            SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs,
            CreateLexMap,
@@ -12,9 +12,6 @@ M := module()
     
     # set of builtin function names
     intrinsic := {anames(builtin)};
-
-    # returns true if the type is argument is an M form
-    IsM := x -> evalb(type(x, m));    
 
     # returns three procs that apply their args to the given table of procs
     createTableProcs := proc(tbl)

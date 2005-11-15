@@ -21,17 +21,9 @@ $include "pe_reduce_exp.mpl"
 
 # caches M code of procedures so don't need to call ToM unneccesarily
 getMCode := proc(fun) option cache;
-    M:-ToM(ToInert(fun));
+    M:-ToM(ToInert(fun))
 end proc;
 
-getStaticValue := proc(x)
-    res := ReduceExp(x);
-    `if`(M:-IsM(res), FAIL, res);
-end proc;
-
-isStaticValue := proc(x)
-    evalb(getStaticValue(x) <> FAIL);
-end proc;
 
 keys := proc(tbl) option inline;
     map(op, [indices(tbl)])
@@ -61,7 +53,7 @@ lift := proc(x)
         error "cannot lift a package local yet, coming soon";
     elif head = SArgs then
         MArgs();
-    elif M:-IsM(x) then
+    elif type(x, m) then
         map(procname, x);
     else
 	    M:-ToM(ToInert(x));
@@ -178,7 +170,7 @@ isUnfoldable := proc(inertProcedure::m(Proc))
     # reason not to unfold
     evalb( nops(flattened) = 1 # function body has only one statement
        and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
-       and isStaticValue(op([1,1], flattened)) )
+       and not type(op([1,1], flattened), m) )
 end proc;
 
 
@@ -228,7 +220,7 @@ pe[MIfThenElse] := proc(cond, s1, s2)
 
     # Can't just copy the environment and put a new copy on the stack
     # because there may exist closures that referece the environment.
-    if M:-IsM(reduced) then
+    if type(reduced, m) then
         callStack:-setConditional();
         env := callStack:-topEnv();
         original := env:-clone();
@@ -258,7 +250,7 @@ end proc;
 pe[MAssign] := proc(n::m(Local), expr::m)
 	env := callStack:-topEnv();
     reduced := ReduceExp(expr, env);
-    if M:-IsM(reduced) then
+    if type(reduced, m) then
         MAssign(n, reduced);
     else
         env:-putVal(op(n), reduced);
@@ -272,7 +264,7 @@ pe[MTableAssign] := proc(tr::m(Tableref), expr::m)
     red1 := ReduceExp(M:-IndexExp(tr), env);
     red2 := ReduceExp(expr, env);
 
-    if not (M:-IsM(red1) or M:-IsM(red2)) then
+    if type({red1, red2}, set(Not(m))) then
         var := M:-Var(tr);
         if env:-isDynamic(op(var)) then
             # tables can be implicitly created in Maple, so create a table on-the-fly if needed
@@ -310,10 +302,9 @@ pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
         if nops(flattened) = 1 then
             assign := op(flattened);
             expr := op(2, assign);
-            val := getStaticValue(expr);
-            if val <> FAIL then
+            if not type(expr, m) then # it must be static
                 varName := op([1,1], assign);
-                callStack:-topEnv():-putVal(varName, val);
+                callStack:-topEnv():-putVal(varName, expr);
                 return NULL;
             end if;
         end if;
@@ -339,7 +330,7 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
    	    reduced := ReduceExp(arg, top);
    	    fullCall:-enqueue(reduced);
 
-   	    if M:-IsM(reduced) then
+   	    if type(reduced, m) then
    	        redCall:-enqueue(reduced);
    	        if Header(reduced) = MParam and allNotExpSeqSoFar then
    	            #argsTbl[i] := reduced;
@@ -373,7 +364,7 @@ end proc;
 peFunction := proc(f, argExpSeq::m(ExpSeq), unfold::procedure, residualize::procedure)
     fun := ReduceExp(f, callStack:-topEnv());
 
-    if M:-IsM(fun) then
+    if type(fun, m) then
         # don't know what function was called, residualize call
         MFunction(fun, map(peResidualizeExpr, argExpSeq));
 
