@@ -75,7 +75,7 @@ ReduceExp := module()
         if allStatic([args]) then
             _Tag_STATICEXPSEQ(args);
         else
-            makeExpseqDynamic(args);
+            MExpSeq(args);
         end if;
     end proc;
 
