@@ -56,7 +56,7 @@ OnENV := module()
         
             
             # sets a value overwriting previous one
-            putVal  := proc(key, val) valEnv[keyType(key)]  := val; thismodule end proc;
+            putVal  := proc(key, val) valEnv[keyType(key)]  := val end proc;
             putType := proc(key, typ) typeEnv[keyType(key)] := typ end proc;
             
             # returns the value
