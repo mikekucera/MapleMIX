@@ -77,14 +77,9 @@ OnENV := module()
 
 
             # returns indices
-            valIndices  := () -> getIndices(valEnv);
-            typeIndices := () -> getIndices(typeEnv);            
+            valIndices  := () -> keys(valEnv);
+            typeIndices := () -> keys(typeEnv);            
             
-            getIndices := proc(tbl) local xs;
-                xs := indices(tbl);
-                `if`(xs = NULL, [], ListTools:-Flatten([xs]))
-            end proc;
-                    
                     
             # a variable is static if it is mapped
             isStatic := key -> assigned(valEnv[keyType(key)]);

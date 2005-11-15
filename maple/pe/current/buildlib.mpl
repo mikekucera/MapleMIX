@@ -12,9 +12,6 @@ savelibname := "lib":
 $include "utils.mpl"
 
 Save(printmod);
-Save(printma);
-Save(getma);
-Save(getlocal);
 
 $include "gen.mpl"
 
@@ -33,10 +30,6 @@ Save(`index/deb`);
 $include "m_def.mpl"
 
 Save(M);
-
-$include "inert.mpl"
-
-Save(IntermediateForms);
 
 $include "pe_def.mpl"
 

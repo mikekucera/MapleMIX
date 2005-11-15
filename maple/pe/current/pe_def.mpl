@@ -1,8 +1,9 @@
 # Simple online partial evaluator for a subset of maple
 
-OnPE := module()
+OnPE := module() option package;
+
     description "simple online partial evaluator for a subset of Maple";
-    local callStack, code, gen, mcache,
+    local callStack, code, gen,
           CallStack;
     export ModuleApply, PartiallyEvaluate, OnENV, ReduceExp;
 
@@ -16,14 +17,11 @@ $include "pe_onenv.mpl";
 $include "pe_reduce_exp.mpl"
 
 ##################################################################################
+# utility functions used by this package
 
 # caches M code of procedures so don't need to call ToM unneccesarily
-getMCode := proc(fun)
-    if assigned(mcache[eval(fun)]) then
-        mcache[eval(fun)];
-    else
-        mcache[eval(fun)] := M:-ToM(ToInert(eval(fun)));
-    end;
+getMCode := proc(fun) option cache;
+    M:-ToM(ToInert(fun));
 end proc;
 
 getStaticValue := proc(x)
@@ -35,6 +33,9 @@ isStaticValue := proc(x)
     evalb(getStaticValue(x) <> FAIL);
 end proc;
 
+keys := proc(tbl) option inline;
+    map(op, [indices(tbl)])
+end proc;
 
 Header := proc(x) option inline; op(0,x) end proc;
 # for dealing with closures
@@ -71,7 +72,7 @@ end proc;
 # lifts all static values that are embedded in the residual code
 # meant to be used as a post-process
 liftCode := proc()
-    for pn in map(op, [indices(code)]) do
+    for pn in keys(code) do
         body := M:-ProcBody(code[pn]);
         code[pn] := subsop(5=lift(body), code[pn]);
     end do;
@@ -114,9 +115,8 @@ PartiallyEvaluate := proc(p::procedure)
     gen := NameGenerator();
     callStack := CallStack();
     code := table();
-    mcache := table();
 
-    m := getMCode(p);
+    m := getMCode(eval(p));
 
     newEnv := OnENV();
     newEnv:-setArgs(table());
@@ -133,7 +133,6 @@ PartiallyEvaluate := proc(p::procedure)
     gen := 'gen';
     callStack := 'callStack';
     code := 'code';
-    mcache := 'mcache';
     kernelopts(opaquemodules=before);
 
     return res;
@@ -415,7 +414,7 @@ end proc;
 
 # partial evaluation of a known procedure
 peRegularFunction := proc(fun::procedure, argExpSeq::m(ExpSeq), unfold, residualize, newName)
-	m := getMCode(fun);
+	m := getMCode(eval(fun));
 
     newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);
     lexMap := M:-CreateLexMap(M:-LexSeq(m), curry(op,2));
@@ -444,7 +443,8 @@ end proc;
 #builds a modle definition that contains the residual code
 build_module := proc(n::string)::inert;
     # get a list of names of module locals
-    locals := remove(x -> evalb(x=n), ListTools:-Flatten([indices(code)]));
+    # n will be the export so remove it from this list
+    locals := remove(`=`, keys(code), n);
 
     # each non exported proc will need a local index
     procLocalIndex := 0;
