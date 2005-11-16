@@ -18,7 +18,7 @@ Try(104, env:-isDynamic(x), false);
 Try(105, env:-putVal(x,2), 2);
 Try(106, env:-getVal(x), 2);
 
-env2 := OnENV:-NewOnENV();
+env2 := OnPE:-OnENV:-NewOnENV();
 env2:-putVal(y, 9);
 
 c := env:-combine(env2);
@@ -26,7 +26,7 @@ c := env:-combine(env2);
 Try(201, c:-getVal(x), 2);
 Try(202, c:-getVal(y), 9);
 
-env3 := OnENV:-NewOnENV();
+env3 := OnPE:-OnENV:-NewOnENV();
 env3:-putType(z, integer);
 
 c2 := env3:-combine(c);

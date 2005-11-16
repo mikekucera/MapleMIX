@@ -2,9 +2,9 @@
 
 OnPE := module() option package;
 
-    description "simple online partial evaluator for a subset of Maple";
+    description "online partial evaluator for a subset of Maple";
     local callStack, code, gen,
-          CallStack;
+          CallStack, Lifter;
     export ModuleApply, PartiallyEvaluate, OnENV, ReduceExp;
 
 ModuleApply := PartiallyEvaluate;
@@ -15,6 +15,8 @@ $include "pe_stack.mpl"
 $include "pe_onenv.mpl";
 
 $include "pe_reduce_exp.mpl"
+
+$include "pe_lift.mpl"
 
 ##################################################################################
 # utility functions used by this package
@@ -36,41 +38,6 @@ Code := proc(x) option inline; op(2,x) end proc;
 
 Package := proc(x) option inline; op(1,x) end proc;
 Member := proc(x) option inline; op(2,x) end proc;
-
-################################################################################
-
-
-
-lift := proc(x)
-    head := Header(x);
-    if member(head, {MInt, MString, MParam, MName,
-                     MLocal, MGeneratedName, MSingleUse,
-                     MAssignedName, MLocalName}) then
-        x;
-    elif head = Closure then
-        Code(x);
-    elif head = SPackageLocal then
-        error "cannot lift a package local yet, coming soon";
-    elif head = SArgs then
-        MArgs();
-    elif type(x, m) then
-        map(procname, x);
-    else
-	    M:-ToM(ToInert(x));
-	end if;
-end proc;
-
-
-# lifts all static values that are embedded in the residual code
-# meant to be used as a post-process
-liftCode := proc()
-    for pn in keys(code) do
-        body := M:-ProcBody(code[pn]);
-        code[pn] := subsop(5=lift(body), code[pn]);
-    end do;
-    NULL;
-end proc;
-
 
 
 ################################################################################
@@ -117,9 +84,13 @@ PartiallyEvaluate := proc(p::procedure)
 
     # perform partial evaluation
     peSpecializeProc(m, "ModuleApply");
-    liftCode();
-    res :=  (eval @ FromInert @ build_module)("ModuleApply");
-    #return copy(code);
+    Lifter:-LiftPostProcess(code);
+    try
+        res := (eval @ FromInert @ build_module)("ModuleApply");
+    catch:
+        lprint("conversion to module failed", lastexception);
+        return copy(code)
+    end try;
 
     # unassign module locals
     gen := 'gen';
