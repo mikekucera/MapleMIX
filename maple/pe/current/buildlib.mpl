@@ -19,16 +19,29 @@ Save(NameGenerator);
 
 $include "types.mpl"
 
-Save(funcPrefixType);
-Save(`type/inert`);
-Save(`type/m`);
-Save(`type/tag`);
+protect('inert');
+Save('inert');
+protect('mform');
+Save('mform');
+protect('onenv');
+Save('onenv');
+protect('Static');
+Save('Static');
+protect('Dynamic');
+Save('Dynamic');
+
+Save(PETypes);
+Save('`type/inert`');
+Save('`type/mform`');
 Save('`type/onenv`');
 Save('`type/Static`');
 Save('`type/Dynamic`');
 
-Save(`index/err`);
-Save(`index/deb`);
+
+
+
+#Save(`index/err`);
+#Save(`index/deb`);
 
 $include "m_def.mpl"
 

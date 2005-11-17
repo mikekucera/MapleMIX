@@ -105,7 +105,7 @@ end proc;
 
 # takes inert code and assumes static variables are on top of callStack
 # called before unfold
-peSpecializeProc := proc(m::m, n := "") #void
+peSpecializeProc := proc(m::mform, n := "") #void
     params := M:-Params(m);
     body   := M:-ProcBody(m);
 
@@ -132,7 +132,7 @@ end proc;
 
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 # probably won't be needed if I go with the sp-function approach
-isUnfoldable := proc(inertProcedure::m(Proc))
+isUnfoldable := proc(inertProcedure::mform(Proc))
     if not callStack:-inConditional() then
         return true;
     end if;
@@ -141,12 +141,12 @@ isUnfoldable := proc(inertProcedure::m(Proc))
     # reason not to unfold
     evalb( nops(flattened) = 1 # function body has only one statement
        and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
-       and not type(op([1,1], flattened), m) )
+       and not type(op([1,1], flattened), mform) )
 end proc;
 
 
 # partially evaluates an arbitrary M code
-peM := proc(m::m) local header; # returns inert code or NULL
+peM := proc(m::mform) local header; # returns inert code or NULL
     header := M:-Header(m);
     if assigned(pe[header]) then
         return pe[header](op(m));
@@ -218,7 +218,7 @@ pe[MIfThenElse] := proc(cond, s1, s2)
 end proc;
 
 
-pe[MAssign] := proc(n::m(Local), expr::m)
+pe[MAssign] := proc(n::mform(Local), expr::mform)
 	env := callStack:-topEnv();
     reduced := ReduceExp(expr, env);
     if reduced::Dynamic then
@@ -230,7 +230,7 @@ pe[MAssign] := proc(n::m(Local), expr::m)
 end proc;
 
 
-pe[MTableAssign] := proc(tr::m(Tableref), expr::m)
+pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
     env := callStack:-topEnv();
     red1 := ReduceExp(M:-IndexExp(tr), env);
     red2 := ReduceExp(expr, env);
@@ -264,7 +264,7 @@ end proc;
 
 
 
-pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
+pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Function))
     unfold := proc(residualProcedure, redCall, fullCall)
         res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         flattened := M:-FlattenStatSeq(res);
@@ -286,7 +286,7 @@ end proc;
 
 
 
-peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
+peArgList := proc(params::mform(ParamSeq), argExpSeq::mform(ExpSeq))
    	env := OnENV(); # new env for function call
    	allNotExpSeqSoFar := true; # true until something possibly an expseq is reached
    	fullCall := SimpleQueue(); # residual function call including statics
@@ -332,7 +332,7 @@ end proc;
 
 
 # takes continuations to be applied if f results in a procedure
-peFunction := proc(f, argExpSeq::m(ExpSeq), unfold::procedure, residualize::procedure)
+peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::procedure)
     fun := ReduceExp(f, callStack:-topEnv());
 
     if fun::Dynamic then
@@ -375,7 +375,7 @@ end proc;
 
 
 # partial evaluation of a known procedure
-peRegularFunction := proc(fun::procedure, argExpSeq::m(ExpSeq), unfold, residualize, newName)
+peRegularFunction := proc(fun::procedure, argExpSeq::mform(ExpSeq), unfold, residualize, newName)
 	m := getMCode(eval(fun));
 
     newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);

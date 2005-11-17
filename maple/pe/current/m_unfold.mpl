@@ -3,7 +3,7 @@ Unfold := module()
     export UnfoldStandalone, UnfoldIntoAssign;
     local addAssigns, removeReturns, renameAllLocals;
 
-    renameAllLocals := proc(m::m(StatSeq), genVarName)
+    renameAllLocals := proc(m::mform(StatSeq), genVarName)
         local names, rename;
         names := table();
 
@@ -27,7 +27,7 @@ Unfold := module()
 
     # Naively removes return statments and replaces them with the expression that was in the return.
     # This will be unsound if the proc is not in if-normal form with code below a return removed.
-    removeReturns := proc(m::m(StatSeq)) option inline;
+    removeReturns := proc(m::mform(StatSeq)) option inline;
         eval(m, [MReturn = MStandaloneExpr]);
     end proc;
 
@@ -35,7 +35,9 @@ Unfold := module()
     # TODO: Will be unsound if the procedure contains a return within a dynamic if within a loop.
     # specCall must be the residual call to the specialized procedure, consisting of only dynamic argument expressions,
     # the static ones should have been removed.
-    UnfoldStandalone := proc(specProc::m(Proc), specCall::m(ExpSeq), fullCall::m(ExpSeq), genVarName) ::m(StatSeq);
+    UnfoldStandalone := proc(specProc::mform(Proc), specCall::mform(ExpSeq),
+                             fullCall::mform(ExpSeq), genVarName) ::mform(StatSeq);
+
         body := ProcBody(specProc);
         params := Params(specProc);
         body, newNames := renameAllLocals(body, genVarName);
@@ -45,11 +47,10 @@ Unfold := module()
         lets := SimpleQueue();
         i := 1;
         for argExpr in specCall while i <= nops(params) do
-            if type(argExpr, Not(m)) then next end if;
+            if argExpr::Static then next end if;
 
             header := Header(argExpr);
             paramName := op([i,1], params);
-
             # variables can be substituted directly without fear of duplication
             if member(header, {MParam, MLocal}) then
                 body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
@@ -89,8 +90,8 @@ Unfold := module()
 
     # Requires input to be in if-normal-form.
     # actually in this case removal of returns isn't needed
-    UnfoldIntoAssign := proc(specProc::m(Proc), specCall::m(ExpSeq), fullCall::m(ExpSeq),
-                             genVarName, assignTo::m(GeneratedName)) ::m(StatSeq);
+    UnfoldIntoAssign := proc(specProc::mform(Proc), specCall::mform(ExpSeq), fullCall::mform(ExpSeq),
+                             genVarName, assignTo::mform(GeneratedName)) ::mform(StatSeq);
 
         newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
         newbody := FlattenStatSeq(newbody);
@@ -105,7 +106,7 @@ Unfold := module()
 
 
     # assumes returns have been removed and code is in if normal form
-    addAssigns := proc(code::m, var::string)
+    addAssigns := proc(code::mform, var::string)
         # TODO need to add support for loops and other structures
         doAdd := proc(c)
 	        header := Header(c);

@@ -3,9 +3,9 @@ TransformIfNormalForm := module()
     export ModuleApply;
     local indexOfFirstIf;
 
-    # given a statment sequence returns the index of 
+    # given a statment sequence returns the index of
     # the first IF statment in the sequence
-    indexOfFirstIf := proc(statseq::m(StatSeq))
+    indexOfFirstIf := proc(statseq::mform(StatSeq))
         local index, i;
         index := FAIL;
         for i from 1 to nops(statseq) do
@@ -22,20 +22,20 @@ TransformIfNormalForm := module()
 
     # recursively performs program transformation
     # StatSeqs must be in flattened form
-    
-    ModuleApply := proc(m::m(StatSeq))
+
+    ModuleApply := proc(m::mform(StatSeq))
         local i;
         flat := FlattenStatSeq(m);
         i := indexOfFirstIf(flat);
         if i = FAIL then # there is no if statment
             return flat;
-        end if;    
+        end if;
 
         # break original statment sequence into three parts
         firstpart := op(1..i-1, flat);
         ifstat    := op(i, flat);
         rest      := op(i+1..-1, flat);
-            
+
         MStatSeq(firstpart,
                  MIfThenElse(Cond(ifstat),
                              procname(MStatSeq(ssop(Then(ifstat)), rest)),

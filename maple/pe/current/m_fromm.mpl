@@ -10,7 +10,7 @@ FromM := module()
     mtoi, mtoi2, mapmtoi := createTableProcs(inrt);
 
 
-    ModuleApply := proc(code::m)
+    ModuleApply := proc(code::mform)
         singleAssigns := table();
         MapStack := SimpleStack();
         res := mtoi(code);
@@ -130,7 +130,7 @@ FromM := module()
 
     inrt[MProc] := proc()
         maps := table();
-        
+
         # function that maps param names to their indicies
         maps['params'] := createParamMap([args][1]);
         # first is a function that keeps track of locals encountered
@@ -188,8 +188,7 @@ FromM := module()
     end proc;
 
 
-
-    inrt[MSingleAssign] := proc(n::m(GeneratedName), e::m)
+    inrt[MSingleAssign] := proc(n::mform(GeneratedName), e::mform)
         singleAssigns[op(n)] := mtoi(e);
         NULL;
     end proc;
