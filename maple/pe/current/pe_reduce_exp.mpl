@@ -54,8 +54,8 @@ ReduceExp := module()
         end if;
     end proc;
 
-    literalList := eseq -> `if`(isStatic(eseq), [op(eseq)], MList(eseq));
-    literalSet  := eseq -> `if`(isStatic(eseq), {op(eseq)}, MSet(eseq));
+    literalList := eseq -> `if`(eseq::Static, [op(eseq)], MList(eseq));
+    literalSet  := eseq -> `if`(eseq::Static, {op(eseq)}, MSet(eseq));
 
 
 
@@ -114,7 +114,8 @@ ReduceExp := module()
 
     # evaluates table references as expressions
     tableref := env -> proc(tbl, eseq) # know that both args are static
-        if op(0, tbl) = _Tag_STATICTABLE then
+        h := op(0, tbl);
+        if member(h, {_Tag_STATICTABLE, SPackageLocal}) then
 	        actualTable := op(2, tbl);
 	        ref := op(eseq);
 	        if assigned(actualTable[ref]) then
@@ -122,17 +123,16 @@ ReduceExp := module()
 	        else
 	           MTableref(tbl, eseq);
 	        end if;
-        elif op(0, tbl) = SArgs then
+        elif h = SArgs then
             argsTbl := op(1, tbl);
             ref := op(eseq);
-
             if assigned(argsTbl[ref]) then
                 argsTbl[ref];
             else
                 MTableref(MArgs(), eseq);
             end if;
         else
-            error "unknown table reference"
+            error "unsupported table reference (%1, %2)", tbl, eseq;
         end if;
     end proc;
 

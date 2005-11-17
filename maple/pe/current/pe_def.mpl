@@ -4,7 +4,7 @@ OnPE := module() option package;
 
     description "online partial evaluator for a subset of Maple";
     local callStack, code, gen,
-          CallStack, Lifter;
+          CallStack, Lifter, stmtCount;
     export ModuleApply, PartiallyEvaluate, OnENV, ReduceExp;
 
 ModuleApply := PartiallyEvaluate;
@@ -74,6 +74,7 @@ PartiallyEvaluate := proc(p::procedure)
     gen := NameGenerator();
     callStack := CallStack();
     code := table();
+    stmtCount := 0;
 
     m := getMCode(eval(p));
 
@@ -98,6 +99,7 @@ PartiallyEvaluate := proc(p::procedure)
     code := 'code';
     kernelopts(opaquemodules=before);
 
+    print(stmtCount, "statements processed");
     return res;
 end proc;
 
@@ -162,7 +164,7 @@ pe[MReturn] := e -> MReturn(ReduceExp(e, callStack:-topEnv()));
 pe[MStatSeq] := proc()
     q := SimpleQueue();
     for i from 1 to nargs do
-
+        stmtCount := stmtCount + 1;
         if false then
             print();
             print("stat");
@@ -221,6 +223,7 @@ end proc;
 pe[MAssign] := proc(n::mform(Local), expr::mform)
 	env := callStack:-topEnv();
     reduced := ReduceExp(expr, env);
+
     if reduced::Dynamic then
         MAssign(n, reduced);
     else
@@ -335,10 +338,9 @@ end proc;
 peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::procedure)
     fun := ReduceExp(f, callStack:-topEnv());
 
-    if fun::Dynamic then
+    if fun::Dynamic or type(eval(fun), `symbol`) then # should treat a symbol differently
         # don't know what function was called, residualize call
         MFunction(fun, map(peResidualizeExpr, argExpSeq));
-
     elif Header(fun) = Closure then
         # TODO, the full functionality of peArgList is not needed here
         newEnv, a, b := peArgList(M:-Params(Code(fun)), argExpSeq);
@@ -351,9 +353,9 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
         # should probably be a proper unfolding
         M:-ProcBody(res);
 
-    elif type(fun, procedure) then
+    elif type(eval(fun), `procedure`) then
         newName := gen(cat(op(1,f),"_"));
-        peRegularFunction(fun, argExpSeq, unfold, residualize, newName);
+        peRegularFunction(eval(fun), argExpSeq, unfold, residualize, newName);
 
     elif Header(fun) = SPackageLocal and type(Member(fun), `procedure`) then
         mem := Member(fun);
@@ -369,7 +371,7 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
 	    peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
 
     else
-        error "received unknown form";
+        error "received unknown form %1, %2", fun;
     end if;
 end proc;
 
