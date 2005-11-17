@@ -20,7 +20,7 @@ ToM := module()
     createVarMap := proc(varSeq)
         createMap(varSeq, 
         proc(tbl, i, var)
-            tbl[i] := op(`if`(op(0,n)=_Inert_DCOLON, [1,1], 1), var)
+            tbl[i] := op(`if`(op(0,var)=_Inert_DCOLON, [1,1], 1), var)
         end proc)
     end proc;
 

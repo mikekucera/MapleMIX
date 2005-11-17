@@ -52,7 +52,7 @@ Member := proc(x) option inline; op(2,x) end proc;
 #
 #        if env:-fullyStatic?(name) then
 #            if not type(env:-getVal(name), eval(typ)) then
-#                error("Type assertion falure");
+#                error "Type assertion falure" ;
 #            end if;
 #        else
 #            env:-addType(name, typ);
@@ -151,7 +151,7 @@ peM := proc(m::m) local header; # returns inert code or NULL
     if assigned(pe[header]) then
         return pe[header](op(m));
     end if;
-    error cat("not supported yet: ", header);
+    error "not supported yet: %1", header;
 end proc;
 
 
@@ -431,7 +431,7 @@ build_module := proc(n::string)::inert;
                 localIndex := nops(lexicalLocals) + 1;
             else
                 if not member(localName, locals, localIndex) then #nasty!
-                    return _Inert_FUNCTION(args); #error(cat("'", localName, "' is not a module local"));
+                    return _Inert_FUNCTION(args); #error "%1 is not a module local", localName;
                 end if;
             end if;
 
@@ -451,9 +451,9 @@ build_module := proc(n::string)::inert;
             _Inert_LEXICALPAIR(_Inert_NAME(lhs(e)),_Inert_LOCAL(rhs(e)));
         end proc;
 
-        seq := map(f, lexicalLocals);
+        lseq := map(f, lexicalLocals);
 
-        lexicalLocals := _Inert_LEXICALSEQ( op(seq) );
+        lexicalLocals := _Inert_LEXICALSEQ( op(lseq) );
         p := subsop(5=body, 8=lexicalLocals, p);
 
         _Inert_ASSIGN(_Inert_LOCAL( `if`(procName = n, nops(locals) + 1, procLocalIndex) ) ,p);

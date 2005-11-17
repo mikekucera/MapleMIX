@@ -125,7 +125,7 @@ Unfold := module()
 	            MAssign(MGeneratedName(var), op(c));
 
 	        else
-	            error cat("addAssigns, not supported yet: ", header);
+	            error "addAssigns, not supported yet: %1", header;
 	        end if;
         end proc;
 

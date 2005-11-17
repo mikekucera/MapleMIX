@@ -20,7 +20,7 @@ funcPrefixType := proc(prefix, f)
    elif nargs = 3 then
        type(f, specfunc(anything, map2(cat, prefix, args[3])));
    else 
-       error("must be called with 1 or 2 args");
+       error "must be called with 1 or 2 args";
    end if;
 end proc:
 
@@ -31,7 +31,7 @@ end proc:
         if (assigned(Tbl[op(Idx)])) then 
             eval(Tbl[op(Idx)]);
         else 
-            error cat("no mapping for: ", op(Idx));
+            error "no mapping for: %1", op(Idx);
         end if;
     else
         Tbl[op(Idx)] := op(Entry);
