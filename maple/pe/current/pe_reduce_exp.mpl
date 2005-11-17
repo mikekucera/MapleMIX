@@ -42,13 +42,13 @@ ReduceExp := module()
     ];
 
     
-    isDynamic := x -> type(x,m);
-    isStatic  := `not` @ isDynamic;
-    allStatic := curry(andmap, isStatic);
+    #isDynamic := x -> type(x,m);
+    #isStatic  := `not` @ isDynamic;
+    #allStatic := curry(andmap, isStatic);
 
 
-    binOp  := (f, op) -> (x, y) -> `if`(isStatic(x) and isStatic(y), op(x,y), f(x,y));
-    unOp   := (f, op) -> x  -> `if`(isDynamic(x), f(x), op(x));
+    binOp  := (f, op) -> (x, y) -> `if`(x::Static and y::Static, op(x,y), f(x,y));
+    unOp   := (f, op) -> x  -> `if`(x::Dynamic, f(x), op(x));
     naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
 
 
@@ -72,7 +72,7 @@ ReduceExp := module()
     # Conservative temporary solution: treat all expression sequences that occur
     # as sub-expressions as dynamic.
     expseq := proc()
-        if allStatic([args]) then
+        if [args]::list(Static) then  #allStatic([args]) then
             _Tag_STATICEXPSEQ(args);
         else
             MExpSeq(args);

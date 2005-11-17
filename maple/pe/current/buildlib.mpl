@@ -19,11 +19,14 @@ Save(NameGenerator);
 
 $include "types.mpl"
 
+Save(funcPrefixType);
 Save(`type/inert`);
 Save(`type/m`);
 Save(`type/tag`);
-Save(`type/onenv`);
-Save(funcPrefixType);
+Save('`type/onenv`');
+Save('`type/Static`');
+Save('`type/Dynamic`');
+
 Save(`index/err`);
 Save(`index/deb`);
 

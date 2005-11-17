@@ -8,8 +8,10 @@
 # type of M forms
 `type/m`     := curry(funcPrefixType, 'M'):
 
- 
-`type/onenv` := (x) -> type(x, `module`('putVal', 'getVal')):
+`type/onenv` := '`module`'('putVal', 'getVal'):
+
+`type/Static`  := 'Not'('m'):
+`type/Dynamic` := 'm':
 
 
 funcPrefixType := proc(prefix, f)

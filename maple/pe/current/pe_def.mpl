@@ -191,7 +191,7 @@ pe[MIfThenElse] := proc(cond, s1, s2)
 
     # Can't just copy the environment and put a new copy on the stack
     # because there may exist closures that referece the environment.
-    if type(reduced, m) then
+    if reduced::Dynamic then
         callStack:-setConditional();
         env := callStack:-topEnv();
         original := env:-clone();
@@ -221,7 +221,7 @@ end proc;
 pe[MAssign] := proc(n::m(Local), expr::m)
 	env := callStack:-topEnv();
     reduced := ReduceExp(expr, env);
-    if type(reduced, m) then
+    if reduced::Dynamic then
         MAssign(n, reduced);
     else
         env:-putVal(op(n), reduced);
@@ -235,7 +235,7 @@ pe[MTableAssign] := proc(tr::m(Tableref), expr::m)
     red1 := ReduceExp(M:-IndexExp(tr), env);
     red2 := ReduceExp(expr, env);
 
-    if type({red1, red2}, set(Not(m))) then
+    if [red1,red2]::[Static,Static] then
         var := M:-Var(tr);
         if env:-isDynamic(op(var)) then
             # tables can be implicitly created in Maple, so create a table on-the-fly if needed
@@ -273,7 +273,7 @@ pe[MAssignToFunction] := proc(var::m(GeneratedName), funcCall::m(Function))
         if nops(flattened) = 1 then
             assign := op(flattened);
             expr := op(2, assign);
-            if not type(expr, m) then # it must be static
+            if expr::Static then
                 varName := op([1,1], assign);
                 callStack:-topEnv():-putVal(varName, expr);
                 return NULL;
@@ -301,7 +301,7 @@ peArgList := proc(params::m(ParamSeq), argExpSeq::m(ExpSeq))
    	    reduced := ReduceExp(arg, top);
    	    fullCall:-enqueue(reduced);
 
-   	    if type(reduced, m) then
+   	    if reduced::Dynamic then
    	        redCall:-enqueue(reduced);
    	        if Header(reduced) = MParam and allNotExpSeqSoFar then
    	            #argsTbl[i] := reduced;
@@ -335,7 +335,7 @@ end proc;
 peFunction := proc(f, argExpSeq::m(ExpSeq), unfold::procedure, residualize::procedure)
     fun := ReduceExp(f, callStack:-topEnv());
 
-    if type(fun, m) then
+    if fun::Dynamic then
         # don't know what function was called, residualize call
         MFunction(fun, map(peResidualizeExpr, argExpSeq));
 
