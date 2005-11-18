@@ -10,7 +10,7 @@ ReduceExp := module()
     local complex, expseq, pureFunc, makeExpseqDynamic,
           naryOp, binOp, unOp, subsList, evalName;
 
-    subsList := [
+    subsList := env -> [
         MSum      = naryOp(MSum,  `+`),
         MProd     = naryOp(MProd, `*`),
 
@@ -38,40 +38,39 @@ ReduceExp := module()
         MExpSeq   = expseq,
         MList     = literalList,
         MSet      = literalSet,
-        MMember   = mmember
+        MMember   = mmember,
+
+        MParam = evalName(env, MParam),
+        MLocal = evalName(env, MLocal),
+        MSingleUse = evalName(env, MSingleUse),
+        MTableref = binOp(MTableref, tableref(env)),
+        MLexicalLocal = evalLex(env, MLexicalLocal),
+        MLexicalParam = evalLex(env, MLexicalParam),
+        MFunction = pureFunc(env),
+        MArgs     = margs(env),
+        MNargs    = mnargs(env)
+
     ];
+
 
     binOp  := (f, op) -> (x, y) -> `if`(x::Static and y::Static, op(x,y), f(x,y));
     unOp   := (f, op) -> x  -> `if`(x::Dynamic, f(x), op(x));
     naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
 
 
-    complex := proc()
-        if nargs = 1 then
-            args[1] * I;
-        else
-            args[1] + args[2] * I;
-        end if;
-    end proc;
+    complex := () -> (nargs=1, args * I, args[1] + args[2] * I);
 
     literalList := eseq -> `if`(eseq::Static, [op(eseq)], MList(eseq));
     literalSet  := eseq -> `if`(eseq::Static, {op(eseq)}, MSet(eseq));
 
+    expseq := () -> `if`([args]::list(Static), _Tag_STATICEXPSEQ(args), MExpSeq(args));
 
 
-    # You can't pass a raw expression sequence into another function
-    # because each element of the sequence becomes a separate procedure parameter.
-    # For example, 5 + (1,2,3) reduces to 11 because the expression reducer
-    # treats it like `+`(5,(1,2,3)) which is the same as `+`(5,1,2,3)
-    # Conservative temporary solution: treat all expression sequences that occur
-    # as sub-expressions as dynamic.
-    expseq := proc()
-        if [args]::list(Static) then
-            _Tag_STATICEXPSEQ(args);
-        else
-            MExpSeq(args);
-        end if;
-    end proc;
+    margs  := env -> () -> SArgs(env:-getArgs());
+    mnargs := env -> () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
+
+    massignedname := n -> convert(n, name);
+    mname := n -> convert(n, name);
 
 
 
@@ -148,12 +147,6 @@ ReduceExp := module()
     end proc;
 
 
-    margs  := env -> () -> SArgs(env:-getArgs());
-    mnargs := env -> () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
-
-    massignedname := n -> convert(n, name);
-    mname := n -> convert(n, name);
-
 
     # evaluates static variables
     evalName := proc(env, f)
@@ -187,27 +180,19 @@ ReduceExp := module()
 
     # exported expression reducing function
     ModuleApply := proc(exp, env := OnENV()) local residual;
-
+        print("starting reduction", exp);
         # TODO, reduction of a proc should be different
         if Header(exp) = MProc then
             return Closure(env, exp);
         end if;
 
-        residual := eval(exp, [op(subsList),
-                               MParam = evalName(env, MParam),
-                               MLocal = evalName(env, MLocal),
-                               MSingleUse = evalName(env, MSingleUse),
-                               MTableref = binOp(MTableref, tableref(env)),
-                               MLexicalLocal = evalLex(env, MLexicalLocal),
-                               MLexicalParam = evalLex(env, MLexicalParam),
-                               MFunction = pureFunc(env),
-                               MArgs     = margs(env),
-                               MNargs    = mnargs(env)
-                              ]);
+        residual := eval(exp, subsList(env));
 
-        eval(residual, [_Tag_STATICEXPSEQ = (() -> args),
-                        _Tag_STATICTABLE = ((x,v) -> x),
-                        SArgs = (() -> MArgs())]);
+        print("reduction done", residual);
+        # TODO: get rid of this extra eval
+        eval(residual, [ _Tag_STATICTABLE = ((x,v) -> x),
+                         _Tag_STATICEXPSEQ = (() -> args),
+                         SArgs = (() -> MArgs())]);
     end proc;
 
 end module;
