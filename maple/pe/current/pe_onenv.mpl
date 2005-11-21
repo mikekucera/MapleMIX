@@ -15,7 +15,7 @@ OnENV := module()
                   argsVal, nargsVal;
             export putVal, putType, valIndices, typeIndices, getType,
                    setArgs, getArgs, setNargs, getNargs, hasNargs,
-                   attachLex, removeLex, getLex,
+                   attachLex, removeLex, getLex, hasLex,
                    getVal, hasTypeInfo,
                    isStatic, isDynamic,
                    setDynamic, clone, combine, overwrite, display;
@@ -35,6 +35,7 @@ OnENV := module()
                 lex := 'lex';
             end proc;
         
+            hasLex := () -> evalb(assigned(lex));
             
             setArgs := proc(tbl)
                 argsVal := tbl;

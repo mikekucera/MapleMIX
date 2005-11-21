@@ -6,193 +6,175 @@
 ReduceExp := module()
 
     description "online expression reducer for use with online partial evaluator";
-    export ModuleApply, isDynamic, isStatic, allStatic;
-    local complex, expseq, pureFunc, makeExpseqDynamic,
-          naryOp, binOp, unOp, subsList, evalName;
-
-    subsList := env -> [
-        MSum      = naryOp(MSum,  `+`),
-        MProd     = naryOp(MProd, `*`),
-
-        MPower    = binOp(MPower,    `^`),
-        MCatenate = binOp(MCatenate, `||`),
-        MEquation = binOp(MEquation, `=`),
-        MLesseq   = binOp(MLesseq,   `<=`),
-        MLessThan = binOp(MLessThan, `<`),
-        MImplies  = binOp(MImplies,  `implies`),
-        MAnd      = binOp(MAnd, `and`),
-        MOr       = binOp(MOr,  `or`),
-        MXor      = binOp(MXor, `xor`),
-
-        MNot      = unOp(MNot, `not`),
-
-        MInt      = (x -> x),
-        MFloat    = ((x,y) -> FromInert(_Inert_FLOAT(ToInert(x),ToInert(y)))),
-        MString   = (x -> x),
-
-        MAssignedName = massignedname,
-        MName         = mname,
-
-        MRational = `/`,
-        MComplex  = complex,
-        MExpSeq   = expseq,
-        MList     = literalList,
-        MSet      = literalSet,
-        MMember   = mmember,
-
-        MParam = evalName(env, MParam),
-        MLocal = evalName(env, MLocal),
-        MSingleUse = evalName(env, MSingleUse),
-        MTableref = binOp(MTableref, tableref(env)),
-        MLexicalLocal = evalLex(env, MLexicalLocal),
-        MLexicalParam = evalLex(env, MLexicalParam),
-        MFunction = pureFunc(env),
-        MArgs     = margs(env),
-        MNargs    = mnargs(env)
-
-    ];
-
-
-    binOp  := (f, op) -> (x, y) -> `if`(x::Static and y::Static, op(x,y), f(x,y));
-    unOp   := (f, op) -> x  -> `if`(x::Dynamic, f(x), op(x));
+    export ModuleApply;
+    local env, red, reduce;    
+        
+    
+    reduce := proc(exp)
+        red[op(0,exp)](op(exp))        
+    end proc;
+    
+    reduceAll := proc()
+        op(map(reduce, [args]))
+    end proc;
+    
+    binOp := (f, op) -> proc(x, y)
+        rx := reduce(x);
+        ry := reduce(y);
+        `if`(rx::Static and ry::Static, op(rx,ry), f(rx,ry));
+    end proc;
+          
+    unOp := (f, op) -> proc(x)
+        rx := reduce(x);
+        `if`(rx::Dynamic, f(rx), op(rx))
+    end proc;
+    
     naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
+    
+    
+    red['Integer'] := () -> args;
+    red['string']  := () -> args;
+    
+    red[MSum]  := naryOp(MSum, `+`);
+    red[MProd] := naryOp(MProd, `*`);    
+    
+    red[MRational] := binOp(MRational, `/`);
+    red[MPower]    := binOp(MPower,    `^`);
+    red[MCatenate] := binOp(MCatenate, `||`);
+    red[MEquation] := binOp(MEquation, `=`);
+    red[MLesseq]   := binOp(MLesseq,   `<=`);
+    red[MLessThan] := binOp(MLessThan, `<`);
+    red[MImplies]  := binOp(MImplies,  `implies`);
+    red[MAnd]      := binOp(MAnd,      `and`);
+    red[MOr]       := binOp(MOr,       `or`);
+    red[MXor]      := binOp(MXor,      `xor`);
+    
+    red[MNot] := unOp(MNot, `not`);
+    
+    red[MInt]    := x -> x;
+    red[MString] := x -> x;
+    red[MFloat]  := (x,y) -> FromInert(_Inert_FLOAT(M:-FromM(x),M:-FromM(y)));
+        
+    
+    red[MComplex]  := () -> `if`(nargs=1, args * I, args[1] + args[2] * I);
+    red[MArgs]     := () -> SArgs(env:-getArgs());
+    red[MNargs]    := () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
+    
+    red[MAssignedName] := n -> convert(n, name);
+    red[MName]         := n -> convert(n, name);
+    
+    
+    red[MExpSeq] := proc() 
+        rs := reduceAll(args);
+        `if`([rs]::list(Static), _Tag_STATICEXPSEQ(rs), MExpSeq(rs))
+    end proc;    
+    
+    red[MList] := proc(eseq)
+        r := reduce(eseq);
+        `if`(r::Static, [op(r)], MList(r))
+    end proc;
+    
+    red[MSet] := proc(eseq)
+        r := reduce(eseq);
+        `if`(r::Static, {op(r)}, MSet(r));
+    end proc;
+    
+    red[MMember] := proc(x1, x2)
+        rx1 := reduce(x1);
+        rx2 := reduce(x2);
+        if type(rx1, `package`) then
+            SPackageLocal(rx1, rx1[rx2]);
+        elif op(0,rx1) = SPackageLocal and type(op(2,rx1), `package`) then
+            SPackageLocal(rx1, op(2,rx1)[rx2]);
+        else
+            MMember(rx1, rx2);
+        end if;
+    end proc;;
 
-
-    complex := () -> (nargs=1, args * I, args[1] + args[2] * I);
-
-    literalList := eseq -> `if`(eseq::Static, [op(eseq)], MList(eseq));
-    literalSet  := eseq -> `if`(eseq::Static, {op(eseq)}, MSet(eseq));
-
-    expseq := () -> `if`([args]::list(Static), _Tag_STATICEXPSEQ(args), MExpSeq(args));
-
-
-    margs  := env -> () -> SArgs(env:-getArgs());
-    mnargs := env -> () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
-
-    massignedname := n -> convert(n, name);
-    mname := n -> convert(n, name);
-
-
-
-    # it will receive a reduced expression sequence
-    pureFunc := proc(env)
-        proc(f, expseq)
-            # special case for call to typechecking function
-            #if getHeader(n) = MASSIGNEDNAME and getVal(n) = "type" and nops(expseq) = 2 then
-            #
-            #    arg1 := op(1, expseq);
-            #   typeExpr := FromInert(op(2, expseq));
-            # # returns a closure that generates unique names (as strings)
-            #    if isStatic(arg1) then                # if the variable already reduced to a static value
-            #        return type(arg1, typeExpr);
-            #    elif isInertVariable(arg1) and env:-hasTypeInfo?(getVal(arg1)) then
-            #        types := env:-getTypes(getVal(arg1));
-            #        try
-            #            if andmap(subtype, types, typeExpr) then
-            #                return true;
-            #            elif andmap(`not` @ curry(subtype,typeExpr), types) then
-            #                return false;
-            #            end if;
-            #        catch "mapped procedure":  # subtype might return FAIL, in which case generate residual code
-            #            print("subtype failed", lastexception);
-            #        end try;
-            #    end if;
-
-
-            if type(f, procedure) and Header(expseq) = _Tag_STATICEXPSEQ then
-                f(op(expseq));
-            elif type(f, name) and Header(expseq) = _Tag_STATICEXPSEQ then
-                apply(convert(op(1,f), name), op(expseq));
-            else
-                MFunction(f, expseq);
-            end if;
-
-        end proc;
+    red[MFunction] := proc(f, expseq)
+        rf := reduce(f);
+        re := reduce(expseq);
+        if type(rf, procedure) and Header(re) = _Tag_STATICEXPSEQ then
+            f(op(re));
+        elif type(rf, name) and Header(re) = _Tag_STATICEXPSEQ then
+            apply(convert(op(1,rf), name), op(re));
+        else
+            MFunction(rf, re);
+        end if;
     end proc;
 
 
     # evaluates table references as expressions
-    tableref := env -> proc(tbl, eseq) # know that both args are static
-        h := op(0, tbl);
+    red[MTableref] := proc(tbl, eseq) # know that both args are static
+        rt := reduce(tbl);
+        re := reduce(eseq);
+        h := op(0, rt);
         if member(h, {_Tag_STATICTABLE, SPackageLocal}) then
-	        actualTable := op(2, tbl);
-	        ref := op(eseq);
+	        actualTable := op(2, rt);
+	        ref := op(re);
 	        if assigned(actualTable[ref]) then
 	            actualTable[ref];
 	        else
-	           MTableref(tbl, eseq);
+	           MTableref(rt, re);
 	        end if;
         elif h = SArgs then
-            argsTbl := op(1, tbl);
-            ref := op(eseq);
+            argsTbl := op(1, rt);
+            ref := op(re);
             if assigned(argsTbl[ref]) then
                 argsTbl[ref];
             else
-                MTableref(MArgs(), eseq);
+                MTableref(MArgs(), re);
             end if;
         else 
-            MTableref(tbl, eseq);
+            MTableref(rt, re);
         end if;
     end proc;
 
+    red[MParam]     := reduceVar(MParam);
+    red[MLocal]     := reduceVar(MLocal);
+    red[MSingleUse] := reduceVar(MSingleUse);
+    
+    red[MLexicalLocal] := reduceLex(MLexicalLocal);
+    red[MLexicalParam] := reduceLex(MLexicalParam);
 
-    mmember := proc(x1, x2)
-        if type(x1, `package`) then
-            SPackageLocal(x1, x1[x2]);
-        elif op(0,x1) = SPackageLocal and type(op(2,x1), `package`) then
-            SPackageLocal(x1, op(2,x1)[x2]);
+    reduceVar := f -> proc(x)
+        if env:-isStatic(x) then
+            val := env:-getVal(x);
+            if type(val, table) then
+                _Tag_STATICTABLE(f(x), val);
+            else
+                val;
+            end if;
         else
-            MMember(x1, x2);
+            f(x);
         end if;
     end proc;
 
-
-
-    # evaluates static variables
-    evalName := proc(env, f)
-        if type(env, `onenv`) then
-            proc(x)
-                if env:-isStatic(x) then
-                    val := env:-getVal(x);
-                    if type(val, table) then
-                        _Tag_STATICTABLE(f(x), val);
-                    else
-                        val;
-                    end if;
-                else
-                    f(x);
-                end if;
-            end proc;
-        elif type(env, table) then  # must be lexical table
-            proc(x)
-                FromInert(M:-FromM(env[x]));  # calling FromInert on AssignedName results in a pointer to the lexical
-            end proc;
-        else
-            proc() error "no lexical environment available" end proc;
-        end if
+    reduceLex := f -> proc()
+        if not env:-hasLex() then
+            error "no lexical environment available";
+        end if;
+        FromInert(M:-FromM(env:-getLex()[x]));
     end proc;
 
-
-    evalLex := proc(env, f)
-        evalName(env:-getLex(), f);
+    # TODO, maybe needs to call back into the partial evaluator to reduce the body of the closure
+    red[MProc] := proc()
+        Closure(env, MProc(args));
     end proc;
-
 
     # exported expression reducing function
-    ModuleApply := proc(exp, env := OnENV()) local residual;
-        #print("starting reduction", exp);
-        # TODO, reduction of a proc should be different
-        if Header(exp) = MProc then
-            return Closure(env, exp);
-        end if;
-
-        residual := eval(exp, subsList(env));
-
-        #print("reduction done", residual);
+    ModuleApply := proc(exp, reductionEnv := OnENV()) local residual;
+        #print("reducing", exp);
+        env := reductionEnv;
+        residual := reduce(exp);
+        env := 'env';
+        
         # TODO: get rid of this extra eval
-        eval(residual, [ _Tag_STATICTABLE = ((x,v) -> x),
+        residual := eval(residual, [ _Tag_STATICTABLE = ((x,v) -> x),
                          _Tag_STATICEXPSEQ = (() -> args),
                          SArgs = (() -> MArgs())]);
+                
+        return residual;              
     end proc;
 
 end module;
