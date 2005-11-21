@@ -1,7 +1,6 @@
 
 Lifter := module()
-    export LiftExp, LiftPostProcess;
-    local liftStat, liftExp;
+    export LiftExp, LiftPostProcess, liftStat, liftExp;
 
     liftStat := proc(stat) local t, e, c, n;
         h := Header(stat);

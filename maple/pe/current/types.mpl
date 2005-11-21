@@ -23,13 +23,17 @@ end proc;
 
 
 funcPrefixType := proc(prefix, f)
-   if nargs = 2 then
-       type(f, function) and StringTools:-RegMatch(cat("^", prefix), op(0, f));
-   elif nargs = 3 then
-       type(f, specfunc(anything, map2(cat, prefix, args[3])));
-   else
-       error "must be called with 1 or 2 args";
-   end if;
+    if nargs = 2 then
+        try
+            type(f, function) and StringTools:-RegMatch(cat("^", prefix), op(0, f));
+        catch:
+            return false;
+        end try;
+    elif nargs = 3 then
+        type(f, specfunc(anything, map2(cat, prefix, args[3])));
+    else
+        error "must be called with 1 or 2 args";
+    end if;
 end proc:
 
 

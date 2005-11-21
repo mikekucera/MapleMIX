@@ -4,8 +4,8 @@ OnPE := module() option package;
 
     description "online partial evaluator for a subset of Maple";
     local callStack, code, gen,
-          CallStack, Lifter, stmtCount;
-    export ModuleApply, PartiallyEvaluate, OnENV, ReduceExp;
+          CallStack, stmtCount;
+    export ModuleApply, PartiallyEvaluate, OnENV, ReduceExp, Lifter;
 
 ModuleApply := PartiallyEvaluate;
 

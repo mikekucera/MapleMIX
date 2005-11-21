@@ -130,8 +130,8 @@ ReduceExp := module()
             else
                 MTableref(MArgs(), eseq);
             end if;
-        else
-            error "unsupported table reference (%1, %2)", tbl, eseq;
+        else 
+            MTableref(tbl, eseq);
         end if;
     end proc;
 
@@ -180,7 +180,7 @@ ReduceExp := module()
 
     # exported expression reducing function
     ModuleApply := proc(exp, env := OnENV()) local residual;
-        print("starting reduction", exp);
+        #print("starting reduction", exp);
         # TODO, reduction of a proc should be different
         if Header(exp) = MProc then
             return Closure(env, exp);
@@ -188,7 +188,7 @@ ReduceExp := module()
 
         residual := eval(exp, subsList(env));
 
-        print("reduction done", residual);
+        #print("reduction done", residual);
         # TODO: get rid of this extra eval
         eval(residual, [ _Tag_STATICTABLE = ((x,v) -> x),
                          _Tag_STATICEXPSEQ = (() -> args),
