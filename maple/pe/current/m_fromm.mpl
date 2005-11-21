@@ -215,4 +215,17 @@ FromM := module()
         _Inert_DCOLON(_Inert_NAME(n), ToInert(op(t)));
     end proc;
 
+    inrt[MTry] := proc(t, catchseq, fin)
+        q := SimpleQueue();
+        q:-enqueue(mtoi(t));
+        for c in catchseq do
+            q:-enqueue(mtoi(op(1,c)));
+            q:-enqueue(mtoi(op(2,c)));
+        end do;
+        if nargs = 3 then # if there is a finally clause
+            q:-enqueue(mtoi(op(fin)));
+        end if;
+        _Inert_TRY(op(q:-toList()));
+    end proc;
+    
 end module;

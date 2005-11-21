@@ -239,4 +239,20 @@ ToM := module()
         MTypedName(op(n), MType(FromInert(t)));
     end proc;
 
+    
+    m[_Inert_TRY] := proc()
+        catches := proc()
+            strings, bodies := selectremove(type, [args], inert(STRING));
+            f := (x,y) -> MCatch(itom(x), itom(y));
+            (MCatchSeq @ op @ zip)(f, strings, bodies);
+        end proc;
+        
+        fin := NULL;
+        if nargs mod 2 = 0 then
+            fin := MFinally(itom(args[nargs]));
+        end if;
+        
+        MTry(itom(args[1]), catches(args[2..nargs]), fin);
+    end proc;
+    
 end module:

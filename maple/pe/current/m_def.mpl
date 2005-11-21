@@ -17,7 +17,13 @@ M := module()
     createTableProcs := proc(tbl)
         local toForm, toForm2, toFormMap;
         # takes one arg
-        toForm := code -> tbl[op(0, code)](op(code));
+        toForm := proc(code)
+            h := op(0, code);
+            if assigned(tbl[h]) then
+                return tbl[h](op(code));
+            end if;
+            error "%1 not supported", h
+        end proc;
         # takes two args
         toForm2 := (y, z) -> (toForm(y), toForm(z));
         # takes any number of args

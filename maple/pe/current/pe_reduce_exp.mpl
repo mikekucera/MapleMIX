@@ -11,7 +11,11 @@ ReduceExp := module()
         
     
     reduce := proc(exp)
-        red[op(0,exp)](op(exp))        
+        h := op(0,exp);
+        if assigned(red[h]) then
+            return red[h](op(exp));
+        end if;
+        error "reduction of %1 not supported yet", h
     end proc;
     
     reduceAll := proc()
