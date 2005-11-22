@@ -7,8 +7,22 @@ ReduceExp := module()
 
     description "online expression reducer for use with online partial evaluator";
     export ModuleApply;
-    local env, red, reduce;
+    local env, red, reduce, unred, unreduce;
 
+
+
+    ModuleApply := proc(exp, reductionEnv := OnENV()) local residual;
+        env := reductionEnv;
+        residual := reduce(exp);
+        env := 'env';
+        # TODO: get rid of this extra eval
+        eval(residual, [ _Tag_STATICTABLE = ((x,v) -> x),
+                         _Tag_STATICEXPSEQ = (() -> args),
+                         SArgs = (() -> MArgs())]);
+    end proc;
+
+
+### Functions that drive the reduction #############################################
 
     reduce := proc(exp)
         h := op(0,exp);
@@ -17,6 +31,18 @@ ReduceExp := module()
         end if;
         error "reduction of %1 not supported yet", h
     end proc;
+
+
+    # reduction under uneval semantics
+    unreduce := proc(exp)
+        h := op(0,exp);
+        if assigned(unred[h]) then
+            unred[h](op(exp))
+        else
+            reduce(exp)
+        end if;
+    end proc;
+
 
     reduceAll := proc()
         op(map(reduce, [args]))
@@ -35,6 +61,8 @@ ReduceExp := module()
 
     naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
 
+
+### Standard reducer  ###############################################################
 
     red['Integer'] := () -> args;
     red['string']  := () -> args;
@@ -67,6 +95,10 @@ ReduceExp := module()
     red[MAssignedName] := n -> convert(n, name);
     red[MName]         := n -> convert(n, name);
 
+
+    red[MUneval] := proc()
+        unreduce(args);
+    end proc;
 
     red[MExpSeq] := proc()
         rs := reduceAll(args);
@@ -123,7 +155,7 @@ ReduceExp := module()
 	        if assigned(actualTable[ref]) then
 	            actualTable[ref];
 	        else
-	           MTableref(rt, re);
+	            MTableref(rt, re);
 	        end if;
         elif h = SArgs then
             argsTbl := op(1, rt);
@@ -133,6 +165,8 @@ ReduceExp := module()
             else
                 MTableref(MArgs(), re);
             end if;
+        elif rt::symbol and re::Static then
+            rt[re];
         else
             MTableref(rt, re);
         end if;
@@ -158,29 +192,54 @@ ReduceExp := module()
         end if;
     end proc;
 
-    reduceLex := f -> proc()
+    reduceLex := f -> proc(x)
         if not env:-hasLex() then
             error "no lexical environment available";
         end if;
         FromInert(M:-FromM(env:-getLex()[x]));
     end proc;
 
-    # TODO, maybe needs to call back into the partial evaluator to reduce the body of the closure
+    # TODO, maybe needs to call back into the
+    # partial evaluator to reduce the body of the closure
     red[MProc] := proc()
         Closure(env, MProc(args));
     end proc;
 
-    # exported expression reducing function
-    ModuleApply := proc(exp, reductionEnv := OnENV()) local residual;
-        env := reductionEnv;
-        residual := reduce(exp);
-        env := 'env';
-        # TODO: get rid of this extra eval
-        residual := eval(residual, [ _Tag_STATICTABLE = ((x,v) -> x),
-                         _Tag_STATICEXPSEQ = (() -> args),
-                         SArgs = (() -> MArgs())]);
 
-        return residual;
+### Reduction under uneval #############################################################
+
+# this code sucks!
+
+    unred[MParam] := proc(x)
+        if env:-isStatic(x) then
+            env:-getVal(x)
+        else
+            MParam(x);
+        end if;
+    end proc;
+
+    unred[MLocal] := MLocal;
+    unred[MSingleUse] := MSingleUse;
+
+
+    unred[MFunction] := proc(f, expseq)
+        rf := unreduce(expseq);
+        re := unreduce(expseq);
+        if rf::symbol and re::Static then
+            'rf(re)';
+        else
+            MFunction(rf, re);
+        end if;
+    end proc;
+
+    unred[MTableref] := proc(tbl, eseq)
+        rt := unreduce(tbl);
+        re := unreduce(eseq);
+        if rt::Static and re::Static then
+            rt[re];
+        else
+            MTableRef(rt, re);
+        end if;
     end proc;
 
 end module;
