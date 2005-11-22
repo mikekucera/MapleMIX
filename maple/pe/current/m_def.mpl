@@ -6,12 +6,21 @@ M := module()
            CreateLexMap,
            Params, Locals, ProcBody, Header, Last, Front,
            Cond, Then, Else,
+           Try, CatchSeq, Finally,
            Var, IndexExp,
-           ssop, remseq;
-    local intrinsic, createTableProcs, usesFlag, setFlag, createMap;
+           ssop, remseq,
+           intrinsic, variables, HasVariable;
+    local createTableProcs, usesFlag, setFlag, createMap;
 
     # set of builtin function names
     intrinsic := {anames(builtin)};
+
+    # mforms for variables
+    variables := {MParam, MLocal, MGeneratedName, MSingleUse};
+
+    HasVariable := proc(m::mform)
+        hasfun(m, variables);
+    end proc;
 
     # returns three procs that apply their args to the given table of procs
     createTableProcs := proc(tbl)
@@ -182,15 +191,22 @@ M := module()
     LexSeq    := proc(x) option inline; op(8,x) end proc:
 
     # for MIfThenElse
-    Cond := proc(x) option inline; op(1, x) end proc;
-    Then := proc(x) option inline; op(2, x) end proc;
-	Else := proc(x) option inline; op(3, x) end proc;
+    Cond := proc(x) option inline; op(1,x) end proc;
+    Then := proc(x) option inline; op(2,x) end proc;
+	Else := proc(x) option inline; op(3,x) end proc;
 
 	# for MTableRef
-	Var      := proc(x) option inline; op(1, x) end proc;
-	IndexExp := proc(x) option inline; op(2, x) end proc;
+	Var      := proc(x) option inline; op(1,x) end proc;
+	IndexExp := proc(x) option inline; op(2,x) end proc;
 
+    # for MTry
+    Try      := proc(x) option inline; op(1,x) end proc;
+    CatchSeq := proc(x) option inline; op(2,x) end proc;
+    Finally  := proc(x) option inline; op(3,x) end proc;
 
+    # for MCatch
+    CatchString  := proc(x) option inline; op(1,x) end proc;
+    CatchBody    := proc(x) option inline; op(2,x) end proc;
 
 $include "m_tom.mpl"
 

@@ -11,7 +11,7 @@ CallStack := module()
 
             stack := SimpleStack();
 
-            push := proc(env)
+            push := proc(env := OnENV())
                 tbl := table();
                 tbl["env"] := env;
                 tbl["conditional"] := false;

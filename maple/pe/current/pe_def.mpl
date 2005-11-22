@@ -136,6 +136,7 @@ end proc;
 # probably won't be needed if I go with the sp-function approach
 isUnfoldable := proc(inertProcedure::mform(Proc))
     if not callStack:-inConditional() then
+        print("returning true");
         return true;
     end if;
     flattened := M:-FlattenStatSeq(M:-ProcBody(inertProcedure));
@@ -161,11 +162,11 @@ pe[MStandaloneExpr] := e -> MStandaloneExpr(ReduceExp(e, callStack:-topEnv()));
 pe[MReturn] := e -> MReturn(ReduceExp(e, callStack:-topEnv()));
 
 
-pe[MStatSeq] := proc()
+pe[MStatSeq] := proc() :: mform(StatSeq);
     q := SimpleQueue();
     for i from 1 to nargs do
         stmtCount := stmtCount + 1;
-        if false then
+        if true then
             print();
             print("stat");
             if member(Header(args[i]), {MIfThenElse}) then
@@ -178,6 +179,9 @@ pe[MStatSeq] := proc()
 
         res := peM([args][i]);
         if nops([res]) > 0 then
+            if op(0,res) = MTry and i < nargs then
+                error "code after a try/catch is not supported";
+            end if;
             q:-enqueue(res);
             if M:-EndsWithReturn(res) then
                 break
@@ -257,12 +261,54 @@ end proc;
 
 
 
+pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
+    rtry := peM(tryBlock);
+
+    if rtry = NULL then
+        return NULL;
+    elif nops(rtry) = 1 then
+        stat := op(1,rtry);
+        if member(Header(stat), {MReturn, MStandaloneExpr}) and op(1,stat)::Static then
+            return stat;
+        end if;
+    end if;
+
+    top := callStack:-topEnv();
+    q := SimpleQueue();
+
+    for c in catchSeq do
+        callStack:-push();
+        rcat := peM(M:-CatchBody(c));
+        if M:-HasVariable(rcat) then
+            error "variables in catch block not supported";
+        end if;
+        q:-enqueue(MCatch(M:-CatchString(c), rcat));
+        callStack:-pop();
+    end do;
+
+    rfin := NULL;
+    if nargs = 3 then # there is a finally block
+        callStack:-push();
+        rfin := peM(op(finallyBlock));
+        if M:-HasVariable(rfin) then
+            error "variables in finally block not supported";
+        end if;
+        callStack:-pop();
+    end if;
+
+    callStack:-push(top);
+    MTry(rtry, MCatchSeq(op(q:-toList())), rfin);
+end proc;
+
+
 
 pe[MStandaloneFunction] := proc()
     unfold := proc(residualProcedure, redCall, fullCall)
         M:-Unfold:-UnfoldStandalone(residualProcedure, redCall, fullCall, gen);
     end proc;
-    peFunction(args, unfold, ()-> MStandaloneFunction(args));
+    residualize := ()-> MStandaloneFunction(args);
+    symbolic := () -> MStandaloneExpr(args);
+    peFunction(args, unfold, residualize, symbolic);
 end proc;
 
 
@@ -271,20 +317,30 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
     unfold := proc(residualProcedure, redCall, fullCall)
         res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         flattened := M:-FlattenStatSeq(res);
+        print("flattened", flattened);
         # If resulting statseq has only one statment then
         # it must be an assign because thats what UnfoldIntoAssign does
         if nops(flattened) = 1 then
             assign := op(flattened);
             expr := op(2, assign);
             if expr::Static then
-                varName := op([1,1], assign);
-                callStack:-topEnv():-putVal(varName, expr);
-                return NULL;
+                #varName := op([1,1], assign);
+                return symbolic(expr);
+                #callStack:-topEnv():-putVal(varName, expr);
+                #return NULL;
             end if;
         end if;
         flattened;
     end proc;
-    peFunction(op(funcCall), unfold, () -> MAssign(var, MFunction(args)));
+
+    residualize := () -> MAssignToFunction(var, MFunction(args));
+
+    symbolic := proc(s)
+        callStack:-topEnv():-putVal(op(var), s);
+        NULL;
+    end proc;
+
+    peFunction(op(funcCall), unfold, residualize, symbolic);
 end proc;
 
 
@@ -335,12 +391,21 @@ end proc;
 
 
 # takes continuations to be applied if f results in a procedure
-peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::procedure)
+peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::procedure, symbolic::procedure)
     fun := ReduceExp(f, callStack:-topEnv());
 
-    if fun::Dynamic or type(eval(fun), `symbol`) then # should treat a symbol differently
+    if fun::Dynamic then
         # don't know what function was called, residualize call
-        MFunction(fun, map(peResidualizeExpr, argExpSeq));
+        MFunction(fun, ReduceExp(argExpSeq, callStack:-topEnv()))
+
+    elif type(eval(fun), `symbol`) then
+        redargs := ReduceExp(argExpSeq, callStack:-topEnv());
+        if [redargs]::list(Static) then
+            symbolic(fun(redargs));
+        else
+            residualize(fun, MExpSeq(redargs));
+        end if;
+
     elif Header(fun) = Closure then
         # TODO, the full functionality of peArgList is not needed here
         newEnv, a, b := peArgList(M:-Params(Code(fun)), argExpSeq);

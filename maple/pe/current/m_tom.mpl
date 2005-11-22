@@ -1,30 +1,30 @@
 
 ToM := module()
-    export ModuleApply;    
+    export ModuleApply;
     local MapStack,
     	  itom, itom2, mapitom,  m, gen, createVarMap, getVar;
 
     m := table();
-    
+
     itom, itom2, mapitom := createTableProcs(m);
 
     gen := NameGenerator("m");
-    
+
     ModuleApply := proc(x::inert)
     	MapStack := SimpleStack();
     	res := itom(x);
 		MapStack := 'MapStack';
 		res;
-    end proc;        
+    end proc;
 
     createVarMap := proc(varSeq)
-        createMap(varSeq, 
+        createMap(varSeq,
         proc(tbl, i, var)
             tbl[i] := op(`if`(op(0,var)=_Inert_DCOLON, [1,1], 1), var)
         end proc)
     end proc;
 
-    
+
     # maps lexical indicies to their names
     createLexIndexMap := proc(lexicalseq)
         createMap(lexicalseq,
@@ -32,27 +32,27 @@ ToM := module()
             tbl[i] := op([1,1], lexpair)
         end proc)
     end proc;
-    
 
-    getVar := (mapname, x) -> MapStack:-top()[mapname][x];    
+
+    getVar := (mapname, x) -> MapStack:-top()[mapname][x];
     getLexVar := x -> getVar('lex', x);
 
-    
-    isStandalone := proc(x)        
-        member(op(0,x), 
-            {_Inert_SUM, _Inert_PROD, _Inert_POWER, _Inert_CATENATE, 
-             _Inert_EQUATION, _Inert_LESSEQ, _Inert_LESSTHAN, _Inert_IMPLIES, 
-             _Inert_AND, _Inert_OR, _Inert_XOR, _Inert_NOT, _Inert_INTPOS, 
-             _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING, _Inert_COMPLEX, 
-             _Inert_RATIONAL, _Inert_EXPSEQ, _Inert_LIST, _Inert_SET, 
-             _Inert_PARAM, _Inert_LOCAL, _Inert_NAME, _Inert_TABLEREF, 
+
+    isStandalone := proc(x)
+        member(op(0,x),
+            {_Inert_SUM, _Inert_PROD, _Inert_POWER, _Inert_CATENATE,
+             _Inert_EQUATION, _Inert_LESSEQ, _Inert_LESSTHAN, _Inert_IMPLIES,
+             _Inert_AND, _Inert_OR, _Inert_XOR, _Inert_NOT, _Inert_INTPOS,
+             _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING, _Inert_COMPLEX,
+             _Inert_RATIONAL, _Inert_EXPSEQ, _Inert_LIST, _Inert_SET,
+             _Inert_PARAM, _Inert_LOCAL, _Inert_NAME, _Inert_TABLEREF,
              _Inert_MEMBER});
     end proc;
-    
-    
+
+
     # takes an inert expression and splits it
     splitAssigns := proc(e::inert)
-        q := SimpleQueue();          
+        q := SimpleQueue();
 
         # generation of assigns is a side effect of nested proc
         examineFunc := proc(f)
@@ -60,12 +60,12 @@ ToM := module()
             if member(convert(op(1, f), name), intrinsic) then
                 MFunction(args);
             else
-                newvar := gen();    
-                q:-enqueue(MAssignToFunction(MGeneratedName(newvar), MFunction(mapitom(args))));                
+                newvar := gen();
+                q:-enqueue(MAssignToFunction(MGeneratedName(newvar), MFunction(mapitom(args))));
                 MSingleUse(newvar);
-            end if; 
+            end if;
         end proc;
-        
+
         # eval doesn't work properly for statments, so must remove nested lambdas
         lambdas := table();
         lamGen := NameGenerator("lambda");
@@ -74,7 +74,7 @@ ToM := module()
             lambdas[marker] := _Inert_PROC(args);
             MarkedLambda(marker);
         end proc;
-        
+
         # replace lambdas after the expression has been split
         replaceLambda := proc(marker)
             lambdas[marker]
@@ -86,7 +86,7 @@ ToM := module()
         return q:-toList(), itom(res);
     end proc;
 
-    
+
     # splits the given expression, then applies the continuation k to the stripped expression
     split := proc(expr, k)
         assigns, reduced := splitAssigns(expr);
@@ -96,27 +96,27 @@ ToM := module()
         	MStatSeq(op(assigns), k(reduced));
         end if;
     end proc;
-    
-    # version of split that returns the results instead of applying a continuation    
+
+    # version of split that returns the results instead of applying a continuation
     splitReturn := proc(expr)
         assigns, reduced := splitAssigns(expr);
         return MStatSeq(op(assigns)), reduced;
     end proc;
-    
-    
+
+
     m['string'] := () -> args;
     m['Integer'] := () -> args;
     m[MSingleUse] := MSingleUse;
-    
+
     m[_Inert_NAME]     := MName @ mapitom;
     m[_Inert_LOCAL]    := x -> MLocal(getVar('locals', x));
     m[_Inert_PARAM]    := x -> MParam(getVar('params', x));
-    
+
     m[_Inert_LEXICAL_LOCAL] := MLexicalLocal @ getLexVar;
     m[_Inert_LEXICAL_PARAM] := MLexicalParam @ getLexVar;
     m[_Inert_LEXICALPAIR]   := MLexicalPair  @ itom2;
     m[_Inert_LOCALNAME]     := MLocalName    @ mapitom;
-        
+
     m[_Inert_ASSIGNEDNAME] := MAssignedName @ mapitom;
     m[_Inert_ASSIGNEDLOCALNAME] := MAssignedLocalName @ mapitom;
 
@@ -155,17 +155,17 @@ ToM := module()
     m[_Inert_INEQUAT]   := MInequat @ mapitom;
     m[_Inert_FORFROM]   := MForFrom @ mapitom;
     m[_Inert_FORIN]     := MForIn @ mapitom;
-    
+
     m[_Inert_MEMBER]    := MMember    @ mapitom;
     m[_Inert_ATTRIBUTE] := MAttribute @ mapitom;
-    
+
     m[_Inert_PARAMSEQ]       := MParamSeq       @ mapitom;
     m[_Inert_LOCALSEQ]       := MLocalSeq       @ mapitom;
-    m[_Inert_OPTIONSEQ]      := MOptionSeq      @ mapitom;    
+    m[_Inert_OPTIONSEQ]      := MOptionSeq      @ mapitom;
     m[_Inert_DESCRIPTIONSEQ] := MDescriptionSeq @ mapitom;
-    m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;    
+    m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;
     m[_Inert_EOP]            := MEop            @ mapitom;
-                                            
+
     m[_Inert_PROC] := proc()
         maps := table();
         maps['params'] := createVarMap([args][1]);
@@ -175,9 +175,9 @@ ToM := module()
         # add placeholders for flags
         MProc(mapitom(args), MFlags( MArgsFlag(UNKNOWN), MNargsFlag(UNKNOWN) ));
     end proc;
-    
-    # The lexical sequence comes after the proc body so its ok to pop the stacks 
-    # here. Actually its needed because the locals and params in the lexical 
+
+    # The lexical sequence comes after the proc body so its ok to pop the stacks
+    # here. Actually its needed because the locals and params in the lexical
     # pairs refer to the outer environment.
     m[_Inert_LEXICALSEQ] := proc()
          MapStack:-pop();
@@ -193,10 +193,10 @@ ToM := module()
             else
                 itom(x)
             end if;
-        end proc;   
+        end proc;
         MStatSeq(op(map(processInert, [args])));
     end proc;
-    
+
     m[_Inert_FUNCTION] := proc(n, expseq)
         if member(convert(op(1,n), name), intrinsic) then
             split(expseq, x -> MStandaloneExpr(MFunction(itom(n), x)));
@@ -204,11 +204,11 @@ ToM := module()
             split(expseq, curry(MStandaloneFunction, itom(n)));
         end if;
     end proc;
-    
+
     # MFunction is introduced prematurely by the expression splitter
     m[MFunction] := MFunction @ mapitom;
-    
-    
+
+
     m[_Inert_ASSIGN] := proc(target, expr)
         if Header(target) = _Inert_TABLEREF then
             assigns, strippedTarget := splitReturn(target);
@@ -217,8 +217,8 @@ ToM := module()
             split(expr, curry(MAssign, itom(target)))
         end if;
     end proc;
-    
-    
+
+
     m[_Inert_RETURN] := e -> split(e, MReturn);
 
     m[_Inert_IF] := proc()
@@ -227,32 +227,33 @@ ToM := module()
         elif typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything), 'el'::inert(STATSEQ)]) then
             split(c, red -> MIfThenElse(red, itom(s), itom(el)));
         else
-            condpair := op(1, [args]); 
+            condpair := op(1, [args]);
             rest := op(2..-1, [args]);
-            c, s := op(1, condpair), op(2, condpair);            
+            c, s := op(1, condpair), op(2, condpair);
             split(c, red -> MIfThenElse(red, itom(s), itom(_Inert_IF(rest))));
         end if;
     end proc;
-    
+
     # converts a type assertion into a 'typed name'
     m[_Inert_DCOLON] := proc(n, t)
         MTypedName(op(n), MType(FromInert(t)));
     end proc;
 
-    
+
     m[_Inert_TRY] := proc()
         catches := proc()
-            strings, bodies := selectremove(type, [args], inert(STRING));
+            bodies, strings := selectremove(type, [args], inert(STATSEQ));
+            #strings, bodies := selectremove(type, [args], inert(STRING));
             f := (x,y) -> MCatch(itom(x), itom(y));
             (MCatchSeq @ op @ zip)(f, strings, bodies);
         end proc;
-        
+
         fin := NULL;
         if nargs mod 2 = 0 then
             fin := MFinally(itom(args[nargs]));
         end if;
-        
+
         MTry(itom(args[1]), catches(args[2..nargs]), fin);
     end proc;
-    
+
 end module:
