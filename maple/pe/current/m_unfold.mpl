@@ -108,25 +108,37 @@ Unfold := module()
     # assumes returns have been removed and code is in if normal form
     addAssigns := proc(code::mform, var::string)
         # TODO need to add support for loops and other structures
-        doAdd := proc(c)
-	        header := Header(c);
-	        if header = MStatSeq then
+        doAdd := proc(c) local t, cs, f;
+	        h := Header(c);
+	        if h = MStatSeq then
 	            flat := FlattenStatSeq(c);
 	            if flat = MStatSeq() then
 	                return MStatSeq();
 	            end if;
 	            MStatSeq(Front(flat), procname(Last(flat)));
-	        elif header = MIfThenElse then
+
+	        elif h = MIfThenElse then
 	            MIfThenElse(Cond(c), procname(Then(c)), procname(Else(c)));
 
-	        elif header = MAssign then # shouldn't need this
+	        elif h = MAssign then # shouldn't need this
 	            MStatSeq(c, MAssign(MGeneratedName(var), op(1, c)));
 
-	        elif header = MStandaloneExpr then
+	        elif h = MStandaloneExpr then
 	            MAssign(MGeneratedName(var), op(c));
 
+            elif typematch(c, MTry('t'::anything, 'cs'::anything, 'f'::anything)) then
+                MTry(procname(t), procname(cs), MFinally(procname(op(f))));
+
+            elif typematch(c, MTry('t'::anything, 'cs'::anything)) then
+                MTry(procname(t), procname(cs));
+
+            elif h = MCatchSeq then
+                map(mc -> MCatch(CatchString(mc), doAdd(CatchBody(mc))), c);
+
+            elif h = MError then
+                c;
 	        else
-	            error "addAssigns, not supported yet: %1", header;
+	            error "addAssigns, not supported yet: %1", h;
 	        end if;
         end proc;
 

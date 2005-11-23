@@ -77,6 +77,8 @@ PartiallyEvaluate := proc(p::procedure)
     stmtCount := 0;
 
     m := getMCode(eval(p));
+    #print(m);
+    #error "hard stop";
 
     newEnv := OnENV();
     newEnv:-setArgs(table());
@@ -107,12 +109,21 @@ end proc;
 
 # takes inert code and assumes static variables are on top of callStack
 # called before unfold
-peSpecializeProc := proc(m::mform, n := "") #void
+peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
+    print("peSpecializeProc", m);
+    #print("lex", op(callStack:-topEnv():-getLex()));
     params := M:-Params(m);
     body   := M:-ProcBody(m);
 
     body := M:-TransformIfNormalForm(body);
     body := M:-AddImplicitReturns(body);
+
+    env := callStack:-topEnv();
+    if not env:-hasLex() then
+        lexMap := M:-CreateLexNameMap(M:-LexSeq(m), curry(op,2));
+        env:-attachLex(lexMap);
+        print("attachedLex", M:-LexSeq(m), op(lexMap));
+    end if;
 
     body := peM(body); # Partial Evaluation
 
@@ -120,7 +131,6 @@ peSpecializeProc := proc(m::mform, n := "") #void
     newProc := M:-SetArgsFlags(newProc);
 
     if not M:-UsesArgsOrNargs(newProc) then
-        env := callStack:-topEnv();
         newParamList := select(x -> env:-isDynamic(op(1,x)), params);
         newProc := subsop(1=newParamList, newProc);
     end if;
@@ -157,18 +167,23 @@ peM := proc(m::mform) local header; # returns inert code or NULL
 end proc;
 
 
-pe[MStandaloneExpr] := e -> MStandaloneExpr(ReduceExp(e, callStack:-topEnv()));
-pe[MReturn] := e -> MReturn(ReduceExp(e, callStack:-topEnv()));
+peResid := (f, e) -> f(ReduceExp(e, callStack:-topEnv()));
+
+pe[MStandaloneExpr] := curry(peResid, MStandaloneExpr);
+pe[MReturn] := curry(peResid, MReturn);
+pe[MError]  := curry(peResid, MError);
+
 
 
 pe[MStatSeq] := proc() :: mform(StatSeq);
     q := SimpleQueue();
     for i from 1 to nargs do
         stmtCount := stmtCount + 1;
+
         if true then
             print();
             print("stat");
-            if member(Header(args[i]), {MIfThenElse}) then
+            if member(Header(args[i]), {MIfThenElse, MTry}) then
     	        print(Header(args[i]));
     	    else
     	        print(args[i]);
@@ -182,7 +197,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
                 error "code after a try/catch is not supported";
             end if;
             q:-enqueue(res);
-            if M:-EndsWithReturn(res) then
+            if M:-EndsWithErrorOrReturn(res) then
                 break
             end if;
         end if;
@@ -272,7 +287,7 @@ pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
         end if;
     end if;
 
-    top := callStack:-topEnv();
+    #top := callStack:-pop();
     q := SimpleQueue();
 
     for c in catchSeq do
@@ -295,7 +310,7 @@ pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
         callStack:-pop();
     end if;
 
-    callStack:-push(top);
+    #callStack:-push(top);
     MTry(rtry, MCatchSeq(op(q:-toList())), rfin);
 end proc;
 
@@ -316,7 +331,6 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
     unfold := proc(residualProcedure, redCall, fullCall)
         res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         flattened := M:-FlattenStatSeq(res);
-        print("flattened", flattened);
         # If resulting statseq has only one statment then
         # it must be an assign because thats what UnfoldIntoAssign does
         if nops(flattened) = 1 then
@@ -395,7 +409,7 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
 
     if fun::Dynamic then
         # don't know what function was called, residualize call
-        MFunction(fun, ReduceExp(argExpSeq, callStack:-topEnv()))
+        MFunction(fun, ReduceExp(argExpSeq, callStack:-topEnv()));
 
     elif type(eval(fun), `symbol`) then
         redargs := ReduceExp(argExpSeq, callStack:-topEnv());
@@ -411,6 +425,7 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
         # attach lexical environment to the environment of the function
         newEnv:-attachLex(Lex(fun));
         callStack:-push(newEnv);
+        print("processing a closure");
         res := peSpecializeProc(Code(fun));
         callStack:-pop();
         newEnv:-removeLex();
@@ -445,9 +460,8 @@ peRegularFunction := proc(fun::procedure, argExpSeq::mform(ExpSeq), unfold, resi
 	m := getMCode(eval(fun));
 
     newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);
-    lexMap := M:-CreateLexNameMap(M:-LexSeq(m), curry(op,2));
-    newEnv:-attachLex(lexMap);
-
+#    lexMap := M:-CreateLexNameMap(M:-LexSeq(m), curry(op,2));
+#    newEnv:-attachLex(lexMap);
 
     callStack:-push(newEnv);
     newProc := peSpecializeProc(m, newName);

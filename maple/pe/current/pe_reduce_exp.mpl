@@ -12,8 +12,10 @@ ReduceExp := module()
 
 
     ModuleApply := proc(exp, reductionEnv := OnENV()) local residual;
+        #print("reducing", exp);
         env := reductionEnv;
         residual := reduce(exp);
+        #print("reduced", residual);
         env := 'env';
         # TODO: get rid of this extra eval
         eval(residual, [ _Tag_STATICTABLE = ((x,v) -> x),
@@ -22,8 +24,6 @@ ReduceExp := module()
     end proc;
 
 
-### Functions that drive the reduction #############################################
-
     reduce := proc(exp)
         h := op(0,exp);
         if assigned(red[h]) then
@@ -31,16 +31,6 @@ ReduceExp := module()
         end if;
         error "reduction of %1 not supported yet", h
     end proc;
-
-
-    # reduction under uneval semantics
-    #unreduce := proc(exp)
-    #    h := op(0,exp);
-    #    if assigned(unred[h]) then
-    #        return unred[h](op(exp))
-    #    end if;
-    #    error "unreduction of %1 not supported", h
-    #end proc;
 
 
     reduceAll := proc()
@@ -61,7 +51,7 @@ ReduceExp := module()
     naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
 
 
-### Standard reducer  ###############################################################
+
 
     red['Integer'] := () -> args;
     red['string']  := () -> args;
@@ -79,11 +69,12 @@ ReduceExp := module()
     red[MAnd]      := binOp(MAnd,      `and`);
     red[MOr]       := binOp(MOr,       `or`);
     red[MXor]      := binOp(MXor,      `xor`);
+    red[MRange]    := binOp(MRange,    `..`);
 
     red[MNot] := unOp(MNot, `not`);
 
-    red[MInt]    := x -> x;
-    red[MString] := x -> x;
+    red[MInt]    := () -> args;
+    red[MString] := () -> args;
     red[MFloat]  := (x,y) -> FromInert(_Inert_FLOAT(M:-FromM(x),M:-FromM(y)));
 
 
@@ -91,8 +82,8 @@ ReduceExp := module()
     red[MArgs]     := () -> SArgs(env:-getArgs());
     red[MNargs]    := () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
 
-    red[MAssignedName] := n -> convert(n, name);
     red[MName]         := n -> convert(n, name);
+    red[MAssignedName] := red[MName];
 
 
     red[MExpSeq] := proc()
@@ -112,7 +103,8 @@ ReduceExp := module()
 
     red[MMember] := proc(x1, x2)
         rx1 := reduce(x1);
-        rx2 := reduce(x2);
+        rx2 := reduce(x2); # TODO, this is strange semantics, the right side of a member is not evaluated like this
+                           # should be able to put an eval around the body of MName
         if type(rx1, `package`) then
             SPackageLocal(rx1, rx1[rx2]);
         elif op(0,rx1) = SPackageLocal and type(op(2,rx1), `package`) then
@@ -191,7 +183,12 @@ ReduceExp := module()
         if not env:-hasLex() then
             error "no lexical environment available";
         end if;
-        FromInert(M:-FromM(env:-getLex()[x]));
+        lex := env:-getLex();
+        if assigned(lex[x]) then
+            FromInert(M:-FromM(lex[x]));
+        else
+            error "cannot find '%1' in lexical environment: %2", x, [op(lex)];
+        end if
     end proc;
 
     # TODO, maybe needs to call back into the
@@ -200,7 +197,7 @@ ReduceExp := module()
         Closure(env, MProc(args));
     end proc;
 
-    
+
     red[MUneval] := proc(e)
         if op(0,e) = MName then
             convert(op(1,e), name);
@@ -208,45 +205,6 @@ ReduceExp := module()
             MUneval(e);
         end if;
     end proc;
-    
 
-### Reduction under uneval #############################################################
-
-# this code sucks!
-
-    #unred[MAssignedName] := n -> convert(n, name);
-    #unred[MName]         := n -> convert(n, name);
-    
-    #unred[MParam] := proc(x)
-    #    if env:-isStatic(x) then
-    #        env:-getVal(x)
-    #    else
-    #        MParam(x);
-    #    end if;
-    #end proc;
-
-    #unred[MLocal] := MLocal;
-    #unred[MSingleUse] := MSingleUse;
-
-
-    #unred[MFunction] := proc(f, expseq)
-    #    rf := unreduce(expseq);
-    #    re := unreduce(expseq);
-    #    if rf::Static and re::Static then
-    #        rf(re);
-    #    else
-    #        MFunction(rf, re);
-    #   end if;
-    #end proc;
-
-    #unred[MTableref] := proc(tbl, eseq)
-    #    rt := unreduce(tbl);
-    #    re := unreduce(eseq);
-    #    if rt::Static and re::Static then
-    #        rt[re];
-    #    else
-    #        MTableRef(rt, re);
-    #    end if;
-    #end proc;
 
 end module;

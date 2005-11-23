@@ -1,7 +1,7 @@
 
 M := module()
     export Print, ToM, FromM, ReduceExp, TransformIfNormalForm, Unfold,
-           EndsWithReturn, FlattenStatSeq, AddImplicitReturns,
+           EndsWithErrorOrReturn, FlattenStatSeq, AddImplicitReturns,
            SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs,
            CreateLexMap,
            Params, Locals, ProcBody, Header, Last, Front,
@@ -120,13 +120,13 @@ M := module()
 
 
     # returns true iff the given statment is a return or is a statseq that ends with a return
-    EndsWithReturn := proc(m::mform)
+    EndsWithErrorOrReturn := proc(m::mform)
         if m = MStatSeq() then
             false;
         elif Header(m) = MStatSeq then
             procname(op(-1, FlattenStatSeq(m)));
         else
-            evalb(Header(m) = MReturn);
+            evalb(member(Header(m), {MStatSeq, MError}));
         end if;
     end proc;
 

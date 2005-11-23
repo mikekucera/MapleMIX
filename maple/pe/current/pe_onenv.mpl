@@ -4,10 +4,10 @@
 
 OnENV := module()
     export NewOnENV, ModuleApply;
-    description "Online knowledge environment";   
-    
+    description "Online knowledge environment";
+
     ModuleApply := NewOnENV;
-    
+
     NewOnENV := proc()
         module()
             local valEnv, typeEnv, keyType,
@@ -19,59 +19,66 @@ OnENV := module()
                    getVal, hasTypeInfo,
                    isStatic, isDynamic,
                    setDynamic, clone, combine, overwrite, display;
-            
+
             # initialize "instance" variables
             valEnv  := table();
             typeEnv := table();
-        
-        
-            getLex := () -> lex;
-        
+
+
+            getLex := proc()
+                if not assigned(lex) then
+                    error "no lexical environment attached";
+                end if;
+                lex;
+            end proc;
+
             attachLex := proc(x)
+                if assigned(lex) then
+                    error "this env already has an attached lex: %1", op(lex);
+                end if;
                 lex := x;
             end proc;
-            
+
             removeLex := proc()
                 lex := 'lex';
             end proc;
-        
+
             hasLex := () -> evalb(assigned(lex));
-            
+
             setArgs := proc(tbl)
                 argsVal := tbl;
             end proc;
-            
+
             setNargs := proc(num)
                 nargsVal := num;
             end proc;
 
             getArgs  := () -> argsVal;
             getNargs := () -> nargsVal;
-            
+
             hasNargs := () -> assigned(nargsVal);
 
-            
-        
+
+
             # normalizes all keys to the same type
             keyType := x -> convert(x, string);
-        
-            
+
+
             # sets a value overwriting previous one
             putVal  := proc(key, val) valEnv[keyType(key)]  := val end proc;
             putType := proc(key, typ) typeEnv[keyType(key)] := typ end proc;
-            
+
             # returns the value
             getVal  := getProc(valEnv);
             getType := getProc(typeEnv);
- 
+
             getProc := proc(tbl)
-                proc(key)
-                    local n;
+                proc(key) local n;
                     n := keyType(key);
-                    if not assigned(evaln(tbl[n])) then
-                        error("no value for " || key);
-                    else
+                    if assigned(tbl[n]) then
                         tbl[n];
+                    else
+                        error "no value for %1", key;
                     end if;
                 end proc;
             end proc;
@@ -79,15 +86,15 @@ OnENV := module()
 
             # returns indices
             valIndices  := () -> keys(valEnv);
-            typeIndices := () -> keys(typeEnv);            
-            
-                    
+            typeIndices := () -> keys(typeEnv);
+
+
             # a variable is static if it is mapped
             isStatic := key -> assigned(valEnv[keyType(key)]);
-            
-            
+
+
             isDynamic := key -> not isStatic(key);
-            
+
             # returns true if there exists a type environment mapping
             hasTypeInfo := key -> assigned(typeEnv[keyType(key)]);
 
@@ -112,22 +119,22 @@ OnENV := module()
 
                 newenv;
             end proc;
-                       
- 
+
+
             combine := proc(onenv)
                 local newenv, i;
                 newenv := clone();
-                
+
                 for i in op(onenv:-valIndices()) do
                     newenv:-putVal(i, onenv:-getVal(i));
                 end do;
                 for i in op(onenv:-typeIndices()) do
                     newenv:-putType(i, onenv:-getType(i));
                 end do;
-                                
+
                 newenv;
             end proc;
-            
+
             overwrite := proc(onenv)
                 valEnv  := table();
                 typeEnv := table();
@@ -143,7 +150,7 @@ OnENV := module()
             display := proc()
                 print(op(valEnv), op(typeEnv));
             end proc;
-            
+
         end module;
     end proc;
 
