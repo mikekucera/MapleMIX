@@ -6,9 +6,10 @@ CallStack := module()
 
     New := proc()
         module()
-            local stack, get;
-            export push, pop, topEnv, inConditional, setConditional;
+            local stack, get, globals;
+            export push, pop, topEnv, inConditional, setConditional, globalEnv;
 
+            globals := OnENV();
             stack := SimpleStack();
 
             push := proc(env := OnENV())
@@ -36,6 +37,8 @@ CallStack := module()
                 tbl["conditional"] := b;
                 NULL;
             end proc;
+
+            globalEnv := () -> globals;
 
         end module;
     end proc;

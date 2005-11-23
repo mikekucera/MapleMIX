@@ -11,7 +11,7 @@ ReduceExp := module()
 
 
 
-    ModuleApply := proc(exp, reductionEnv := OnENV()) local residual;
+    ModuleApply := proc(exp, reductionEnv := callStack:-topEnv()) local residual;
         #print("reducing", exp);
         env := reductionEnv;
         residual := reduce(exp);

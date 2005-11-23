@@ -85,9 +85,16 @@ PartiallyEvaluate := proc(p::procedure)
     #mapLocalsToSymbols(newEnv, M:-Locals(m));
     callStack:-push(newEnv);
 
-    # perform partial evaluation
-    peSpecializeProc(m, "ModuleApply");
+    try
+        # perform partial evaluation
+        peSpecializeProc(m, "ModuleApply");
+    catch:
+        lprint(stmtCount, "statements partially evaluated before error");
+        error;
+    end try;
+
     Lifter:-LiftPostProcess(code);
+
     try
         res := (eval @ FromInert @ build_module)("ModuleApply");
     catch:
@@ -110,8 +117,6 @@ end proc;
 # takes inert code and assumes static variables are on top of callStack
 # called before unfold
 peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
-    print("peSpecializeProc", m);
-    #print("lex", op(callStack:-topEnv():-getLex()));
     params := M:-Params(m);
     body   := M:-ProcBody(m);
 
@@ -122,8 +127,8 @@ peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
     if not env:-hasLex() then
         lexMap := M:-CreateLexNameMap(M:-LexSeq(m), curry(op,2));
         env:-attachLex(lexMap);
-        print("attachedLex", M:-LexSeq(m), op(lexMap));
     end if;
+    env:-attachGlobals(M:-GlobalSeq(m));
 
     body := peM(body); # Partial Evaluation
 
@@ -167,7 +172,7 @@ peM := proc(m::mform) local header; # returns inert code or NULL
 end proc;
 
 
-peResid := (f, e) -> f(ReduceExp(e, callStack:-topEnv()));
+peResid := (f, e) -> f(ReduceExp(e));
 
 pe[MStandaloneExpr] := curry(peResid, MStandaloneExpr);
 pe[MReturn] := curry(peResid, MReturn);
@@ -207,7 +212,7 @@ end proc;
 
 
 pe[MIfThenElse] := proc(cond, s1, s2)
-    reduced := ReduceExp(cond, callStack:-topEnv());
+    reduced := ReduceExp(cond);
 
     # Can't just copy the environment and put a new copy on the stack
     # because there may exist closures that referece the environment.
@@ -239,23 +244,21 @@ end proc;
 
 
 pe[MAssign] := proc(n::mform(Local), expr::mform)
-	env := callStack:-topEnv();
-    reduced := ReduceExp(expr, env);
-
+    reduced := ReduceExp(expr);
     if reduced::Dynamic then
         MAssign(n, reduced);
     else
-        env:-putVal(op(n), reduced);
+        callStack:-topEnv():-putVal(op(n), reduced);
         NULL;
     end if;
 end proc;
 
 
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
-    env := callStack:-topEnv();
-    red1 := ReduceExp(M:-IndexExp(tr), env);
-    red2 := ReduceExp(expr, env);
+    red1 := ReduceExp(M:-IndexExp(tr));
+    red2 := ReduceExp(expr);
 
+    env := callStack:-topEnv();
     if [red1,red2]::[Static,Static] then
         var := M:-Var(tr);
         if env:-isDynamic(op(var)) then
@@ -365,12 +368,11 @@ peArgList := proc(params::mform(ParamSeq), argExpSeq::mform(ExpSeq))
    	redCall  := SimpleQueue(); # residual function call without statics
    	argsTbl := table(); # mappings for args
 
-   	top := callStack:-topEnv();
    	i := 0;
 
    	for arg in argExpSeq do
    	    i := i + 1;
-   	    reduced := ReduceExp(arg, top);
+   	    reduced := ReduceExp(arg);
    	    fullCall:-enqueue(reduced);
 
    	    if reduced::Dynamic then
@@ -405,14 +407,14 @@ end proc;
 
 # takes continuations to be applied if f results in a procedure
 peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::procedure, symbolic::procedure)
-    fun := ReduceExp(f, callStack:-topEnv());
+    fun := ReduceExp(f);
 
     if fun::Dynamic then
         # don't know what function was called, residualize call
-        MFunction(fun, ReduceExp(argExpSeq, callStack:-topEnv()));
+        MFunction(fun, ReduceExp(argExpSeq));
 
     elif type(eval(fun), `symbol`) then
-        redargs := ReduceExp(argExpSeq, callStack:-topEnv());
+        redargs := ReduceExp(argExpSeq);
         if [redargs]::list(Static) then
             symbolic(fun(redargs));
         else
@@ -425,7 +427,6 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
         # attach lexical environment to the environment of the function
         newEnv:-attachLex(Lex(fun));
         callStack:-push(newEnv);
-        print("processing a closure");
         res := peSpecializeProc(Code(fun));
         callStack:-pop();
         newEnv:-removeLex();
