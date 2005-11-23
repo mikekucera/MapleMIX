@@ -136,7 +136,6 @@ end proc;
 # probably won't be needed if I go with the sp-function approach
 isUnfoldable := proc(inertProcedure::mform(Proc))
     if not callStack:-inConditional() then
-        print("returning true");
         return true;
     end if;
     flattened := M:-FlattenStatSeq(M:-ProcBody(inertProcedure));

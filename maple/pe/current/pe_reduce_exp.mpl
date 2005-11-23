@@ -34,14 +34,13 @@ ReduceExp := module()
 
 
     # reduction under uneval semantics
-    unreduce := proc(exp)
-        h := op(0,exp);
-        if assigned(unred[h]) then
-            unred[h](op(exp))
-        else
-            reduce(exp)
-        end if;
-    end proc;
+    #unreduce := proc(exp)
+    #    h := op(0,exp);
+    #    if assigned(unred[h]) then
+    #        return unred[h](op(exp))
+    #    end if;
+    #    error "unreduction of %1 not supported", h
+    #end proc;
 
 
     reduceAll := proc()
@@ -95,10 +94,6 @@ ReduceExp := module()
     red[MAssignedName] := n -> convert(n, name);
     red[MName]         := n -> convert(n, name);
 
-
-    red[MUneval] := proc()
-        unreduce(args);
-    end proc;
 
     red[MExpSeq] := proc()
         rs := reduceAll(args);
@@ -205,41 +200,53 @@ ReduceExp := module()
         Closure(env, MProc(args));
     end proc;
 
+    
+    red[MUneval] := proc(e)
+        if op(0,e) = MName then
+            convert(op(1,e), name);
+        else
+            MUneval(e);
+        end if;
+    end proc;
+    
 
 ### Reduction under uneval #############################################################
 
 # this code sucks!
 
-    unred[MParam] := proc(x)
-        if env:-isStatic(x) then
-            env:-getVal(x)
-        else
-            MParam(x);
-        end if;
-    end proc;
+    #unred[MAssignedName] := n -> convert(n, name);
+    #unred[MName]         := n -> convert(n, name);
+    
+    #unred[MParam] := proc(x)
+    #    if env:-isStatic(x) then
+    #        env:-getVal(x)
+    #    else
+    #        MParam(x);
+    #    end if;
+    #end proc;
 
-    unred[MLocal] := MLocal;
-    unred[MSingleUse] := MSingleUse;
+    #unred[MLocal] := MLocal;
+    #unred[MSingleUse] := MSingleUse;
 
 
-    unred[MFunction] := proc(f, expseq)
-        rf := unreduce(expseq);
-        re := unreduce(expseq);
-        if rf::symbol and re::Static then
-            'rf(re)';
-        else
-            MFunction(rf, re);
-        end if;
-    end proc;
+    #unred[MFunction] := proc(f, expseq)
+    #    rf := unreduce(expseq);
+    #    re := unreduce(expseq);
+    #    if rf::Static and re::Static then
+    #        rf(re);
+    #    else
+    #        MFunction(rf, re);
+    #   end if;
+    #end proc;
 
-    unred[MTableref] := proc(tbl, eseq)
-        rt := unreduce(tbl);
-        re := unreduce(eseq);
-        if rt::Static and re::Static then
-            rt[re];
-        else
-            MTableRef(rt, re);
-        end if;
-    end proc;
+    #unred[MTableref] := proc(tbl, eseq)
+    #    rt := unreduce(tbl);
+    #    re := unreduce(eseq);
+    #    if rt::Static and re::Static then
+    #        rt[re];
+    #    else
+    #        MTableRef(rt, re);
+    #    end if;
+    #end proc;
 
 end module;
