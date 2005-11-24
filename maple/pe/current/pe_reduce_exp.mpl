@@ -12,10 +12,10 @@ ReduceExp := module()
 
 
     ModuleApply := proc(exp, reductionEnv := callStack:-topEnv()) local residual;
-        print("reducing", exp);
+        #print("reducing", exp);
         env := reductionEnv;
         residual := reduce(exp);
-        print("reduced", residual);
+        #print("reduced", residual);
         env := 'env';
         # TODO: get rid of this extra eval
         eval(residual, [ _Tag_STATICTABLE = ((x,v) -> x),
@@ -90,14 +90,15 @@ ReduceExp := module()
 
 
     reduceName := f -> proc(n)
-        print("globals", env:-getGlobals());
         if env:-hasGlobal(f(args)) then
             globalEnv := callStack:-globalEnv();
             if globalEnv:-isStatic(n) then
                 return globalEnv:-getVal(n);
             end if;
         end if;
-        convert(n, name);
+        cn := convert(n, name);
+        e := eval(cn);
+        `if`(e::`procedure` or e::`module`, cn, e);
     end proc;
 
 

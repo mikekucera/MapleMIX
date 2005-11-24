@@ -195,8 +195,6 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
 
         res := peM([args][i]);
 
-        print("stat result", res);
-
         if nops([res]) > 0 then
             if op(0,res) = MTry and i < nargs then
                 error "code after a try/catch is not supported";
@@ -251,9 +249,7 @@ pe[MAssign] := proc(n::mform({Local, Name, AssignedName}), expr::mform)
         callStack:-topEnv():-putVal(op(n), reduced);
         NULL;
     else
-        print("assigned to global");
         callStack:-globalEnv():-putVal(op(1,n), reduced);
-        callStack:-globalEnv():-display();
         NULL;
     end if;
 end proc;
