@@ -82,6 +82,23 @@ expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")), _Inert_LOCALSEQ(_Iner
 
 Try(400, got, expected);
 
+# Test 5: nothing to do with bp #######################################
+
+goal := proc(d) local x;
+    x := 1;
+    x := x + d;
+    return x;
+end proc;
+
+ped := OnPE(goal);
+
+got := ToInert(eval(ped:-ModuleApply));
+
+expected := ToInert(proc(d) local x; x := 1 + d; return x end proc);
+
+
+Try(500, got, expected);
+
 #######################################################################
 
 

@@ -116,11 +116,12 @@ OnENV := module()
             hasTypeInfo := key -> assigned(typeEnv[keyType(key)]);
 
             # deletes all information about the given variable
-            setDynamic := proc(key)
-               local n;
-               n := keyType(key);
-               valEnv[n]  := evaln(valEnv[n]);
-               typeEnv[n] := evaln(typeEnv[n]);
+            setDynamic := proc(key) local n;
+                n := keyType(key);
+                valEnv[n]  := evaln(valEnv[n]);
+                typeEnv[n] := evaln(typeEnv[n]);
+                print("setdynamic", valEnv[n]);
+                NULL;
             end proc;
 
             clone := proc()

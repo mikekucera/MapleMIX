@@ -240,10 +240,11 @@ pe[MIfThenElse] := proc(cond, s1, s2)
     end if;
 end proc;
 
-
-pe[MAssign] := proc(n::mform({Local, Name, AssignedName}), expr::mform)
+#TODO this is wrong
+pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate}), expr::mform)
     reduced := ReduceExp(expr);
     if reduced::Dynamic then
+        callStack:-topEnv():-setDynamic(op(1,n)); # TODO, make sure stuff becomes dynamic as appropriate
         MAssign(n, reduced);
     elif n::mform(Local) then
         callStack:-topEnv():-putVal(op(n), reduced);
@@ -254,7 +255,7 @@ pe[MAssign] := proc(n::mform({Local, Name, AssignedName}), expr::mform)
     end if;
 end proc;
 
-
+# TODO, need a way of setting a table index to dynamic
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
     red1 := ReduceExp(M:-IndexExp(tr));
     red2 := ReduceExp(expr);
