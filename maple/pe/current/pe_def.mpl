@@ -77,12 +77,9 @@ PartiallyEvaluate := proc(p::procedure)
     stmtCount := 0;
 
     m := getMCode(eval(p));
-    #print(m);
-    #error "hard stop";
 
     newEnv := OnENV();
     newEnv:-setArgs(table());
-    #mapLocalsToSymbols(newEnv, M:-Locals(m));
     callStack:-push(newEnv);
 
     try
@@ -128,7 +125,7 @@ peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
         lexMap := M:-CreateLexNameMap(M:-LexSeq(m), curry(op,2));
         env:-attachLex(lexMap);
     end if;
-    env:-attachGlobals(M:-GlobalSeq(m));
+    env:-attachGlobals({op(M:-GlobalSeq(m))}); # store globals as a set, so it can be used directly with member
 
     body := peM(body); # Partial Evaluation
 
@@ -197,6 +194,9 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
 	    end if;
 
         res := peM([args][i]);
+
+        print("stat result", res);
+
         if nops([res]) > 0 then
             if op(0,res) = MTry and i < nargs then
                 error "code after a try/catch is not supported";
@@ -243,12 +243,17 @@ pe[MIfThenElse] := proc(cond, s1, s2)
 end proc;
 
 
-pe[MAssign] := proc(n::mform(Local), expr::mform)
+pe[MAssign] := proc(n::mform({Local, Name, AssignedName}), expr::mform)
     reduced := ReduceExp(expr);
     if reduced::Dynamic then
         MAssign(n, reduced);
-    else
+    elif n::mform(Local) then
         callStack:-topEnv():-putVal(op(n), reduced);
+        NULL;
+    else
+        print("assigned to global");
+        callStack:-globalEnv():-putVal(op(1,n), reduced);
+        callStack:-globalEnv():-display();
         NULL;
     end if;
 end proc;

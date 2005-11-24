@@ -40,6 +40,10 @@ OnENV := module()
                 globals;
             end proc;
 
+            hasGlobal := proc(x)
+                assigned(globals) and member(x, globals)
+            end proc;
+
             attachLex := proc(x)
                 if assigned(lex) then
                     error "this env already has an attached lex: %1", op(lex);
@@ -47,7 +51,7 @@ OnENV := module()
                 lex := x;
             end proc;
 
-            attachGlobals := proc(x)
+            attachGlobals := proc(x::set)
                 globals := x;
             end proc;
 
