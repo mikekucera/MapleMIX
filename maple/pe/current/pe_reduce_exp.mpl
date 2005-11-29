@@ -6,10 +6,11 @@
 ReduceExp := module()
 
     description "online expression reducer for use with online partial evaluator";
-    export ModuleApply;
+    export ModuleApply, Reduce;
     local env, red, reduce, unred, unreduce;
 
 
+    Reduce := exp -> ModuleApply(exp, OnENV());
 
     ModuleApply := proc(exp, reductionEnv := callStack:-topEnv()) local residual;
         #print("reducing", exp);
@@ -21,6 +22,11 @@ ReduceExp := module()
         eval(residual, [ _Tag_STATICTABLE = ((x,v) -> x),
                          _Tag_STATICEXPSEQ = (() -> args),
                          SArgs = (() -> MArgs())]);
+    end proc;
+
+
+    reduceCat := proc(e::mform(Catenate))
+        (rcurry(convert, string) @ eval @ FromInert @ M:-FromM)(e);
     end proc;
 
 
@@ -61,7 +67,7 @@ ReduceExp := module()
 
     red[MRational] := binOp(MRational, `/`);
     red[MPower]    := binOp(MPower,    `^`);
-    red[MCatenate] := binOp(MCatenate, `||`);
+    #red[MCatenate] := binOp(MCatenate, `||`);
     red[MEquation] := binOp(MEquation, `=`);
     red[MLesseq]   := binOp(MLesseq,   `<=`);
     red[MLessThan] := binOp(MLessThan, `<`);
@@ -70,6 +76,24 @@ ReduceExp := module()
     red[MOr]       := binOp(MOr,       `or`);
     red[MXor]      := binOp(MXor,      `xor`);
     red[MRange]    := binOp(MRange,    `..`);
+
+    # todo, figure out the semantics of catenate
+    red[MCatenate] := proc(x,y)
+        r := reduce(y);
+        if r::Dynamic then
+            return MCatenate(x, r);
+        end if;
+        # now we know the right side is static
+        h := Header(x);
+        if member(h, {MName, MAssignedName, MLocal, MParam}) then
+            `||`(convert(op(1,x), name), r);
+        elif h = MString then
+            `||`(op(x), r);
+        else
+            error "left side of catenate must be a name or string";
+        end if
+    end proc;
+
 
     red[MNot] := unOp(MNot, `not`);
 
@@ -82,24 +106,23 @@ ReduceExp := module()
     red[MNargs]    := () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
     red[MArgs]     := () -> SArgs(env:-getArgs());
 
-    #red[MName]         := n -> convert(n, name);
-    #red[MAssignedName] := red[MName];
-
-    red[MName]         := reduceName(MName);
-    red[MAssignedName] := reduceName(MAssignedName);
-
-
-    reduceName := f -> proc(n)
-        if env:-hasGlobal(f(args)) then
-            globalEnv := callStack:-globalEnv();
-            if globalEnv:-isStatic(n) then
-                return globalEnv:-getVal(n);
+    # TODO, not good enough, the rules are different for procs and modules
+    red[MName] := proc(n)
+        if not assigned(genv) or genv:-isDynamic(n) then
+            c := convert(n, name);
+            evaled := eval(c);
+            if evaled :: Or(`module`, 'procedure') then
+                c
+            else
+                evaled
             end if;
-        end if;
-        cn := convert(n, name);
-        e := eval(cn);
-        `if`(e::`procedure` or e::`module`, cn, e);
+        else
+            genv:-getVal(n);
+        end if
     end proc;
+
+
+    red[MAssignedName] := red[MName];
 
 
     red[MExpSeq] := proc()

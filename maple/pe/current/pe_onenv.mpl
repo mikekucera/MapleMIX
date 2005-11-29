@@ -11,12 +11,11 @@ OnENV := module()
     NewOnENV := proc()
         module()
             local valEnv, typeEnv, keyType,
-                  getIndices, addProc, getProc, lex, globals,
+                  getIndices, addProc, getProc, lex,
                   argsVal, nargsVal;
             export putVal, putType, valIndices, typeIndices, getType,
                    setArgs, getArgs, setNargs, getNargs, hasNargs,
                    attachLex, removeLex, getLex, hasLex,
-                   attachGlobals, getGlobals, hasGlobals,
                    getVal, hasTypeInfo,
                    isStatic, isDynamic,
                    setDynamic, clone, combine, overwrite, display;
@@ -33,17 +32,6 @@ OnENV := module()
                 lex;
             end proc;
 
-            getGlobals := proc()
-                if not assigned(globals) then
-                    error "no global sequence attached";
-                end if;
-                globals;
-            end proc;
-
-            hasGlobal := proc(x)
-                assigned(globals) and member(x, globals)
-            end proc;
-
             attachLex := proc(x)
                 if assigned(lex) then
                     error "this env already has an attached lex: %1", op(lex);
@@ -51,16 +39,11 @@ OnENV := module()
                 lex := x;
             end proc;
 
-            attachGlobals := proc(x::set)
-                globals := x;
-            end proc;
-
             removeLex := proc()
                 lex := 'lex';
             end proc;
 
             hasLex := () -> evalb(assigned(lex));
-            hasGlobals := () -> evalb(assigned(globals));
 
             setArgs := proc(tbl)
                 argsVal := tbl;

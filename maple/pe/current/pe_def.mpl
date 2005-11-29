@@ -3,7 +3,7 @@
 OnPE := module() option package;
 
     description "online partial evaluator for a subset of Maple";
-    local callStack, code, gen,
+    local callStack, code, gen, genv,
           CallStack, stmtCount;
     export ModuleApply, PartiallyEvaluate, OnENV, ReduceExp, Lifter;
 
@@ -39,26 +39,9 @@ Code := proc(x) option inline; op(2,x) end proc;
 Package := proc(x) option inline; op(1,x) end proc;
 Member := proc(x) option inline; op(2,x) end proc;
 
+# for variables
+Name := proc(x) option inline; op(1,x) end proc;
 
-################################################################################
-
-
-# takes an environment and an inert param
-# returns the type expression of a function parameter type assertion
-#evalParamType := proc(env, param)
-#    if op(0, param) = _Inert_DCOLON then
-#        name := op(op(1, param));
-#        typ  := FromInert(op(2, param));
-#
-#        if env:-fullyStatic?(name) then
-#            if not type(env:-getVal(name), eval(typ)) then
-#                error "Type assertion falure" ;
-#            end if;
-#        else
-#            env:-addType(name, typ);
-#        end if;
-#    end if;
-#end proc;
 
 ############################################################################
 # The specializer
@@ -67,13 +50,15 @@ Member := proc(x) option inline; op(2,x) end proc;
 
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p::procedure)
+PartiallyEvaluate := proc(p)#::procedure)
+    # need access to module locals
     before := kernelopts(opaquemodules=false);
 
     # set up module locals
     gen := NameGenerator();
     callStack := CallStack();
     code := table();
+    genv := OnENV(); # the global environment
     stmtCount := 0;
 
     m := getMCode(eval(p));
@@ -93,16 +78,17 @@ PartiallyEvaluate := proc(p::procedure)
     Lifter:-LiftPostProcess(code);
 
     try
-        res := (eval @ FromInert @ build_module)("ModuleApply");
+        res := eval(FromInert(build_module("ModuleApply")));
     catch:
         lprint("conversion to module failed", lastexception);
-        return copy(code)
+        return copy(code);
     end try;
 
     # unassign module locals
     gen := 'gen';
-    callStack := 'callStack';
     code := 'code';
+    genv := 'genv';
+    callStack := 'callStack';
     kernelopts(opaquemodules=before);
 
     print(stmtCount, "statements processed");
@@ -241,19 +227,37 @@ pe[MIfThenElse] := proc(cond, s1, s2)
 end proc;
 
 #TODO this is wrong
+#pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate}), expr::mform)
+#    reduced := ReduceExp(expr);
+#    if reduced::Dynamic then
+#        callStack:-topEnv():-setDynamic(op(1,n)); # TODO, make sure stuff becomes dynamic as appropriate
+#        MAssign(n, reduced);
+#    elif n::mform(Local) then
+#        callStack:-topEnv():-putVal(op(n), reduced);
+#        NULL;
+#    else
+#        callStack:-globalEnv():-putVal(op(1,n), reduced);
+#        NULL;
+#    end if;
+#end proc;
+
+
 pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate}), expr::mform)
     reduced := ReduceExp(expr);
-    if reduced::Dynamic then
-        callStack:-topEnv():-setDynamic(op(1,n)); # TODO, make sure stuff becomes dynamic as appropriate
-        MAssign(n, reduced);
-    elif n::mform(Local) then
-        callStack:-topEnv():-putVal(op(n), reduced);
-        NULL;
-    else
-        callStack:-globalEnv():-putVal(op(1,n), reduced);
-        NULL;
+
+    if Header(n) = MLocal then
+        if reduced ::Dynamic then
+            callStack:-topEnv():-setDynamic(Name(n));
+            return MAssign(n, reduced);
+        else
+            callStack:-topEnv():-putVal(Name(n), reduced);
+            return NULL;
+        end if;
     end if;
+
+    #if Header(n) = MCatenate(
 end proc;
+
 
 # TODO, need a way of setting a table index to dynamic
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
