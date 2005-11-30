@@ -9,13 +9,10 @@ OnPE := module() option package;
 
 ModuleApply := PartiallyEvaluate;
 
-
+$include "access.mpl"
 $include "pe_stack.mpl"
-
 $include "pe_onenv.mpl";
-
 $include "pe_reduce_exp.mpl"
-
 $include "pe_lift.mpl"
 
 ##################################################################################
@@ -26,21 +23,9 @@ getMCode := proc(fun) option cache;
     M:-ToM(ToInert(fun))
 end proc;
 
-
 keys := proc(tbl) option inline;
     map(op, [indices(tbl)])
 end proc;
-
-Header := proc(x) option inline; op(0,x) end proc;
-# for dealing with closures
-Lex  := proc(x) option inline; op(1,x) end proc;
-Code := proc(x) option inline; op(2,x) end proc;
-
-Package := proc(x) option inline; op(1,x) end proc;
-Member := proc(x) option inline; op(2,x) end proc;
-
-# for variables
-Name := proc(x) option inline; op(1,x) end proc;
 
 
 ############################################################################
@@ -100,15 +85,15 @@ end proc;
 # takes inert code and assumes static variables are on top of callStack
 # called before unfold
 peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
-    params := M:-Params(m);
-    body   := M:-ProcBody(m);
+    params := Params(m);
+    body   := ProcBody(m);
 
     body := M:-TransformIfNormalForm(body);
-    body := M:-AddImplicitReturns(body);
+    body := M:-AddImplicitReturns(body); # if a block ends with an assignment
 
     env := callStack:-topEnv();
     if not env:-hasLex() then
-        lexMap := M:-CreateLexNameMap(M:-LexSeq(m), curry(op,2));
+        lexMap := M:-CreateLexNameMap(LexSeq(m), curry(op,2));
         env:-attachLex(lexMap);
     end if;
 
@@ -135,7 +120,7 @@ isUnfoldable := proc(inertProcedure::mform(Proc))
     if not callStack:-inConditional() then
         return true;
     end if;
-    flattened := M:-FlattenStatSeq(M:-ProcBody(inertProcedure));
+    flattened := M:-FlattenStatSeq(ProcBody(inertProcedure));
     # if all the func does is return a static value then there is no
     # reason not to unfold
     evalb( nops(flattened) = 1 # function body has only one statement
@@ -145,12 +130,12 @@ end proc;
 
 
 # partially evaluates an arbitrary M code
-peM := proc(m::mform) local header; # returns inert code or NULL
-    header := M:-Header(m);
-    if assigned(pe[header]) then
-        return pe[header](op(m));
+peM := proc(m::mform)
+    h := Header(m);
+    if assigned(pe[h]) then
+        return pe[h](op(m));
     end if;
-    error "not supported yet: %1", header;
+    error "not supported yet: %1", h;
 end proc;
 
 
@@ -166,21 +151,25 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
     q := SimpleQueue();
     for i from 1 to nargs do
         stmtCount := stmtCount + 1;
+        stmt := args[i];
+        h := Header(stmt);
 
         if true then
-            print();
-            print("stat");
-            if member(Header(args[i]), {MIfThenElse, MTry}) then
-    	        print(Header(args[i]));
+            print(); print("stat");
+            if member(h, {MIfThenElse, MTry}) then
+    	        print(h);print();
     	    else
-    	        print(args[i]);
+    	        print(stmt);print();
     	    end if;
-    	    print();
 	    end if;
 
-        res := peM([args][i]);
+        #if h = MIfThenElse then
+        #    peIF(stmt, MStatSeq(args[i+1..nargs]));
+        #end if
 
-        if nops([res]) > 0 then
+        res := peM(stmt);
+
+        if res <> NULL then
             if op(0,res) = MTry and i < nargs then
                 error "code after a try/catch is not supported";
             end if;
@@ -193,6 +182,11 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
     MStatSeq(op(q:-toList()));
 end proc;
 
+
+#peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
+
+
+#end proc;
 
 pe[MIfThenElse] := proc(cond, s1, s2)
     reduced := ReduceExp(cond);
@@ -259,14 +253,14 @@ end proc;
 
 # TODO, need a way of setting a table index to dynamic
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
-    red1 := ReduceExp(M:-IndexExp(tr));
+    red1 := ReduceExp(IndexExp(tr));
     red2 := ReduceExp(expr);
 
     #env := callStack:-topEnv();
-    env := `if`(Header(M:-Var(tr))=MLocal, callStack:-topEnv(), genv);
+    env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
 
     if [red1,red2]::[Static,Static] then
-        var := op(1, M:-Var(tr));
+        var := op(1, Var(tr));
         if env:-isDynamic(var) then
             # tables can be implicitly created in Maple, so create a table on-the-fly if needed
             tbl := table();
@@ -301,11 +295,11 @@ pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
 
     for c in catchSeq do
         callStack:-push();
-        rcat := peM(M:-CatchBody(c));
+        rcat := peM(CatchBody(c));
         if M:-HasVariable(rcat) then
             error "variables in catch block not supported";
         end if;
-        q:-enqueue(MCatch(M:-CatchString(c), rcat));
+        q:-enqueue(MCatch(CatchString(c), rcat));
         callStack:-pop();
     end do;
 
@@ -429,7 +423,7 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
 
     elif Header(fun) = Closure then
         # TODO, the full functionality of peArgList is not needed here
-        newEnv, a, b := peArgList(M:-Params(Code(fun)), argExpSeq);
+        newEnv, a, b := peArgList(Params(Code(fun)), argExpSeq);
         # attach lexical environment to the environment of the function
         newEnv:-attachLex(Lex(fun));
         callStack:-push(newEnv);
@@ -437,7 +431,7 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
         callStack:-pop();
         newEnv:-removeLex();
         # should probably be a proper unfolding
-        M:-ProcBody(res);
+        ProcBody(res);
 
     elif type(eval(fun), `procedure`) then
         newName := gen(cat(op(1,f),"_"));
@@ -466,8 +460,8 @@ end proc;
 peRegularFunction := proc(fun::procedure, argExpSeq::mform(ExpSeq), unfold, residualize, newName)
 	m := getMCode(eval(fun));
 
-    newEnv, redCall, fullCall := peArgList(M:-Params(m), argExpSeq);
-#    lexMap := M:-CreateLexNameMap(M:-LexSeq(m), curry(op,2));
+    newEnv, redCall, fullCall := peArgList(Params(m), argExpSeq);
+#    lexMap := M:-CreateLexNameMap(LexSeq(m), curry(op,2));
 #    newEnv:-attachLex(lexMap);
 
     callStack:-push(newEnv);
@@ -509,7 +503,7 @@ build_module := proc(n::string)::inert;
         # used to evaluate each name reference
 
         processFuncCall := proc(n)
-            if M:-Header(n) = _Inert_ASSIGNEDNAME then
+            if Header(n) = _Inert_ASSIGNEDNAME then
                 return _Inert_FUNCTION(args);
             end if;
 
@@ -532,7 +526,7 @@ build_module := proc(n::string)::inert;
         end proc;
 
 
-        body := eval(M:-ProcBody(p), _Inert_FUNCTION = processFuncCall);
+        body := eval(ProcBody(p), _Inert_FUNCTION = processFuncCall);
 
         f := proc(e)
             _Inert_LEXICALPAIR(_Inert_NAME(lhs(e)),_Inert_LOCAL(rhs(e)));

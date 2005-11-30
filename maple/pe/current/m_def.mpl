@@ -12,6 +12,9 @@ M := module()
            intrinsic, variables, HasVariable;
     local createTableProcs, usesFlag, setFlag, createMap;
 
+
+
+
     # set of builtin function names
     intrinsic := {anames(builtin)};
 
@@ -140,7 +143,9 @@ M := module()
     end proc:
 
 
-    # If a statseq ends with an assignment, then an implicit return is added
+    # If a statseq ends with an assignment, then an implicit return is
+    # added
+    # only works for INF
     AddImplicitReturns := proc(statseq::mform(StatSeq)) ::mform(StatSeq);
         if statseq = MStatSeq() then
             return MStatSeq();
@@ -173,47 +178,11 @@ M := module()
         `if`(op(0,m) = MStatSeq and nops(m) = 1, op(m), m)
     end proc;
 
-
-
-
-
-    Header   := proc(x) option inline; op(0,x) end proc:
-
-    # generally for working with MStatSeq
-    Last     := proc(x) option inline; op(-1, x) end proc;
-    Front    := proc(x) option inline; op(1..-2, x) end proc;
-
-    # for procs
-    Params    := proc(x) option inline; op(1,x) end proc:
-    Locals    := proc(x) option inline; op(2,x) end proc:
-    ProcBody  := proc(x) option inline; op(5,x) end proc:
-    GlobalSeq := proc(x) option inline; op(7,x) end proc:
-    LexSeq    := proc(x) option inline; op(8,x) end proc:
-
-    # for MIfThenElse
-    Cond := proc(x) option inline; op(1,x) end proc;
-    Then := proc(x) option inline; op(2,x) end proc;
-	Else := proc(x) option inline; op(3,x) end proc;
-
-	# for MTableRef
-	Var      := proc(x) option inline; op(1,x) end proc;
-	IndexExp := proc(x) option inline; op(2,x) end proc;
-
-    # for MTry
-    Try      := proc(x) option inline; op(1,x) end proc;
-    CatchSeq := proc(x) option inline; op(2,x) end proc;
-    Finally  := proc(x) option inline; op(3,x) end proc;
-
-    # for MCatch
-    CatchString  := proc(x) option inline; op(1,x) end proc;
-    CatchBody    := proc(x) option inline; op(2,x) end proc;
-
+$include "access.mpl"
 $include "m_tom.mpl"
-
 $include "m_fromm.mpl"
-
 $include "m_transform_if.mpl"
-
 $include "m_unfold.mpl"
+
 
 end module:

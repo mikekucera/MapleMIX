@@ -69,7 +69,7 @@ Lifter := module()
     # Meant to be used as a post-process.
     LiftPostProcess := proc(code::table)
         for pn in keys(code) do
-            body := M:-ProcBody(code[pn]);
+            body := ProcBody(code[pn]);
             code[pn] := subsop(5 = liftStat(body), code[pn]);
         end do;
         NULL;
