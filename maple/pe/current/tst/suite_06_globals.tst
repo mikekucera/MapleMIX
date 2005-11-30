@@ -27,6 +27,28 @@ expected := ToInert(proc() global g; 1 end proc);
 
 Try(100, got, expected);
 
+# TEST 2 ###########################################################
+# global tables
+
+
+f := proc() global t;
+    t[1] := 10;
+    t[2] := 20;
+end proc;
+
+goal := proc()
+    f();
+    t[1], t[2];
+end proc;
+
+ped := OnPE(goal);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 10, 20 end proc);
+
+Try(200, got, expected);
+
+
 ####################################################################
 
 #end test

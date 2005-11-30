@@ -111,7 +111,6 @@ peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
         lexMap := M:-CreateLexNameMap(M:-LexSeq(m), curry(op,2));
         env:-attachLex(lexMap);
     end if;
-    env:-attachGlobals({op(M:-GlobalSeq(m))}); # store globals as a set, so it can be used directly with member
 
     body := peM(body); # Partial Evaluation
 
@@ -226,36 +225,35 @@ pe[MIfThenElse] := proc(cond, s1, s2)
     end if;
 end proc;
 
-#TODO this is wrong
-#pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate}), expr::mform)
-#    reduced := ReduceExp(expr);
-#    if reduced::Dynamic then
-#        callStack:-topEnv():-setDynamic(op(1,n)); # TODO, make sure stuff becomes dynamic as appropriate
-#        MAssign(n, reduced);
-#    elif n::mform(Local) then
-#        callStack:-topEnv():-putVal(op(n), reduced);
-#        NULL;
-#    else
-#        callStack:-globalEnv():-putVal(op(1,n), reduced);
-#        NULL;
-#    end if;
-#end proc;
 
 
 pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate}), expr::mform)
     reduced := ReduceExp(expr);
 
-    if Header(n) = MLocal then
-        if reduced ::Dynamic then
-            callStack:-topEnv():-setDynamic(Name(n));
+    # use the appropriate environment based on the scope of the variable
+    env := `if`(Header(n)=MLocal, callStack:-topEnv(), genv);
+
+    if Header(n) = MCatenate then
+        var := ReduceExp(n);
+        if nops([var]) <> 1 then
+            error "multiple assignment not supported"
+        elif var::Dynamic then
+            # TODO, maybe don't use n
             return MAssign(n, reduced);
         else
-            callStack:-topEnv():-putVal(Name(n), reduced);
-            return NULL;
-        end if;
+            var := convert(var, string);
+        end if
+    else
+        var := Name(n);
     end if;
 
-    #if Header(n) = MCatenate(
+    if reduced::Static then
+        env:-putVal(var, reduced);
+        NULL;
+    else
+        env:-setDynamic(var);
+        MAssign(n, reduced);
+    end if;
 end proc;
 
 
@@ -264,15 +262,17 @@ pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
     red1 := ReduceExp(M:-IndexExp(tr));
     red2 := ReduceExp(expr);
 
-    env := callStack:-topEnv();
+    #env := callStack:-topEnv();
+    env := `if`(Header(M:-Var(tr))=MLocal, callStack:-topEnv(), genv);
+
     if [red1,red2]::[Static,Static] then
-        var := M:-Var(tr);
-        if env:-isDynamic(op(var)) then
+        var := op(1, M:-Var(tr));
+        if env:-isDynamic(var) then
             # tables can be implicitly created in Maple, so create a table on-the-fly if needed
             tbl := table();
-            env:-putVal(op(var), tbl);
+            env:-putVal(var, tbl);
         else
-            tbl := env:-getVal(op(var));
+            tbl := env:-getVal(var);
         end if;
         tbl[red1] := red2;
         NULL;

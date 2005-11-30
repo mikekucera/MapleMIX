@@ -227,5 +227,5 @@ FromM := module()
         end if;
         _Inert_TRY(op(q:-toList()));
     end proc;
-    
+
 end module;

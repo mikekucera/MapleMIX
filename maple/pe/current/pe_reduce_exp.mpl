@@ -160,6 +160,7 @@ ReduceExp := module()
 
         rf := reduce(f);
         re := reduce(expseq);
+
         if type(rf, procedure) and Header(re) = _Tag_STATICEXPSEQ then
             rf(op(re));
         elif type(rf, name) and Header(re) = _Tag_STATICEXPSEQ then
