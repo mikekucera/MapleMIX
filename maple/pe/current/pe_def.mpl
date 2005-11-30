@@ -183,10 +183,39 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
 end proc;
 
 
-#peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
+peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
+    rcond := ReduceExp(Cond(ifstat));
+    if rcond::Static then
+        stmts := `if`(rcond, Then(ifstat), Else(ifstat));
+        peM(MStatSeq(op(stmts), op(S)));
+    else
+        callStack:-setConditional();
+        top := callStack:-topEnv();
 
+        envStart['local']  := top:-clone();
+        envStart['global'] := genv:-clone();
 
-#end proc;
+        r1 := peM(Then(ifstat));
+
+        envAfter['local'] := top:-clone();
+        envAfter['global'] := genv:-clone();
+
+        S1 := peM(S);
+
+        top:-overwrite(envStart['local']);
+        genv:-overwrite(envStart['global']);
+
+        r2 := peM(Else(ifstat));
+
+        if envAfter['local']:-equals(top) and envAfter['global']:-equals(genv) then
+            MStatSeq(MIfThenElse(rcond, r1, r2), op(S1));
+        else
+            S2 := peM(S);
+            MIfThenElse(rcond, MStatSeq(op(r1), op(S1)), MStatSeq(op(r2), op(S2)));
+        end if;
+    end if
+end proc;
+
 
 pe[MIfThenElse] := proc(cond, s1, s2)
     reduced := ReduceExp(cond);
