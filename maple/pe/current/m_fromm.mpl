@@ -204,7 +204,9 @@ FromM := module()
 
 
     inrt[MIfThenElse] := proc(c, s1, s2)
-        if s2 = MStatSeq() then
+        if IsNoOp(s1) and IsNoOp(s2) then
+            _Inert_EXPSEQ();
+        elif IsNoOp(s2) then
             _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)));
         else
             _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), _Inert_STATSEQ(mtoi(s2)))

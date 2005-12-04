@@ -4,27 +4,19 @@
 
 OnENV := module()
     export NewOnENV, ModuleApply;
-    description "Online knowledge environment";
+    local newFrame, OldEnv;
 
     ModuleApply := NewOnENV;
-
+        
     NewOnENV := proc()
-        module()
-            local valEnv, typeEnv, keyType,
-                  getIndices, addProc, getProc, lex,
-                  argsVal, nargsVal;
-            export putVal, putType, valIndices, typeIndices, getType,
-                   setArgs, getArgs, setNargs, getNargs, hasNargs,
-                   attachLex, removeLex, getLex, hasLex,
-                   getVal, hasTypeInfo,
-                   isStatic, isDynamic,
-                   setDynamic, clone, combine, overwrite, display;
-
-            # initialize "instance" variables
-            valEnv  := table();
-            typeEnv := table();
-
-
+        newEnv := module()
+            local ss, newFrame, lex, argsVal, nargsVal;
+            export putVal, getVal, grow, shrink, shrinkGrow, display, markTop,
+                   isDynamic, isStatic, setValDynamic, equalsTop;
+            
+            
+            ss := SuperStack(newFrame);
+                        
             getLex := proc()
                 if not assigned(lex) then
                     error "no lexical environment attached";
@@ -57,103 +49,120 @@ OnENV := module()
             getNargs := () -> nargsVal;
 
             hasNargs := () -> assigned(nargsVal);
-
-
-
-            # normalizes all keys to the same type
-            keyType := x -> convert(x, string);
-
-
-            # sets a value overwriting previous one
-            putVal  := proc(key, val) valEnv[keyType(key)]  := val end proc;
-            putType := proc(key, typ) typeEnv[keyType(key)] := typ end proc;
-
-            # returns the value
-            getVal  := getProc(valEnv);
-            getType := getProc(typeEnv);
-
-            getProc := proc(tbl)
-                proc(key) local n;
-                    n := keyType(key);
-                    if assigned(tbl[n]) then
-                        tbl[n];
-                    else
-                        error "no value for %1", key;
+            
+            
+            newFrame := proc()
+                Record('vals'=table(), 'dyn'={})
+            end proc;
+            
+            grow := proc()
+                ss:-push(newFrame());
+                NULL;
+            end proc;
+            
+            shrink := proc()
+                ss:-pop();
+                NULL;
+            end proc;
+            
+            shrinkGrow := proc()
+                shrink();
+                grow();
+            end proc;
+            
+            markTop := proc()
+                r := newFrame();
+                top := ss:-top();
+                r:-vals := copy(top:-vals);
+                r:-dyn := copy(top:-dyn);
+                r;
+            end proc;
+            
+            equalsTop := proc(f1)            
+                f2 := ss:-top();
+                verify(f1:-vals, f2:-vals, 'table') and
+                verify(f1:-dyn,  f2:-dyn,  'set');
+            end proc;
+            
+            getVal := proc(key)
+                iter := ss:-topDownIterator();
+                while iter:-hasNext() do
+                    frame := iter:-getNext();
+                    if member(key, frame:-dyn) then
+                        error "can't get dynamic value %1", key;
+                    elif assigned(frame:-vals[key]) then
+                        return frame:-vals[key];
+                    end if; 
+                end do;
+                error "can't get dynamic value %1", key;
+            end proc;
+        
+            setValDynamic := proc(key)
+                frame := ss:-top();
+                frame:-vals[key] := evaln(frame:-vals[key]);
+                frame:-dyn := frame:-dyn union {key};
+                NULL;
+            end proc;
+            
+            
+            putVal := proc(key, x)
+                #frame := ss:-top();
+                #frame:-vals[key] := x;
+                #frame:-dyn := frame:-dyn minus {key};
+                #NULL;                
+                # TODO, code above is more general and efficient
+                # code below can lead to better specialization but has more overhead
+                
+                iter := ss:-topDownIterator();
+                while iter:-hasNext() do
+                    frame := iter:-getNext();
+                    if member(key, frame:-dyn) then 
+                        break
+                    elif assigned(frame:-vals[key]) then
+                        if frame:-vals[key] = x then
+                            return NULL;
+                        else
+                            break;
+                        end if;
                     end if;
-                end proc;
-            end proc;
-
-
-            # returns indices
-            valIndices  := () -> keys(valEnv);
-            typeIndices := () -> keys(typeEnv);
-
-
-            # a variable is static if it is mapped
-            isStatic := key -> assigned(valEnv[keyType(key)]);
-
-
-            isDynamic := key -> not isStatic(key);
-
-            # returns true if there exists a type environment mapping
-            hasTypeInfo := key -> assigned(typeEnv[keyType(key)]);
-
-            # deletes all information about the given variable
-            setDynamic := proc(key) local n;
-                n := keyType(key);
-                valEnv[n]  := evaln(valEnv[n]);
-                typeEnv[n] := evaln(typeEnv[n]);
-                print("setdynamic", valEnv[n]);
+                end do;
+                frame := ss:-top();
+                frame:-vals[key] := x;
+                frame:-dyn := frame:-dyn minus {key};
                 NULL;
             end proc;
-
-            clone := proc()
-                local newenv, i;
-                newenv := NewOnENV();
-
-                for i in op(valIndices()) do
-                    newenv:-putVal(i, valEnv[op(i)]);
+            
+            isStatic := proc(key)
+                iter := ss:-topDownIterator();
+                while iter:-hasNext() do
+                    frame := iter:-getNext();
+                    if assigned(frame:-vals[key]) then
+                        return true;
+                    elif member(key, frame:-dyn) then
+                        return false;
+                    end if;                        
                 end do;
-                for i in op(typeIndices()) do
-                    newenv:-putType(i, typeEnv[i]);
-                end do;
-
-                newenv;
+                false;
             end proc;
-
-
-            combine := proc(onenv)
-                local newenv, i;
-                newenv := clone();
-
-                for i in op(onenv:-valIndices()) do
-                    newenv:-putVal(i, onenv:-getVal(i));
-                end do;
-                for i in op(onenv:-typeIndices()) do
-                    newenv:-putType(i, onenv:-getType(i));
-                end do;
-
-                newenv;
-            end proc;
-
-            overwrite := proc(onenv)
-                valEnv  := table();
-                typeEnv := table();
-                for i in op(onenv:-valIndices()) do
-                    putVal(i, onenv:-getVal(i));
-                end do;
-                for i in op(onenv:-typeIndices()) do
-                    putType(i, onenv:-getType(i));
-                end do;
-                NULL;
-            end proc;
-
+            
+            isDynamic := `not` @ isStatic;
+            
             display := proc()
-                print(op(valEnv), op(typeEnv));
+                print();
+                print("displaying environment");                
+                iter := ss:-topDownIterator();
+                while iter:-hasNext() do
+                    frame := iter:-getNext();
+                    print("level");
+                    print("vals", op(frame:-vals));
+                    print("dyn", frame:-dyn);
+                end do;
+                print();
             end proc;
-
         end module;
+        
+        newEnv:-grow();
+        return newEnv;        
     end proc;
-
-
+    
 end module:

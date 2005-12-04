@@ -43,6 +43,10 @@ Save('`type/Dynamic`');
 #Save(`index/err`);
 #Save(`index/deb`);
 
+$include "ss.mpl"
+
+Save(SuperStack);
+
 $include "m_def.mpl"
 
 Save(M);

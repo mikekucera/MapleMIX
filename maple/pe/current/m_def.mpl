@@ -8,7 +8,7 @@ M := module()
            Cond, Then, Else,
            Try, CatchSeq, Finally,
            Var, IndexExp,
-           ssop, remseq,
+           ssop, remseq, IsNoOp,
            intrinsic, variables, HasVariable;
     local createTableProcs, usesFlag, setFlag, createMap;
 
@@ -143,6 +143,10 @@ M := module()
     end proc:
 
 
+    IsNoOp := proc(m::mform)
+        m = MStatSeq() or m = MStatSeq(MStandaloneExpr(MExpSeq()));
+    end proc;
+    
     # If a statseq ends with an assignment, then an implicit return is
     # added
     # only works for INF

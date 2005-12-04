@@ -27,6 +27,7 @@ keys := proc(tbl) option inline;
     map(op, [indices(tbl)])
 end proc;
 
+ssop := M:-ssop;
 
 ############################################################################
 # The specializer
@@ -88,8 +89,8 @@ peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
     params := Params(m);
     body   := ProcBody(m);
 
-    body := M:-TransformIfNormalForm(body);
-    body := M:-AddImplicitReturns(body); # if a block ends with an assignment
+    #body := M:-TransformIfNormalForm(body);
+    #body := M:-AddImplicitReturns(body); # if a block ends with an assignment
 
     env := callStack:-topEnv();
     if not env:-hasLex() then
@@ -135,7 +136,7 @@ peM := proc(m::mform)
     if assigned(pe[h]) then
         return pe[h](op(m));
     end if;
-    error "not supported yet: %1", h;
+    error "(peM) not supported yet: %1", h;
 end proc;
 
 
@@ -154,7 +155,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         stmt := args[i];
         h := Header(stmt);
 
-        if true then
+        if false then
             print(); print("stat");
             if member(h, {MIfThenElse, MTry}) then
     	        print(h);print();
@@ -163,9 +164,10 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
     	    end if;
 	    end if;
 
-        #if h = MIfThenElse then
-        #    peIF(stmt, MStatSeq(args[i+1..nargs]));
-        #end if
+        if h = MIfThenElse then
+            q:-enqueue(peIF(stmt, MStatSeq(args[i+1..nargs])));
+            break;
+        end if;
 
         res := peM(stmt);
 
@@ -183,69 +185,43 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
 end proc;
 
 
-peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
+peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))   
     rcond := ReduceExp(Cond(ifstat));
     if rcond::Static then
         stmts := `if`(rcond, Then(ifstat), Else(ifstat));
-        peM(MStatSeq(op(stmts), op(S)));
+        peM(MStatSeq(ssop(stmts), ssop(S)));
     else
         callStack:-setConditional();
-        top := callStack:-topEnv();
+        env := callStack:-topEnv();
+        env:-grow();
+        genv:-grow();
 
-        envStart['local']  := top:-clone();
-        envStart['global'] := genv:-clone();
-
-        r1 := peM(Then(ifstat));
-
-        envAfter['local'] := top:-clone();
-        envAfter['global'] := genv:-clone();
+        C1 := peM(Then(ifstat));
+        
+        prevTopLocal  := env:-markTop();
+        prevTopGlobal := genv:-markTop();
 
         S1 := peM(S);
 
-        top:-overwrite(envStart['local']);
-        genv:-overwrite(envStart['global']);
+        env:-shrinkGrow();
+        genv:-shrinkGrow();
 
-        r2 := peM(Else(ifstat));
+        C2 := peM(Else(ifstat));
 
-        if envAfter['local']:-equals(top) and envAfter['global']:-equals(genv) then
-            MStatSeq(MIfThenElse(rcond, r1, r2), op(S1));
+        if env:-equalsTop(prevTopLocal) and 
+           genv:-equalsTop(prevTopGlobal) then
+            print("the same");
+            env:-shrink();
+            genv:-shrink(); # TODO, not needed
+            MStatSeq(MIfThenElse(rcond, C1, C2), ssop(S1));
         else
+            print("not the same");
             S2 := peM(S);
-            MIfThenElse(rcond, MStatSeq(op(r1), op(S1)), MStatSeq(op(r2), op(S2)));
-        end if;
+            env:-shrink();
+            genv:-shrink(); # TODO, not needed
+            MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1)), MStatSeq(ssop(C2), ssop(S2)));
+        end if; 
     end if
-end proc;
-
-
-pe[MIfThenElse] := proc(cond, s1, s2)
-    reduced := ReduceExp(cond);
-
-    # Can't just copy the environment and put a new copy on the stack
-    # because there may exist closures that referece the environment.
-    if reduced::Dynamic then
-        callStack:-setConditional();
-        env := callStack:-topEnv();
-        original := env:-clone();
-
-        reds1 := peM(s1);
-        thenEnv := env:-clone();
-        env:-overwrite(original);
-        reds2 := peM(s2);
-        elseEnv := env:-clone();
-
-        # TODO, is this required? no because of INF
-        env:-overwrite(thenEnv:-combine(elseEnv));
-        callStack:-setConditional(false);
-
-        # if reds1 and reds2 are both empty then its a no-op
-        if reds1 = MStatSeq() and reds2 = MStatSeq() then
-            MStatSeq();
-        else
-            MIfThenElse(reduced, reds1, reds2);
-        end if;
-    else
-        peM(`if`(reduced, s1, s2))
-    end if;
 end proc;
 
 
@@ -274,36 +250,36 @@ pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate}), expr::mform
         env:-putVal(var, reduced);
         NULL;
     else
-        env:-setDynamic(var);
+        env:-setValDynamic(var);
         MAssign(n, reduced);
     end if;
 end proc;
 
 
 # TODO, need a way of setting a table index to dynamic
-pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
-    red1 := ReduceExp(IndexExp(tr));
-    red2 := ReduceExp(expr);
-
-    #env := callStack:-topEnv();
-    env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
-
-    if [red1,red2]::[Static,Static] then
-        var := op(1, Var(tr));
-        if env:-isDynamic(var) then
-            # tables can be implicitly created in Maple, so create a table on-the-fly if needed
-            tbl := table();
-            env:-putVal(var, tbl);
-        else
-            tbl := env:-getVal(var);
-        end if;
-        tbl[red1] := red2;
-        NULL;
-    else
-        MTableAssign(subsop(2=red1, tr), red2);
-    end if;
-
-end proc;
+#pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
+#    red1 := ReduceExp(IndexExp(tr));
+#    red2 := ReduceExp(expr);#
+#
+#    #env := callStack:-topEnv();
+#    env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
+#
+#    if [red1,red2]::[Static,Static] then
+#        var := op(1, Var(tr));
+#        if env:-isDynamic(var) then
+#            # tables can be implicitly created in Maple, so create a table on-the-fly if needed
+#            tbl := table();
+#            env:-putVal(var, tbl);
+#        else
+#            tbl := env:-getVal(var);
+#        end if;
+#        tbl[red1] := red2;
+#        NULL;
+#    else
+#        MTableAssign(subsop(2=red1, tr), red2);
+#    end if;
+#
+#end proc;
 
 
 
