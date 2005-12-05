@@ -88,9 +88,8 @@ end proc;
 peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
     params := Params(m);
     body   := ProcBody(m);
-
-    #body := M:-TransformIfNormalForm(body);
-    #body := M:-AddImplicitReturns(body); # if a block ends with an assignment
+    
+    body := M:-AddImplicitReturns(body); # if a block ends with an assignment
 
     env := callStack:-topEnv();
     if not env:-hasLex() then

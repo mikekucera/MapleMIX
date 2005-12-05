@@ -28,6 +28,8 @@ Lifter := module()
             MCatch(s, liftStat(b));
         elif typematch(stat, MFunction('s'::anything, 'e'::anything)) then
             MFunction(liftExp(s), liftExp(e));
+        elif typematch(stat, MError('s'::anything)) then
+            MError(liftExp(s));
         else
             error "lifting of statement form %1 not supported", h
         end if;

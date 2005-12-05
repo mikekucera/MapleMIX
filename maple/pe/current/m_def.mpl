@@ -147,19 +147,19 @@ M := module()
         m = MStatSeq() or m = MStatSeq(MStandaloneExpr(MExpSeq()));
     end proc;
     
-    # If a statseq ends with an assignment, then an implicit return is
-    # added
-    # only works for INF
-    AddImplicitReturns := proc(statseq::mform(StatSeq)) ::mform(StatSeq);
+    # If a statseq ends with an assignment, then an implicit return is added
+    AddImplicitReturns := proc(statseq::mform(StatSeq)) ::mform(StatSeq);        
         if statseq = MStatSeq() then
             return MStatSeq();
         end if;
-
+        
         front := Front(statseq);
         last  := Last(statseq);
         header := Header(last);
-
-        if member(header, {MAssign, MAssignToFunction}) then
+        
+        if header = MStatSeq then
+            MStatSeq(front, procname(last));
+        elif member(header, {MAssign, MAssignToFunction}) then
             MStatSeq(front, last, MStandaloneExpr(op(1,last)));
         elif header = MIfThenElse then
             MStatSeq(front, MIfThenElse(Cond(last),
