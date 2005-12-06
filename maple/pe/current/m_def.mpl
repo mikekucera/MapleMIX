@@ -127,7 +127,11 @@ M := module()
         if m = MStatSeq() then
             false;
         elif Header(m) = MStatSeq then
-            procname(op(-1, FlattenStatSeq(m)));
+            flat := FlattenStatSeq(m);
+            if flat = MStatSeq() then
+                return false;
+            end if;
+            procname(op(-1, flat));
         else
             evalb(member(Header(m), {MStatSeq, MError}));
         end if;
@@ -146,17 +150,21 @@ M := module()
     IsNoOp := proc(m::mform)
         m = MStatSeq() or m = MStatSeq(MStandaloneExpr(MExpSeq()));
     end proc;
-    
+
     # If a statseq ends with an assignment, then an implicit return is added
-    AddImplicitReturns := proc(statseq::mform(StatSeq)) ::mform(StatSeq);        
-        if statseq = MStatSeq() then
+    AddImplicitReturns := proc(stat::mform({StatSeq, IfThenElse}))
+        if stat = MStatSeq() then
             return MStatSeq();
         end if;
-        
-        front := Front(statseq);
-        last  := Last(statseq);
+
+        if Header(stat) = MIfThenElse then
+            return MIfThenElse(Cond(stat), procname(Then(stat)), procname(Else(stat)));
+        end if;
+
+        front := Front(stat);
+        last  := Last(stat);
         header := Header(last);
-        
+
         if header = MStatSeq then
             MStatSeq(front, procname(last));
         elif member(header, {MAssign, MAssignToFunction}) then
@@ -166,7 +174,7 @@ M := module()
                                         procname(Then(last)),
                                         procname(Else(last))));
         else
-            statseq;
+            stat;
         end if;
     end proc;
 

@@ -42,6 +42,24 @@ expected := ToInert(proc() 99 end proc);
 Test(200, got, expected);
 
 
+
+####################################################################
+
+p := proc(d) local t;
+    t[1] :=88;
+    if d then
+        t[1] := 99;
+    end if;
+    t[1];
+end proc;
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc(d) if d then 99 else 88 end if end proc);
+
+Test(300, got, expected);
+
 ####################################################################
 
 #end test

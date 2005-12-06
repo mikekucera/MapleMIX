@@ -173,8 +173,20 @@ ReduceExp := module()
 
     # evaluates table references as expressions
     red[MTableref] := proc(tbl, eseq) # know that both args are static
-        rt := reduce(tbl);
         re := reduce(eseq);
+
+        if Header(re)=_Tag_STATICEXPSEQ then
+            if member(Header(tbl), {MLocal, MParam, MGeneratedName}) then
+                try return env:-getTblVal(Name(tbl), op(re)); # TODO: won't work for expression sequence as key
+                catch: end try; # its dynamic so continue
+            elif member(Header(tbl), {MName, MAssignedName}) then
+                try return genv:-getTblVal(Name(tbl), op(re));
+                catch: end try;
+            end if;
+        end if;
+
+        rt := reduce(tbl);
+
         h := op(0, rt);
         if member(h, {_Tag_STATICTABLE, SPackageLocal}) then
 	        actualTable := op(2, rt);

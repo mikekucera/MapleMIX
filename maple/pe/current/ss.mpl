@@ -4,28 +4,32 @@ SuperStack := module()
 
     ModuleApply := proc()
         module()
-            local st, topIndex;
-            export size, isEmpty, toList, push, pop, top, elementAt, topDownIterator, find;
-            
-            st := table();
-    
+            local data, topIndex;
+            export depth, empty, toList, push, pop, top, topDownIterator, find, init;
+
+            data := table();
             topIndex := 0;
 
-            size := () -> topIndex;
-            isEmpty := evalb(topIndex = 0);
-            toList := () -> [seq(st[i], i=1..topIndex)];
+            init := proc()
+                data := table();
+                topIndex := 0;
+            end proc;
+
+            depth := () -> topIndex;
+            empty := evalb(topIndex = 0);
+            toList := () -> [seq(data[i], i=1..topIndex)];
 
             push := proc(x)
                 topIndex := topIndex + 1;
-                st[topIndex] := x;
+                data[topIndex] := x;
             end proc;
 
             pop := proc()
                 if topIndex = 0 then
                     error "empty stack"
                 end if;
-                temp := st[topIndex];
-                st[topIndex] := evaln(st[topIndex]);
+                temp := data[topIndex];
+                data[topIndex] := evaln(data[topIndex]);
                 topIndex := topIndex - 1;
                 temp;
             end proc;
@@ -34,32 +38,24 @@ SuperStack := module()
                 if topIndex = 0 then
                     error "empty stack"
                 end if;
-                st[topIndex];
+                data[topIndex];
             end proc;
 
-            elementAt := proc(i)
-                if assigned(st[i]) then
-                    st[i];
-                else
-                    error "invalid index %1", i;
-                end if
-            end proc;
-            
             topDownIterator := proc()
-                i := topIndex;                
+                i := topIndex;
                 module() export getNext, hasNext;
                     getNext := proc()
-                        temp := st[i];
+                        temp := data[i];
                         i := i - 1;
                         temp;
-                    end proc;                
+                    end proc;
                     hasNext := () -> evalb(i>0);
-                end module;    
+                end module;
             end proc;
-            
+
             find := proc(p::procedure)
                 for i from topIndex to 1 by -1 do
-                    frame := st[i];
+                    frame := data[i];
                     if p(frame) then
                         return frame;
                     end if

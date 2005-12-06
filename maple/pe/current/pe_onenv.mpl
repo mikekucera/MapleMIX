@@ -44,13 +44,29 @@ OnENV := module()
                 top := ss:-top();
                 r:-vals := copy(top:-vals);
                 r:-dyn := copy(top:-dyn);
+                r:-tbls := copy(top:-tbls);
                 r;
             end proc;
 
             equalsTop := proc(f1)
                 f2 := ss:-top();
-                verify(f1:-vals, f2:-vals, 'table') and
-                verify(f1:-dyn,  f2:-dyn,  'set');
+                if not (verify(f1:-vals, f2:-vals, 'table') and
+                        verify(f1:-dyn,  f2:-dyn,  'set')) then
+                    return false;
+                end if;
+                for tableName in keys(f1:-tbls) do
+                    if not assigned(f2:-tbls[tableName]) then
+                        return false;
+                    end if;
+                    r1 := f1:-tbls[tableName];
+                    r2 := f2:-tbls[tableName];
+                    if not (verify(r1:-elts, r2:-elts, `table`) and
+                            verify(r1:-dyn,  r2:-dyn,  'set') and
+                            r1:-link = r2:-link) then
+                        return false;
+                    end if;
+                end do;
+                true;
             end proc;
 
 ##########################################################################################
@@ -63,6 +79,8 @@ OnENV := module()
                         error "can't get dynamic value %1", key;
                     elif assigned(frame:-vals[key]) then
                         return frame:-vals[key];
+                    elif assigned(frame:-tbls[key]) then
+                        error "reconstitution of table value not implemented yet"
                     end if;
                 end do;
                 error "can't get dynamic value %1", key;
@@ -71,6 +89,7 @@ OnENV := module()
             setValDynamic := proc(key)
                 frame := ss:-top();
                 frame:-vals[key] := evaln(frame:-vals[key]);
+                frame:-tbls[key] := evaln(frame:-tbls[key]);
                 frame:-dyn := frame:-dyn union {key};
                 NULL;
             end proc;
@@ -97,9 +116,18 @@ OnENV := module()
                         end if;
                     end if;
                 end do;
+
                 frame := ss:-top();
-                frame:-vals[key] := x;
                 frame:-dyn := frame:-dyn minus {key};
+
+                if type(x, `table`) then
+                    frame:-vals[key] := evaln(frame:-vals[key]);
+                    rec := addTable(key);
+                    rec:-elts := copy(x);
+                else
+                    frame:-tbls[key] := evaln(frame:-tbls[key]);
+                    frame:-vals[key] := x;
+                end if;
                 NULL;
             end proc;
 
@@ -107,10 +135,10 @@ OnENV := module()
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
-                    if assigned(frame:-vals[key]) then
-                        return true;
-                    elif member(key, frame:-dyn) then
+                    if member(key, frame:-dyn) then
                         return false;
+                    elif assigned(frame:-vals[key]) or assigned(frame:-tbls[key]) then
+                        return true;
                     end if;
                 end do;
                 false;
@@ -119,6 +147,7 @@ OnENV := module()
             isDynamic := `not` @ isStatic;
 
 ##########################################################################################
+
 
             addTable := proc(tblName)
                 frame := ss:-top();
@@ -129,24 +158,21 @@ OnENV := module()
 
 
             putTblVal := proc(tableName, index, x)
-                # if its at the top
-                if assigned(ss:-top():-tbls[tableName]) then
+                if assigned(ss:-top():-tbls[tableName]) then # its at the top
                     rec := ss:-top():-tbls[tableName];
                     rec:-elts[index] := x;
                     rec:-dyn := rec:-dyn minus {index};
-                    return NULL;
+                else
+                    try
+                        foundRec := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
+                        rec := addTable(tableName);
+                        rec:-elts[index] := x;
+                        rec:-link := foundRec:-tbls[tableName];
+                    catch "not found" :
+                        rec := addTable(tableName);
+                        rec:-elts[index] := x;
+                    end try;
                 end if;
-
-                # its below the top
-                try
-                    foundRec := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
-                catch:
-                    error "table name %1 not found", tableName;
-                end try;
-
-                rec := addTable(tableName);
-                rec:-elts[index] := x;
-                rec:-link := foundRec;
                 NULL;
             end proc;
 
@@ -154,17 +180,19 @@ OnENV := module()
             getTblVal := proc(tableName, index)
                 err := "table value is dynamic %1[%2]", tableName, index;
                 try
-                    rec := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
+                    frame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
                 catch:
                     error err;
                 end try;
 
+                rec := frame:-tbls[tableName];
                 do
                     if member(index, rec:-dyn) then
                         error err;
                     elif assigned(rec:-elts[index]) then
                         return rec:-elts[index];
                     elif assigned(rec:-link) then
+                        print("link", rec:-link);
                         rec := rec:-link;
                     else
                         error err;
@@ -172,7 +200,19 @@ OnENV := module()
                 end do;
             end proc;
 
-            #setTblValDynamic := proc(tableName, index)
+
+            setTblValDynamic := proc(tableName, index)
+                frame := ss:-top();
+                if assigned(frame:-tbls[tableName]) then
+                    rec := frame:-tbls[tableName];
+                    rec:-vals[index] := evaln(rec:-vals[index]);
+                    rec:-dyn := rec:-dyn union {index};
+                else
+                    rec:-addTable(tableName);
+                    rec:-dyn := {index};
+                end if;
+                NULL;
+            end proc;
 
 
 
@@ -223,6 +263,10 @@ OnENV := module()
                     print("level");
                     print("vals", op(frame:-vals));
                     print("dyn", frame:-dyn);
+                    for tblName in keys(frame:-tbls) do
+                        rec := frame:-tbls[tblName];
+                        print("rec", tblName, op(rec:-elts), rec:-dyn, `if`(rec:-link=NULL, "linked", "null"));
+                    end do;
                 end do;
                 print();
             end proc;

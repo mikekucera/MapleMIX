@@ -88,7 +88,7 @@ end proc;
 peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
     params := Params(m);
     body   := ProcBody(m);
-    
+
     body := M:-AddImplicitReturns(body); # if a block ends with an assignment
 
     env := callStack:-topEnv();
@@ -184,7 +184,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
 end proc;
 
 
-peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))   
+peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
     rcond := ReduceExp(Cond(ifstat));
     if rcond::Static then
         stmts := `if`(rcond, Then(ifstat), Else(ifstat));
@@ -196,7 +196,7 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
         genv:-grow();
 
         C1 := peM(Then(ifstat));
-        
+
         prevTopLocal  := env:-markTop();
         prevTopGlobal := genv:-markTop();
 
@@ -207,19 +207,16 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
 
         C2 := peM(Else(ifstat));
 
-        if env:-equalsTop(prevTopLocal) and 
-           genv:-equalsTop(prevTopGlobal) then
-            print("the same");
+        if env:-equalsTop(prevTopLocal) and genv:-equalsTop(prevTopGlobal) then
             env:-shrink();
             genv:-shrink(); # TODO, not needed
             MStatSeq(MIfThenElse(rcond, C1, C2), ssop(S1));
         else
-            print("not the same");
             S2 := peM(S);
             env:-shrink();
             genv:-shrink(); # TODO, not needed
             MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1)), MStatSeq(ssop(C2), ssop(S2)));
-        end if; 
+        end if;
     end if
 end proc;
 
@@ -255,30 +252,29 @@ pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate}), expr::mform
 end proc;
 
 
-# TODO, need a way of setting a table index to dynamic
-#pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
-#    red1 := ReduceExp(IndexExp(tr));
-#    red2 := ReduceExp(expr);#
-#
-#    #env := callStack:-topEnv();
-#    env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
-#
-#    if [red1,red2]::[Static,Static] then
-#        var := op(1, Var(tr));
-#        if env:-isDynamic(var) then
-#            # tables can be implicitly created in Maple, so create a table on-the-fly if needed
-#            tbl := table();
-#            env:-putVal(var, tbl);
-#        else
-#            tbl := env:-getVal(var);
-#        end if;
-#        tbl[red1] := red2;
-#        NULL;
-#    else
-#        MTableAssign(subsop(2=red1, tr), red2);
-#    end if;
-#
-#end proc;
+
+pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
+    rindex := ReduceExp(IndexExp(tr));
+    rexpr  := ReduceExp(expr);
+
+    env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
+
+    var := Name(Var(tr));
+
+    if [rindex,rexpr]::[Static,Static] then
+        env:-putTblVal(var, rindex, rexpr);
+    callStack:-topEnv():-display();
+        NULL;
+    elif rindex::Static then
+        env:-setTblValDynamic(var, rindex);
+    callStack:-topEnv():-display();
+        MTableAssign(subsop(2=rindex, tr), rexpr);
+    else
+        env:-setValDynamic(var);
+    callStack:-topEnv():-display();
+        MTableAssign(subsop(2=rindex, tr), rexpr);
+    end if;
+end proc;
 
 
 
