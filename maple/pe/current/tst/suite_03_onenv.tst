@@ -9,31 +9,42 @@ libname := libname, "/home/mike/thesis/trunk/maple/pe/current/lib":
 
 ##########################################################################
 
+
+##########################################################################
+# tables
+
 env := OnPE:-OnENV();
 
-Try(101, env:-putVal(x, 1), 1);
-Try(102, env:-valIndices(), ["x"]);
-Try(103, env:-isStatic(x), true);
-Try(104, env:-isDynamic(x), false);
-Try(105, env:-putVal(x,2), 2);
-Try(106, env:-getVal(x), 2);
+env:-putTblVal("r", "x", 99);
+env:-putTblVal("r", "z", 25);
+env:-putTblVal("r", "a", 15);
+env:-grow();
 
-env2 := OnPE:-OnENV:-NewOnENV();
-env2:-putVal(y, 9);
+Try(200, env:-getTblVal("r", "x"), 99);
+Try(201, env:-getTblVal("r", "z"), 25);
+Try(202, env:-getTblVal("r", "a"), 15);
 
-c := env:-combine(env2);
+env:-putTblVal("r", "x", 1);
+env:-putTblVal("r", "y", 2);
 
-Try(201, c:-getVal(x), 2);
-Try(202, c:-getVal(y), 9);
+Try(203, env:-getTblVal("r", "x"), 1);
+Try(204, env:-getTblVal("r", "y"), 2);
 
-env3 := OnPE:-OnENV:-NewOnENV();
-env3:-putType(z, integer);
+env:-setTblValDynamic("r", "z");
 
-c2 := env3:-combine(c);
+t := env:-getVal("r");
 
-Try(203, c2:-getVal(x), 2);
-Try(204, c2:-getVal(y), 9);
-Try(205, c2:-getType(z), integer);
+Try(205, t, table(["x"=1, "y"=2, "a"=15]));
+
+env:-shrink();
+
+Try(206, env:-getTblVal("r", "x"), 99);
+Try(207, env:-getTblVal("r", "z"), 25);
+Try(208, env:-getTblVal("r", "a"), 15);
+
+t2 := env:-getVal("r");
+
+Try(209, t2, table(["x"=99, "z"=25, "a"=15]));
 
 ##########################################################################
 

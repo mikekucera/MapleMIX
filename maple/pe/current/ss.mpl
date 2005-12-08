@@ -1,5 +1,6 @@
 
 SuperStack := module()
+    description "Implementation of a Stack data-structure based on tables, has a more useful interface than SimpleStack.";
     export ModuleApply;
 
     ModuleApply := proc()

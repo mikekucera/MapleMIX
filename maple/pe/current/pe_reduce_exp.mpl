@@ -221,7 +221,7 @@ ReduceExp := module()
     reduceVar := f -> proc(x)
         if env:-isStatic(x) then
             val := env:-getVal(x);
-            if type(val, table) then
+            if type(val, 'table') then
                 _Tag_STATICTABLE(f(x), val);
             else
                 val;

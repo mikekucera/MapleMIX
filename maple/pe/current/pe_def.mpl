@@ -65,6 +65,7 @@ PartiallyEvaluate := proc(p)#::procedure)
 
     try
         res := eval(FromInert(build_module("ModuleApply")));
+        #return copy(code);
     catch:
         lprint("conversion to module failed", lastexception);
         return copy(code);
@@ -154,7 +155,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         stmt := args[i];
         h := Header(stmt);
 
-        if false then
+        if true then
             print(); print("stat");
             if member(h, {MIfThenElse, MTry}) then
     	        print(h);print();
@@ -263,15 +264,15 @@ pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
 
     if [rindex,rexpr]::[Static,Static] then
         env:-putTblVal(var, rindex, rexpr);
-    callStack:-topEnv():-display();
+        #callStack:-topEnv():-display();
         NULL;
     elif rindex::Static then
         env:-setTblValDynamic(var, rindex);
-    callStack:-topEnv():-display();
+        #callStack:-topEnv():-display();
         MTableAssign(subsop(2=rindex, tr), rexpr);
     else
         env:-setValDynamic(var);
-    callStack:-topEnv():-display();
+        #callStack:-topEnv():-display();
         MTableAssign(subsop(2=rindex, tr), rexpr);
     end if;
 end proc;

@@ -1,6 +1,7 @@
 
 Lifter := module()
-    export LiftExp, LiftPostProcess, liftStat, liftExp;
+    local gen;
+    export LiftExp, LiftPostProcess, liftStat, liftExp, liftTable;
 
     liftStat := proc(stat) local t, e, c, n, f, s, b;
         h := Header(stat);
@@ -61,11 +62,25 @@ Lifter := module()
             MFunction(procname(s), MExpSeq(procname(e)));
         elif type(exp, mform) then
             map(procname, exp);
+        elif type(exp, `table`) then
+            liftTable(exp);
         else
     	    M:-ToM(ToInert(exp));
     	end if;
     end proc;
 
+
+    liftTable := proc(tbl::`table`)
+        q := SimpleQueue();
+
+        for key in indices(tbl) do
+            eqn := MEquation(liftExp(op(key)), liftExp(tbl[op(key)]));
+            q:-enqueue(eqn);
+        end do;
+
+        n := MAssignedName("table", "PROC", MAttribute(MName("protected", MAttribute(MName("protected")))));
+        MFunction(n, MExpSeq(MList(MExpSeq(op(q:-toList())))));
+    end proc;
 
     # Lifts all static values that are embedded in the residual code.
     # Meant to be used as a post-process.

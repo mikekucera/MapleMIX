@@ -1,4 +1,3 @@
-
 ToM := module()
     export ModuleApply;
     local MapStack,
@@ -186,12 +185,12 @@ ToM := module()
 
     m[_Inert_STATSEQ] := proc() local standaloneExpr;
         processInert := proc(x)
-            if op(0,x) = _Inert_PROC then
+            if Header(x) = _Inert_PROC then
                 MStandaloneExpr(itom(x))
             elif isStandalone(x) then
                 ssop(split(x, MStandaloneExpr))
             else
-                itom(x)
+                ssop(itom(x));
             end if;
         end proc;
         MStatSeq(op(map(processInert, [args])));
