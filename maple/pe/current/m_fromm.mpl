@@ -51,7 +51,7 @@ FromM := module()
 	    end proc,
 
 	    # procedure that creates a new local sequence
-	    () -> _Inert_LOCALSEQ(op(q:-toList()));
+	    () -> _Inert_LOCALSEQ(qtoseq(q));
 	end proc;
 
 
@@ -227,7 +227,7 @@ FromM := module()
         if nargs = 3 then # if there is a finally clause
             q:-enqueue(mtoi(op(fin)));
         end if;
-        _Inert_TRY(op(q:-toList()));
+        _Inert_TRY(qtoseq(q));
     end proc;
 
 end module;

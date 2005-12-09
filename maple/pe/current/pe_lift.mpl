@@ -5,44 +5,59 @@ Lifter := module()
 
     liftStat := proc(stat) local t, e, c, n, f, s, b;
         h := Header(stat);
+        
+        # first consider the cases that don't result in a call to liftExp
         if member(h, {MStatSeq, MCatchSeq}) then
-            map(procname, stat)
-        elif member(h, {MStandaloneExpr, MReturn}) then
-            (h @ liftExp @ op)(stat)
-        elif typematch(stat, MAssign('t'::anything, 'e'::anything)) then
-            MAssign(liftExp(t), liftExp(e));
-        elif typematch(stat, MSingleAssign('t'::anything, 'e'::anything)) then
-            MSingleAssign(liftExp(t), liftExp(e));
-        elif typematch(stat, MTableAssign('t'::anything, 'e'::anything)) then
-            MTableAssign(liftExp(t), liftExp(e));
-        elif typematch(stat, MAssignToFunction('s'::anything, 'e'::anything)) then
-            MAssignToFunction(liftExp(s), liftExp(e));
-        elif typematch(stat, MIfThenElse('c'::anything, 't'::anything, 'e'::anything)) then
-            MIfThenElse(liftExp(c), procname(t), procname(e));
-        elif typematch(stat, MStandaloneFunction('n'::anything, 'e'::anything)) then
-            MStandaloneFunction(n, liftExp(e));
+            return map(procname, stat)
         elif typematch(stat, MTry('t'::anything, 'c'::anything, 'f'::anything)) then
-            MTry(liftStat(t), liftStat(c), liftStat(f));
+            return MTry(procname(t), procname(c), procname(f));
         elif typematch(stat, MTry('t'::anything, 'c'::anything)) then
-            MTry(liftStat(t), liftStat(c));
+            return MTry(procname(t), procname(c));
         elif typematch(stat, MCatch('s'::anything, 'b'::anything)) then
-            MCatch(s, liftStat(b));
+            return MCatch(s, procname(b));
+        end if;
+        
+        stmts := table();
+        lift := curry(liftExp, stmts);
+        if member(h, {MStandaloneExpr, MReturn}) then
+            (h @ lift @ op)(stat);
+        elif typematch(stat, MAssign('t'::anything, 'e'::anything)) then
+            MAssign(lift(t), lift(e));
+        elif typematch(stat, MSingleAssign('t'::anything, 'e'::anything)) then
+            MSingleAssign(lift(t), lift(e));
+        elif typematch(stat, MTableAssign('t'::anything, 'e'::anything)) then
+            MTableAssign(lift(t), lift(e));
+        elif typematch(stat, MAssignToFunction('s'::anything, 'e'::anything)) then
+            MAssignToFunction(lift(s), lift(e));
+        elif typematch(stat, MIfThenElse('c'::anything, 't'::anything, 'e'::anything)) then
+            MIfThenElse(lift(c), procname(t), procname(e));
+        elif typematch(stat, MStandaloneFunction('n'::anything, 'e'::anything)) then
+            MStandaloneFunction(n, lift(e));
         elif typematch(stat, MFunction('s'::anything, 'e'::anything)) then
-            MFunction(liftExp(s), liftExp(e));
+            MFunction(liftExp(s), lift(e));
         elif typematch(stat, MError('s'::anything)) then
-            MError(liftExp(s));
+            MError(lift(s));
         else
             error "lifting of statement form %1 not supported", h
         end if;
+        result := %;
+                
+        q := SimpleQueue();
+        for k in indices(stmts) do
+            q:-enqueue(stmts[op(k)]);
+        end do;
+        
+        `if`(q:-empty(), result, MStatSeq(qtoseq(q), result));        
     end proc;
 
     # Recurses through expressions and lifts where neccesary.
     # Also makes sure that expressions are embedded in MExpSeq where neccessary.
-    liftExp := proc(exp) local t, i, s, e;
-        if nargs = 0 then
+    liftExp := proc(stmts::`table`, exp) local t, i, s, e, n;
+        lift := curry(procname, stmts);
+        if nargs = 1 then
             return MExpSeq() # lifting static NULL
-        elif nargs > 1 then
-            return MExpSeq(op(map(procname, [args])));
+        elif nargs > 2 then
+            return MExpSeq(op(map(lift, [args])));
         end if;
 
         h := Header(exp);
@@ -57,29 +72,30 @@ Lifter := module()
         elif h = SArgs then
             MArgs();
         elif typematch(exp, MTableref('t'::anything, 'i'::anything)) then
-            MTableref(procname(t), MExpSeq(procname(i)));
+            MTableref(lift(t), MExpSeq(lift(i)));
         elif typematch(exp, MFunction('s'::anything, 'e'::anything)) then
-            MFunction(procname(s), MExpSeq(procname(e)));
+            MFunction(lift(s), MExpSeq(lift(e)));
         elif type(exp, mform) then
-            map(procname, exp);
-        elif type(exp, `table`) then
-            liftTable(exp);
+            map(lift, exp);
+        elif typematch(exp, STable('n'::anything, 't'::anything)) then
+            liftTable(stmts, n, t);
         else
     	    M:-ToM(ToInert(exp));
     	end if;
     end proc;
 
 
-    liftTable := proc(tbl::`table`)
+    liftTable := proc(stmts::`table`, tblName, tbl::`table`)
+        lift := curry(liftExp, stmts);
         q := SimpleQueue();
 
-        for key in indices(tbl) do
-            eqn := MEquation(liftExp(op(key)), liftExp(tbl[op(key)]));
-            q:-enqueue(eqn);
+        for key in keys(tbl) do
+            s := MTableAssign(MTableref(tblName, MExpSeq(lift(key))), lift(tbl[key]));
+            q:-enqueue(s);
         end do;
-
-        n := MAssignedName("table", "PROC", MAttribute(MName("protected", MAttribute(MName("protected")))));
-        MFunction(n, MExpSeq(MList(MExpSeq(op(q:-toList())))));
+    
+        stmts[tblName] := MStatSeq(qtoseq(q));
+        return tblName;
     end proc;
 
     # Lifts all static values that are embedded in the residual code.

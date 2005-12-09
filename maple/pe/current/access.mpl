@@ -39,3 +39,17 @@ Member := proc(x) option inline; op(2,x) end proc;
 
 # for variables
 Name := proc(x) option inline; op(1,x) end proc;
+
+
+#for queues
+qtoseq := proc(q) option inline; op(q:-toList()) end proc;
+
+# if the arg is a MStatSeq it gets converted into an expression sequence
+ssop := proc(m::mform) option inline;
+	`if`(op(0,m) = MStatSeq, op(m), m)
+end proc;
+
+# for looping over tables
+keys := proc(tbl) option inline;
+    map(op, [indices(tbl)])
+end proc;

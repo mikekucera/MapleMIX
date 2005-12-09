@@ -62,4 +62,35 @@ Test(300, got, expected);
 
 ####################################################################
 
+p := proc(x, y, d) local t;
+    t["x"] := d;
+    t["y"] := d;
+    if x = y then
+        t["compare"] := "equals";
+    else
+        t["compare"] := "ne";
+    end if;
+    return t;
+end proc;
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc (x, y, d) local t; t["x"] := d; t["y"] := d; if x = y then t["compare"] := "equals"; return t else t["compare"] := "ne"; return t end if end proc);
+
+Test(400, got, expected);
+
+goal := proc(d) p(1,1,d) end proc;
+
+
+ped := OnPE(goal);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc (d) local t1; t1["x"] := d; t1["y"] := d; t1["compare"] := "equals"; t1 end proc);
+
+Test(401, got, expected);
+
+####################################################################
+
+
 #end test

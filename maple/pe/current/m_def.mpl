@@ -13,8 +13,6 @@ M := module()
     local createTableProcs, usesFlag, setFlag, createMap;
 
 
-
-
     # set of builtin function names
     intrinsic := {anames(builtin)};
 
@@ -178,17 +176,6 @@ M := module()
         end if;
     end proc;
 
-
-    # if the arg is a MStatSeq it gets converted into an expression sequence
-    ssop := proc(m::mform) option inline;
-    	`if`(op(0,m) = MStatSeq, op(m), m)
-    end proc;
-
-    # if the argument is a MStatSeq consisting of a single statment,
-    # then the MStatSeq is removed and the single statment is returned
-    remseq := proc(m::mform) option inline;
-        `if`(op(0,m) = MStatSeq and nops(m) = 1, op(m), m)
-    end proc;
 
 $include "access.mpl"
 $include "m_tom.mpl"

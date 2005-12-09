@@ -19,8 +19,7 @@ ReduceExp := module()
         #print("reduced", residual);
         env := 'env';
         # TODO: get rid of this extra eval
-        eval(residual, [ _Tag_STATICTABLE = ((x,v) -> x),
-                         _Tag_STATICEXPSEQ = (() -> args),
+        eval(residual, [ _Tag_STATICEXPSEQ = (() -> args),
                          SArgs = (() -> MArgs())]);
     end proc;
 
@@ -188,7 +187,7 @@ ReduceExp := module()
         rt := reduce(tbl);
 
         h := op(0, rt);
-        if member(h, {_Tag_STATICTABLE, SPackageLocal}) then
+        if member(h, {STable, SPackageLocal}) then
 	        actualTable := op(2, rt);
 	        ref := op(re);
 	        if assigned(actualTable[ref]) then
@@ -222,7 +221,7 @@ ReduceExp := module()
         if env:-isStatic(x) then
             val := env:-getVal(x);
             if type(val, 'table') then
-                _Tag_STATICTABLE(f(x), val);
+                STable(f(x), val);
             else
                 val;
             end if;

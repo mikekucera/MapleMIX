@@ -23,11 +23,7 @@ getMCode := proc(fun) option cache;
     M:-ToM(ToInert(fun))
 end proc;
 
-keys := proc(tbl) option inline;
-    map(op, [indices(tbl)])
-end proc;
 
-ssop := M:-ssop;
 
 ############################################################################
 # The specializer
@@ -36,7 +32,7 @@ ssop := M:-ssop;
 
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p)#::procedure)
+PartiallyEvaluate := proc(p)
     # need access to module locals
     before := kernelopts(opaquemodules=false);
 
@@ -155,7 +151,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         stmt := args[i];
         h := Header(stmt);
 
-        if true then
+        if false then
             print(); print("stat");
             if member(h, {MIfThenElse, MTry}) then
     	        print(h);print();
@@ -181,7 +177,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
             end if;
         end if;
     end do;
-    MStatSeq(op(q:-toList()));
+    MStatSeq(qtoseq(q));
 end proc;
 
 
@@ -315,7 +311,7 @@ pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
     end if;
 
     #callStack:-push(top);
-    MTry(rtry, MCatchSeq(op(q:-toList())), rfin);
+    MTry(rtry, MCatchSeq(qtoseq(q)), rfin);
 end proc;
 
 
@@ -400,7 +396,7 @@ peArgList := proc(params::mform(ParamSeq), argExpSeq::mform(ExpSeq))
     end if;
 
     env:-setArgs(argsTbl);
-    toExpSeq := q -> MExpSeq(op(q:-toList()));
+    toExpSeq := q -> MExpSeq(qtoseq(q));
     return env, toExpSeq(redCall), toExpSeq(fullCall);
 end proc;
 
