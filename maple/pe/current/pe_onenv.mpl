@@ -77,10 +77,10 @@ OnENV := module()
                     frame := iter:-getNext();
                     if member(key, frame:-dyn) then
                         error "can't get dynamic value %1", key;
-                    elif assigned(frame:-vals[key]) then
-                        return frame:-vals[key];
                     elif assigned(frame:-tbls[key]) then
                         return rebuildTable(frame:-tbls[key]);
+                    elif assigned(frame:-vals[key]) then
+                        return frame:-vals[key];
                     end if;
                 end do;
                 error "can't get dynamic value %1", key;
