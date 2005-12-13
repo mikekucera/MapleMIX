@@ -105,8 +105,7 @@ FromM := module()
     inrt[MUneval]  := _Inert_UNEVAL  @ mapmtoi;
     inrt[MRange]   := _Inert_RANGE   @ mapmtoi;
     inrt[MInequat] := _Inert_INEQUAT @ mapmtoi;
-    inrt[MForIn]   := _Inert_FORIN   @ mapmtoi;
-    inrt[MForFrom] := _Inert_FORFROM @ mapmtoi;
+    
 
     inrt[MParamSeq]       := _Inert_PARAMSEQ       @ mapmtoi;
     inrt[MLocalSeq]       := _Inert_LOCALSEQ       @ mapmtoi;
@@ -128,6 +127,18 @@ FromM := module()
     inrt[MTableAssign]        := _Inert_ASSIGN   @ mapmtoi;
 
 
+    inrt[MWhileForIn]   := _Inert_FORIN   @ mapmtoi;
+    inrt[MWhileForFrom] := _Inert_FORFROM @ mapmtoi;
+    
+    inrt[MForFrom] := proc(loopVar, fromExp, byExp, toExp, statseq)
+        _Inert_FORFROM(mapmtoi(loopVar, fromExp, byExp, toExp), inertTrue, mtoi(statseq));
+    end proc;
+    
+    inrt[MForIn] := proc(loopVar, inExp, whileExp, statseq)
+        _Inert_FORIN(mtoi(loopVar), mtoi(inExp), inertTrue, mtoi(statseq));
+    end proc;
+    
+    
     inrt[MProc] := proc()
         maps := table();
 

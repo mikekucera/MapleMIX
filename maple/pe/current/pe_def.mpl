@@ -260,19 +260,47 @@ pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
 
     if [rindex,rexpr]::[Static,Static] then
         env:-putTblVal(var, rindex, rexpr);
-        #callStack:-topEnv():-display();
         NULL;
     elif rindex::Static then
         env:-setTblValDynamic(var, rindex);
-        #callStack:-topEnv():-display();
         MTableAssign(subsop(2=rindex, tr), rexpr);
     else
         env:-setValDynamic(var);
-        #callStack:-topEnv():-display();
         MTableAssign(subsop(2=rindex, tr), rexpr);
     end if;
 end proc;
 
+
+pe[MForFrom] := proc(loopVar::mform({Local, ExpSeq}), fromExp, byExp, toExp, statseq)
+    rFromExp := ReduceExp(fromExp);
+    rByExp   := ReduceExp(byExp);
+    rToExp   := ReduceExp(toExp);
+    
+    print(rFromExp, rByExp, rToExp);
+    
+    if [rFromExp,rByExp,rToExp]::[Static,Static,Static] then #unroll loop
+        env := callStack:-topEnv();        
+        q := SimpleQueue();        
+        test := `if`(type(rByExp,nonnegative), `<=`, `>=`);
+        
+        var := `if`(loopVar=MExpSeq(), gen("0i"), Name(loopVar));
+        val := rFromExp;
+        env:-putVal(var, val);
+        
+        while test(val, rToExp) do
+            res := peM(statseq);
+            if res <> NULL then
+                q:-enqueue(res);
+            end if;
+            
+            val := env:-getVal(var) + rByExp;
+            env:-putVal(var, val);
+        end do;
+        MStatSeq(qtoseq(q));
+    else
+        error "dynamic loops not supported yet";
+    end if;
+end proc;
 
 
 pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)

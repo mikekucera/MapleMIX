@@ -1,6 +1,6 @@
 ToM := module()
     export ModuleApply;
-    local MapStack,
+    local MapStack, isInertTrue,
     	  itom, itom2, mapitom,  m, gen, createVarMap, getVar;
 
     m := table();
@@ -37,7 +37,7 @@ ToM := module()
     getLexVar := x -> getVar('lex', x);
 
 
-    isStandalone := proc(x)
+    isStandalone := proc(x) option inline;
         member(op(0,x),
             {_Inert_SUM, _Inert_PROD, _Inert_POWER, _Inert_CATENATE,
              _Inert_EQUATION, _Inert_LESSEQ, _Inert_LESSTHAN, _Inert_IMPLIES,
@@ -47,6 +47,8 @@ ToM := module()
              _Inert_PARAM, _Inert_LOCAL, _Inert_NAME,_Inert_ASSIGNEDNAME, _Inert_TABLEREF,
              _Inert_MEMBER});
     end proc;
+    
+    
 
 
     # takes an inert expression and splits it
@@ -151,9 +153,7 @@ ToM := module()
     m[_Inert_NARGS]     := MNargs @ mapitom;
     m[_Inert_UNEVAL]    := MUneval @ mapitom;
     m[_Inert_RANGE]     := MRange @ mapitom;
-    m[_Inert_INEQUAT]   := MInequat @ mapitom;
-    m[_Inert_FORFROM]   := MForFrom @ mapitom;
-    m[_Inert_FORIN]     := MForIn @ mapitom;
+    m[_Inert_INEQUAT]   := MInequat @ mapitom;    
 
     m[_Inert_MEMBER]    := MMember    @ mapitom;
     m[_Inert_ATTRIBUTE] := MAttribute @ mapitom;
@@ -165,6 +165,23 @@ ToM := module()
     m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;
     m[_Inert_EOP]            := MEop            @ mapitom;
 
+    m[_Inert_FORFROM] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
+        if whileExp = inertTrue then
+            MForFrom(mapitom(loopVar, fromExp, byExp, toExp, statseq));
+        else
+            MWhileForFrom(mapitom(args));
+        end if;
+    end proc;
+    
+    m[_Inert_FORIN] := proc(loopVar, inExp, whileExp, statseq)
+        if whileExp = inertTrue then
+            MForIn(mapitom(loopVar, inExp, statseq));
+        else
+            MWhileForIn(mapitom(args));
+        end if;
+    end proc;    
+    
+    
     m[_Inert_PROC] := proc()
         maps := table();
         maps['params'] := createVarMap([args][1]);

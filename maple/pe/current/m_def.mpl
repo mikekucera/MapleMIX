@@ -10,11 +10,13 @@ M := module()
            Var, IndexExp,
            ssop, remseq, IsNoOp,
            intrinsic, variables, HasVariable;
-    local createTableProcs, usesFlag, setFlag, createMap;
+    local createTableProcs, usesFlag, setFlag, createMap, inertTrue;
 
 
     # set of builtin function names
     intrinsic := {anames(builtin)};
+    
+    inertTrue := _Inert_NAME("true", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected")))));
 
     # mforms for variables
     variables := {MParam, MLocal, MGeneratedName, MSingleUse};
@@ -148,6 +150,9 @@ M := module()
     IsNoOp := proc(m::mform)
         m = MStatSeq() or m = MStatSeq(MStandaloneExpr(MExpSeq()));
     end proc;
+    
+    
+    
 
     # If a statseq ends with an assignment, then an implicit return is added
     AddImplicitReturns := proc(stat::mform({StatSeq, IfThenElse}))

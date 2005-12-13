@@ -32,7 +32,7 @@ funcPrefixType := proc(prefix, f)
     elif nargs = 3 then
         type(f, specfunc(anything, map2(cat, prefix, args[3])));
     else
-        error "must be called with 1 or 2 args";
+        error "type function must be called with 1 or 2 arguments";
     end if;
 end proc:
 

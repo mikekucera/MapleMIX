@@ -40,7 +40,6 @@ Lifter := module()
         else
             error "lifting of statement form %1 not supported", h
         end if;
-        print("lifting of statment done", result);
 
         q := SimpleQueue();
         for k in indices(stmts) do
@@ -58,7 +57,6 @@ Lifter := module()
             return MExpSeq() # lifting static NULL
         elif nargs > 2 then
             res := MExpSeq(op(map(lift, [args[2..nargs]])));
-            print("liftExp", res);
             return res;
         end if;
 
