@@ -1,6 +1,6 @@
 
 M := module()
-    export Print, ToM, FromM, ReduceExp, TransformIfNormalForm, Unfold,
+    export Print, ToM, FromM, ReduceExp, Unfold,
            EndsWithErrorOrReturn, FlattenStatSeq, AddImplicitReturns,
            SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs,
            CreateLexMap,
