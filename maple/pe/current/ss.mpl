@@ -16,8 +16,8 @@ SuperStack := module()
                 topIndex := 0;
             end proc;
 
-            depth := () -> topIndex;
-            empty := evalb(topIndex = 0);
+            depth  := () -> topIndex;
+            empty  := () -> evalb(topIndex = 0);
             toList := () -> [seq(data[i], i=1..topIndex)];
 
             push := proc(x)

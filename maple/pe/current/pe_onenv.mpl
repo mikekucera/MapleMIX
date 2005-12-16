@@ -21,11 +21,15 @@ OnENV := module()
 ##########################################################################################
 
             newFrame := proc()
-                Record('vals'=table(), 'dyn'={}, 'tbls'=table())
+                Record('vals'=table(), 'dyn'={}, 'readonly'={}, 'tbls'=table())
             end proc;
 
             grow := proc()
-                ss:-push(newFrame());
+                frame := newFrame();
+                if not ss:-empty() then
+                    frame:-readonly := ss:-top():-readonly();
+                end if;
+                ss:-push(frame);
                 NULL;
             end proc;
 
@@ -88,14 +92,16 @@ OnENV := module()
 
             setValDynamic := proc(key)
                 frame := ss:-top();
+                if member(key, frame:-readonly) then
+                    error "variable %1 is read only (assignement to for loop index not allowed)", key;
+                end if;
                 frame:-vals[key] := evaln(frame:-vals[key]);
                 frame:-tbls[key] := evaln(frame:-tbls[key]);
                 frame:-dyn := frame:-dyn union {key};
                 NULL;
-            end proc;
-
-
-            putVal := proc(key, x)
+            end proc;            
+            
+            putVal := proc(key, x, readonly)
                 #frame := ss:-top();
                 #frame:-vals[key] := x;
                 #frame:-dyn := frame:-dyn minus {key};
@@ -118,6 +124,10 @@ OnENV := module()
                 end do;
 
                 frame := ss:-top();
+                if nargs <= 2 and member(key, frame:-readonly) then
+                    error "variable %1 is read only (assignement to for loop index not allowed)", key;
+                end if;
+                
                 frame:-dyn := frame:-dyn minus {key};
 
                 if type(x, `table`) then
@@ -127,6 +137,9 @@ OnENV := module()
                 else
                     frame:-tbls[key] := evaln(frame:-tbls[key]);
                     frame:-vals[key] := x;
+                end if;
+                if nargs > 2 then
+                    frame:-readonly := frame:-readonly union {key};
                 end if;
                 NULL;
             end proc;

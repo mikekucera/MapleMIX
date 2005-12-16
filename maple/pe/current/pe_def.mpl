@@ -253,9 +253,7 @@ end proc;
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
-
     env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
-
     var := Name(Var(tr));
 
     if [rindex,rexpr]::[Static,Static] then
@@ -271,32 +269,56 @@ pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
 end proc;
 
 
+# returns an object that can be used to unroll the body of a loop
+StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
+    if loopVar <> MExpSeq() then
+        loopVarName := Name(loopVar);
+    end if;
+    env := callStack:-topEnv();
+    q := SimpleQueue();
+    
+    return module() export unrollOnce, result;    
+        unrollOnce := proc(i) # pass in the loop index
+            if assigned(loopVarName) then
+                env:-putVal(loopVarName, i, 'readonly');                
+            end if;
+            res := peM(statseq);
+            if res <> NULL then
+                q:-enqueue(res);
+            end if;        
+        end proc;       
+        result := () -> MStatSeq(qtoseq(q));        
+    end module;
+end proc;
+
+
 pe[MForFrom] := proc(loopVar::mform({Local, ExpSeq}), fromExp, byExp, toExp, statseq)
     rFromExp := ReduceExp(fromExp);
     rByExp   := ReduceExp(byExp);
     rToExp   := ReduceExp(toExp);
     
-    print(rFromExp, rByExp, rToExp);
-    
     if [rFromExp,rByExp,rToExp]::[Static,Static,Static] then #unroll loop
-        env := callStack:-topEnv();        
-        q := SimpleQueue();        
-        test := `if`(type(rByExp,nonnegative), `<=`, `>=`);
-        
-        var := `if`(loopVar=MExpSeq(), gen("0i"), Name(loopVar));
-        val := rFromExp;
-        env:-putVal(var, val);
-        
-        while test(val, rToExp) do
-            res := peM(statseq);
-            if res <> NULL then
-                q:-enqueue(res);
-            end if;
-            
-            val := env:-getVal(var) + rByExp;
-            env:-putVal(var, val);
+        unroller := StaticLoopUnroller(loopVar, statseq);        
+        for i from rFromExp by rByExp to rToExp do
+            unroller:-unrollOnce(i);
+        end do;        
+        return unroller:-result();
+    else
+        error "dynamic loops not supported yet";
+    end if;
+end proc;
+
+
+
+
+pe[MForIn] := proc(loopVar, inExp, statseq)
+    rInExp := ReduceExp(inExp);
+    if [rInExp]::list(Static) then
+        unroller := StaticLoopUnroller(loopVar, statseq);  
+        for i in rInExp do
+            unroller:-unrollOnce(i);
         end do;
-        MStatSeq(qtoseq(q));
+        return unroller:-result();
     else
         error "dynamic loops not supported yet";
     end if;
