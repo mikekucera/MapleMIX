@@ -1,7 +1,8 @@
 
 PETypes := module() option package;
     global `type/inert`, `type/mform`,
-           `type/onenv`, `type/Static`, `type/Dynamic`;
+           `type/onenv`, `type/Static`, `type/Dynamic`,
+           `type/Global`, `type/Local`;
     export ModuleLoad;
 
 # type of inert forms
@@ -15,6 +16,8 @@ PETypes := module() option package;
 `type/Static`  := 'Not'('mform'):
 `type/Dynamic` := 'mform':
 
+`type/Global` := 'Or'('identical'(MName), 'identical'(MAssignedName), mform({Name, AssignedName})):
+`type/Local`  := 'Or'('identical'(MLocal), 'identical'(MParam), 'identical'(MGeneratedName), mform({Local, GenertatedName, Param})):
 
 
 ModuleLoad := proc()

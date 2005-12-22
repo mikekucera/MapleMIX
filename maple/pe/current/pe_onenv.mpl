@@ -12,7 +12,7 @@ OnENV := module()
         newEnv := module()
             local ss, newFrame, lex, argsVal, nargsVal, rebuildTable;
             export putVal, getVal, grow, shrink, shrinkGrow, display, markTop,
-                   isDynamic, isStatic, setValDynamic, equalsTop;
+                   isDynamic, isStatic, isTblValStatic, isAssigned, setValDynamic, equalsTop;
 
 ##########################################################################################
 
@@ -158,6 +158,19 @@ OnENV := module()
             end proc;
 
             isDynamic := `not` @ isStatic;
+            
+            isAssigned := proc(key)
+                iter := ss:-topDownIterator();
+                while iter:-hasNext() do
+                    frame := iter:-getNext();
+                    if member(key, frame:-dyn) or
+                       assigned(frame:-vals[key]) or 
+                       assigned(frame:-tbls[key]) then
+                        return true;
+                    end if;
+                end do;
+                false;
+            end proc;
 
 ##########################################################################################
 
@@ -190,6 +203,57 @@ OnENV := module()
                                                'dyn'={}); # dynamic mask
             end proc;
 
+            isStatic := proc(key)
+                iter := ss:-topDownIterator();
+                while iter:-hasNext() do
+                    frame := iter:-getNext();
+                    if member(key, frame:-dyn) then
+                        return false;
+                    elif assigned(frame:-vals[key]) or assigned(frame:-tbls[key]) then
+                        return true;
+                    end if;
+                end do;
+                false;
+            end proc;
+            
+            isTblValStatic := proc(tableName, index)
+                try
+                    foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
+                    rec := foundFrame:-tbls[tableName];
+                    do
+                        if member(index, rec:-dyn) then
+                            return false;
+                        elif assigned(rec:-elts[index]) then
+                            return true;
+                        elif assigned(rec:-link) then
+                            rec := rec:-link;
+                        else
+                            return false;
+                        end if;
+                    end do;
+                catch "not found" :
+                    false;
+                end try;
+            end proc;
+            
+            
+            isTblValAssigned := proc(tableName, index)
+                try
+                    foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
+                    rec := foundFrame:-tbls[tableName];
+                    do
+                        if member(index, rec:-dyn) or assigned(rec:-elts[index]) then
+                            return true;
+                        elif assigned(rec:-link) then
+                            rec := rec:-link;
+                        else
+                            return false;
+                        end if;
+                    end do;
+                catch "not found" :
+                    false;
+                end try;
+            end proc;
 
             putTblVal := proc(tableName, index, x)
                 if assigned(ss:-top():-tbls[tableName]) then # its at the top
@@ -198,10 +262,10 @@ OnENV := module()
                     rec:-dyn := rec:-dyn minus {index};
                 else
                     try
-                        foundRec := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
+                        foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
                         rec := addTable(tableName);
                         rec:-elts[index] := x;
-                        rec:-link := foundRec:-tbls[tableName];
+                        rec:-link := foundFrame:-tbls[tableName];
                     catch "not found" :
                         rec := addTable(tableName);
                         rec:-elts[index] := x;
@@ -226,7 +290,6 @@ OnENV := module()
                     elif assigned(rec:-elts[index]) then
                         return rec:-elts[index];
                     elif assigned(rec:-link) then
-                        print("link", rec:-link);
                         rec := rec:-link;
                     else
                         error err;

@@ -153,7 +153,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         stmt := args[i];
         h := Header(stmt);
 
-        if false then
+        if true then
             print(); print("stat");
             if member(h, {MIfThenElse, MTry}) then
     	        print(h);print();
@@ -398,7 +398,10 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
         flattened;
     end proc;
 
-    residualize := () -> MAssignToFunction(var, MFunction(args));
+    residualize := proc()
+        callStack:-topEnv():-setValDynamic(var);
+        MAssignToFunction(var, MFunction(args));
+    end proc;
 
     symbolic := proc(s)
         callStack:-topEnv():-putVal(op(var), s);
@@ -500,7 +503,8 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
 	    peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
 
     else
-        error "received unknown form %1, %2", fun;
+        genv:-display();
+        error "received unknown form %1", fun;
     end if;
 end proc;
 

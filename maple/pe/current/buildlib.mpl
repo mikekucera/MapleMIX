@@ -36,7 +36,8 @@ Save('`type/mform`');
 Save('`type/onenv`');
 Save('`type/Static`');
 Save('`type/Dynamic`');
-
+Save('`type/Global`');
+Save('`type/Local`');
 
 
 

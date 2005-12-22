@@ -2,7 +2,7 @@
 M := module()
     export Print, ToM, FromM, ReduceExp, Unfold,
            EndsWithErrorOrReturn, FlattenStatSeq, AddImplicitReturns,
-           SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs,
+           SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs, ProtectedForm,
            CreateLexMap,
            Params, Locals, ProcBody, Header, Last, Front,
            Cond, Then, Else,
@@ -122,6 +122,11 @@ M := module()
     end proc;
 
 
+    ProtectedForm := proc(n) option inline;
+        MAssignedName(n, "PROC", MAttribute(MName("protected", MAttribute(MName("protected")))))
+    end proc;
+    
+    
     # returns true iff the given statment is a return or is a statseq that ends with a return
     EndsWithErrorOrReturn := proc(m::mform)
         if m = MStatSeq() then

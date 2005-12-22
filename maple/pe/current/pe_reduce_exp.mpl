@@ -7,16 +7,22 @@ ReduceExp := module()
 
     description "online expression reducer for use with online partial evaluator";
     export ModuleApply, Reduce;
-    local env, red, reduce, unred, unreduce;
+    local env, red, specFunc, reduce, unred, unreduce, isProtectedProc;
 
+    
+    
 
-    Reduce := exp -> ModuleApply(exp, OnENV());
+    
+    Reduce := proc(exp)
+        genv := OnENV();
+        ModuleApply(exp, OnENV());
+    end proc;
 
     ModuleApply := proc(exp, reductionEnv := callStack:-topEnv()) local residual;
-        #print("reducing", exp);
+        print("reducing", exp);
         env := reductionEnv;
         residual := reduce(exp);
-        #print("reduced", residual);
+        print("reduced", residual);
         env := 'env';
         # TODO: get rid of this extra eval
         eval(residual, [ _Tag_STATICEXPSEQ = (() -> args),
@@ -76,7 +82,7 @@ ReduceExp := module()
     red[MXor]      := binOp(MXor,      `xor`);
     red[MRange]    := binOp(MRange,    `..`);
 
-    # todo, figure out the semantics of catenate
+    
     red[MCatenate] := proc(x,y)
         r := reduce(y);
         if r::Dynamic then
@@ -84,7 +90,7 @@ ReduceExp := module()
         end if;
         # now we know the right side is static
         h := Header(x);
-        if member(h, {MName, MAssignedName, MLocal, MParam}) then
+        if member(h, {MName, MAssignedName, MLocal, MParam, MGeneratedName}) then
             `||`(convert(op(1,x), name), r);
         elif h = MString then
             `||`(op(x), r);
@@ -152,11 +158,54 @@ ReduceExp := module()
         end if;
     end proc;;
 
-    red[MFunction] := proc(f, expseq)
-        if f = MAssignedName("print", "PROC", MAttribute(MName("protected", MAttribute(MName("protected"))))) then
-            return MFunction(f, reduce(expseq));
+    
+    
+    
+    isProtectedProc := proc(assignedName)
+        if Header(assignedName) <> MAssignedName then
+            return false;
         end if;
-
+        n := Name(assignedName); 
+        assigned(specFunc[n]) and assignedName = M:-ProtectedForm(n);  
+    end proc;
+    
+    
+    specFunc["print"] := proc(expseq)
+        return MFunction(f, reduce(expseq));
+    end proc;
+    
+    # TODO, this is not correct, because support for evaln is not there yet
+    specFunc["assigned"] := proc(expseq)
+        if nops(expseq) <> 1 then
+            error "assigned expects 1 argument, but received %1", nops(expseq);
+        end if;
+        val := op(expseq);
+        if Header(val) = MAssignedName then
+            return true;
+        elif val::Global then
+            return genv:-isAssigned(Name(val));
+        elif val::Local then
+            return env:-isAssigned(Name(val));
+        elif Header(val) = MTableref then
+            rindex := reduce(IndexExp(val));
+            var := Var(val);
+            if rindex::Static then
+                if var::Global then
+                    genv:-isTblValAssigned(Name(var), rindex);
+                elif var::Local then
+                    env:-isTblValAssigned(Name(var), rindex);
+                end if;
+            end if;
+        end if;
+        MFunction(M:-ProtectedForm("assigned"), reduce(expseq));
+    end proc;
+    
+    
+    red[MFunction] := proc(f, expseq)
+        if isProtectedProc(f) then
+            return specFunc[Name(f)](expseq);
+        end if;
+        
         rf := reduce(f);
         re := reduce(expseq);
 
