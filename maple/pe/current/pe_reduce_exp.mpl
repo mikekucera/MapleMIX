@@ -19,10 +19,8 @@ ReduceExp := module()
     end proc;
 
     ModuleApply := proc(exp, reductionEnv := callStack:-topEnv()) local residual;
-        print("reducing", exp);
         env := reductionEnv;
         residual := reduce(exp);
-        print("reduced", residual);
         env := 'env';
         # TODO: get rid of this extra eval
         eval(residual, [ _Tag_STATICEXPSEQ = (() -> args),

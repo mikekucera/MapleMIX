@@ -15,6 +15,7 @@ $include "pe_onenv.mpl";
 $include "pe_reduce_exp.mpl"
 $include "pe_lift.mpl"
 $include "pe_module.mpl"
+$include "pe_debug.mpl"
 
 
 ##################################################################################
@@ -34,10 +35,14 @@ end proc;
 
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p)
+PartiallyEvaluate := proc(p, debugMode)
     # need access to module locals
     before := kernelopts(opaquemodules=false);
 
+    if nargs = 2 then
+        PEDebug:-DebugMode();
+    end if;
+    
     # set up module locals
     gen := NameGenerator();
     callStack := CallStack();
@@ -153,7 +158,9 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         stmt := args[i];
         h := Header(stmt);
 
-        if true then
+        PEDebug:-Statement(h);
+        
+        if false then
             print(); print("stat");
             if member(h, {MIfThenElse, MTry}) then
     	        print(h);print();
