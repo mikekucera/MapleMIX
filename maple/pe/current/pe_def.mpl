@@ -40,7 +40,7 @@ Debug := proc(p)
         lprint("debug session exited");
         return;
     end try;
-    PartiallyEvaluate(p);s
+    PartiallyEvaluate(p);
 end proc;
 
 # called with a procedure, name of residual proc, and a list of equations
@@ -486,15 +486,16 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
 
     elif Header(fun) = Closure then
         # TODO, the full functionality of peArgList is not needed here
-        newEnv, a, b := peArgList(Params(Code(fun)), argExpSeq);
+        newEnv, redCall, fullCall := peArgList(Params(Code(fun)), argExpSeq);
         # attach lexical environment to the environment of the function
         newEnv:-attachLex(Lex(fun));
         callStack:-push(newEnv);
-        res := peSpecializeProc(Code(fun));
+        newProc := peSpecializeProc(Code(fun));
         callStack:-pop();
         newEnv:-removeLex();
         # should probably be a proper unfolding
-        res := ProcBody(res);
+        #res := ProcBody(res);
+        res := unfold(newProc, redCall, fullCall);
 
     elif type(eval(fun), `procedure`) then
         newName := gen(cat(op(1,f),"_"));

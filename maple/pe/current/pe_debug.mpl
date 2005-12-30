@@ -56,7 +56,7 @@ PEDebug := module()
     
 
     StatementStart := proc(stmt)
-        if not runningMode = FUNCTION_RETURN and displayStats then
+        if runningMode <> FUNCTION_RETURN and displayStats then
             print(stmt);
         end if;
         if runningMode = STEP then
@@ -66,7 +66,7 @@ PEDebug := module()
     
     
     StatementEnd := proc(stat)
-        if runningMode = STEP and displayStats then
+        if displayStats and runningMode <> FUNCTION_RETURN then
             if nargs = 0 then
                 print("null");
             else
