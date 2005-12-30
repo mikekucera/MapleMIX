@@ -38,10 +38,6 @@ end proc;
 PartiallyEvaluate := proc(p, debugMode)
     # need access to module locals
     before := kernelopts(opaquemodules=false);
-
-    if nargs = 2 then
-        PEDebug:-DebugMode();
-    end if;
     
     # set up module locals
     gen := NameGenerator();
@@ -56,9 +52,16 @@ PartiallyEvaluate := proc(p, debugMode)
     newEnv:-setArgs(table());
     callStack:-push(newEnv);
 
+    if nargs = 2 then
+        PEDebug:-Begin();
+    end if;
+    
     try
         # perform partial evaluation
         peSpecializeProc(m, "ModuleApply");
+    catch "debug":
+        lprint("debug session exited");
+        return;
     catch:
         lprint(stmtCount, "statements partially evaluated before error");
         error;
@@ -158,23 +161,17 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         stmt := args[i];
         h := Header(stmt);
 
-        PEDebug:-Statement(h);
-        
-        if false then
-            print(); print("stat");
-            if member(h, {MIfThenElse, MTry}) then
-    	        print(h);print();
-    	    else
-    	        print(stmt);print();
-    	    end if;
-	    end if;
+        PEDebug:-StatementStart(stmt);
 
         if h = MIfThenElse then
             q:-enqueue(peIF(stmt, MStatSeq(args[i+1..nargs])));
+            PEDebug:-StatementEnd();
             break;
         end if;
 
         res := peM(stmt);
+        
+        PEDebug:-StatementEnd(res);
 
         if res <> NULL then
             if op(0,res) = MTry and i < nargs then
@@ -466,18 +463,19 @@ end proc;
 
 # takes continuations to be applied if f results in a procedure
 peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::procedure, symbolic::procedure)
+    PEDebug:-FunctionStart(f);
     fun := ReduceExp(f);
 
     if fun::Dynamic then
         # don't know what function was called, residualize call
-        MFunction(fun, ReduceExp(argExpSeq));
+        res := MFunction(fun, ReduceExp(argExpSeq));
 
     elif type(eval(fun), `symbol`) then
         redargs := ReduceExp(argExpSeq);
         if [redargs]::list(Static) then
-            symbolic(fun(redargs));
+            res := symbolic(fun(redargs));
         else
-            residualize(fun, MExpSeq(redargs));
+            res := residualize(fun, MExpSeq(redargs));
         end if;
 
     elif Header(fun) = Closure then
@@ -490,15 +488,15 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
         callStack:-pop();
         newEnv:-removeLex();
         # should probably be a proper unfolding
-        ProcBody(res);
+        res := ProcBody(res);
 
     elif type(eval(fun), `procedure`) then
         newName := gen(cat(op(1,f),"_"));
-        peRegularFunction(eval(fun), argExpSeq, unfold, residualize, newName);
+        res := peRegularFunction(eval(fun), argExpSeq, unfold, residualize, newName);
 
     elif Header(fun) = SPackageLocal and type(Member(fun), `procedure`) then
         mem := Member(fun);
-        peRegularFunction(mem, argExpSeq, unfold, residualize, gen("fun"));
+        res := peRegularFunction(mem, argExpSeq, unfold, residualize, gen("fun"));
 
 	elif type(fun, `module`) then
 	    if member(convert("ModuleApply",name), fun) then
@@ -507,12 +505,15 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
             ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(fun))]));
             if ma = NULL then error "package does not contain ModuleApply" end if;
         end if;
-	    peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
+	    res := peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
 
     else
         genv:-display();
         error "received unknown form %1", fun;
     end if;
+    
+    PEDebug:-FunctionEnd();
+    res;
 end proc;
 
 

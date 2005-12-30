@@ -20,7 +20,9 @@ ReduceExp := module()
 
     ModuleApply := proc(exp, reductionEnv := callStack:-topEnv()) local residual;
         env := reductionEnv;
+        PEDebug:-DisplayReduceStart(exp);
         residual := reduce(exp);
+        PEDebug:-DisplayReduceEnd(residual);
         env := 'env';
         # TODO: get rid of this extra eval
         eval(residual, [ _Tag_STATICEXPSEQ = (() -> args),
