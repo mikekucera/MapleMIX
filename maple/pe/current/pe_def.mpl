@@ -5,7 +5,7 @@ OnPE := module() option package;
     description "online partial evaluator for a subset of Maple";
     local callStack, code, gen, genv,
           CallStack, stmtCount;
-    export ModuleApply, PartiallyEvaluate, OnENV, ReduceExp, Lifter;
+    export Debug, ModuleApply, PartiallyEvaluate, OnENV, ReduceExp, Lifter;
 
 ModuleApply := PartiallyEvaluate;
 
@@ -33,9 +33,19 @@ end proc;
 ############################################################################
 
 
+Debug := proc(p)
+    try
+        PEDebug:-Begin();
+    catch "debug":
+        lprint("debug session exited");
+        return;
+    end try;
+    PartiallyEvaluate(p);s
+end proc;
+
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p, debugMode)
+PartiallyEvaluate := proc(p)
     # need access to module locals
     before := kernelopts(opaquemodules=false);
     
@@ -51,10 +61,6 @@ PartiallyEvaluate := proc(p, debugMode)
     newEnv := OnENV();
     newEnv:-setArgs(table());
     callStack:-push(newEnv);
-
-    if nargs = 2 then
-        PEDebug:-Begin();
-    end if;
     
     try
         # perform partial evaluation

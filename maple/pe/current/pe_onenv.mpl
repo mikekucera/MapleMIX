@@ -352,8 +352,6 @@ OnENV := module()
 ##########################################################################################
 
             display := proc()
-                print();
-                print("displaying environment");
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
@@ -365,8 +363,9 @@ OnENV := module()
                         print("rec", tblName, op(rec:-elts), rec:-dyn, `if`(assigned(rec:-link), "linked", "null"));
                     end do;
                 end do;
-                print();
             end proc;
+            
+            
         end module;
 
         newEnv:-grow();

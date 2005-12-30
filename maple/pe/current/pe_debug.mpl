@@ -10,7 +10,7 @@ PEDebug := module()
     runningMode := COMPLETION;
     quitIt := false;
     x, y := 10, 10;
-    displayStats, displayReductions := true, true;
+    displayStats, displayReductions := false, false;
     stackSize := 0;
     
     
@@ -28,11 +28,13 @@ PEDebug := module()
     
     
     Begin := proc(stmt)
+        displayStats, displayReductions := true, true;
         SetRunningMode(STEP);
         DisplayDebugCommand("Starting");
     end proc;
     
     Quit := proc()
+        displayStats, displayReductions := false, false;
         quitIt := true;
     end proc;
     
@@ -94,6 +96,12 @@ PEDebug := module()
         end if;
     end proc;
     
+    DisplayEnv := proc()
+        print("local env");
+        callStack:-topEnv():-display();
+        print("global env");
+        genv:-display();
+    end proc;
     
     DisplayDebugCommand := proc(message := "", skippable := false)
         use buttonWidth = 160, 
@@ -113,6 +121,9 @@ PEDebug := module()
 	                         Action(Evaluate(function = 'SetRunningMode(COMPLETION)'), A1)),
 	            Button['B5']("Quit", 'width' = buttonWidth,
 	                         Action(Evaluate(function = 'Quit()'), A1)),
+	            " ",
+	            Button['B6']("Display Env", 'width' = buttonWidth,
+	                         Evaluate(function = 'DisplayEnv()')),
 	            " ",
 	            CheckBox['C1']('caption' = "Display Statements", 'value' = displayStats),
 	            CheckBox['C2']('caption' = "Display Reductions", 'value' = displayReductions)
