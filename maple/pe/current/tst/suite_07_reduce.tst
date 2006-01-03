@@ -5,7 +5,8 @@
 with(TestTools):
 kernelopts(opaquemodules=false):
 
-libname := libname, "/home/mike/thesis/trunk/maple/pe/current/lib":
+#libname := libname, "/home/mike/thesis/trunk/maple/pe/current/lib":
+libname := libname, "E:\\School\\svn\\thesis\\maple\\pe\\current\\lib":
 
 # TEST 1: MCatenate ###################################################
 
