@@ -38,9 +38,10 @@ ReduceExp := module()
     reduce := proc(exp)
         h := op(0,exp);
         if assigned(red[h]) then
-            return red[h](op(exp));
-        end if;
-        error "reduction of %1 not supported yet", h
+            red[h](op(exp));
+        else
+            exp;
+        end if;        
     end proc;
 
 
@@ -61,9 +62,7 @@ ReduceExp := module()
 
     naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
 
-
-
-
+ 
     red['Integer'] := () -> args;
     red['string']  := () -> args;
 
