@@ -1,5 +1,7 @@
 Header   := proc(x) option inline; op(0,x) end proc:
 
+SVal := proc(x::specfunc(anything, MStatic)) op(x) end proc;
+
 # generally for working with MStatSeq
 Last     := proc(x) option inline; op(-1, x) end proc;
 Front    := proc(x) option inline; op(1..-2, x) end proc;

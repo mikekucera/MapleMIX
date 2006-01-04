@@ -9,8 +9,6 @@ ReduceExp := module()
     export ModuleApply, Reduce;
     local env, red, specFunc, reduce, unred, unreduce, isProtectedProc;
 
-    
-    
 
     
     Reduce := proc(exp)
@@ -21,12 +19,15 @@ ReduceExp := module()
     ModuleApply := proc(exp, reductionEnv := callStack:-topEnv()) local residual;
         env := reductionEnv;
         PEDebug:-DisplayReduceStart(exp);
-        residual := reduce(exp);
-        PEDebug:-DisplayReduceEnd(residual);
+        
+        residual := embed(reduce(exp));
+        
         env := 'env';
         # TODO: get rid of this extra eval
-        eval(residual, [ _Tag_STATICEXPSEQ = (() -> args),
-                         SArgs = (() -> MArgs())]);
+        residual := eval(residual, [_Tag_STATICEXPSEQ = (() -> args), MArgs = (() -> MArgs())]);
+                         
+        PEDebug:-DisplayReduceEnd(residual);
+        residual;
     end proc;
 
 
@@ -45,14 +46,18 @@ ReduceExp := module()
     end proc;
 
 
-    reduceAll := proc()
-        op(map(reduce, [args]))
-    end proc;
+    #reduceAll := proc()
+    #    op(map(reduce, [args]))
+    #end proc;
 
     binOp := (f, op) -> proc(x, y)
         rx := reduce(x);
         ry := reduce(y);
-        `if`(rx::Static and ry::Static, op(rx,ry), f(rx,ry));
+        if rx::Static and ry::Static then
+            op(rx,ry);
+        else
+            f(embed(rx), embed(ry));
+        end if;
     end proc;
 
     unOp := (f, op) -> proc(x)
@@ -60,7 +65,17 @@ ReduceExp := module()
         `if`(rx::Dynamic, f(rx), op(rx))
     end proc;
 
-    naryOp := (f, op) -> () -> foldl(binOp(f,op), args[1], args[2..nargs]);
+    naryOp := (f, op) -> proc()        
+        reduceRight := proc(rx,y)
+            ry := reduce(y);
+            if rx::Static and ry::Static then
+                op(rx,ry);
+            else
+                f(embed(rx), embed(ry));
+            end if;
+        end proc;
+        foldl(reduceRight, reduce(args[1]), args[2..nargs]);
+    end proc;
 
  
     red['Integer'] := () -> args;
@@ -83,14 +98,19 @@ ReduceExp := module()
 
     
     red[MCatenate] := proc(x,y)
+        print("MCatenate", args);
         r := reduce(y);
+        print("r", r);
         if r::Dynamic then
             return MCatenate(x, r);
         end if;
         # now we know the right side is static
         h := Header(x);
+        print("h", h);
         if member(h, {MName, MAssignedName, MLocal, MParam, MGeneratedName}) then
-            `||`(convert(op(1,x), name), r);
+            res := `||`(convert(op(1,x), name), r);
+            print(res);
+            res;
         elif h = MString then
             `||`(op(x), r);
         else
@@ -108,7 +128,7 @@ ReduceExp := module()
 
     red[MComplex]  := () -> `if`(nargs=1, args * I, args[1] + args[2] * I);
     red[MNargs]    := () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
-    red[MArgs]     := () -> SArgs(env:-getArgs());
+    red[MArgs]     := () -> MArgs(env:-getArgs());
 
     # TODO, not good enough, the rules are different for procs and modules
     red[MName] := proc(n)
@@ -130,8 +150,8 @@ ReduceExp := module()
 
 
     red[MExpSeq] := proc()
-        rs := reduceAll(args);
-        `if`([rs]::list(Static), _Tag_STATICEXPSEQ(rs), MExpSeq(rs))
+        rs := op(map(reduce, [args]));
+        `if`([rs]::list(Static), _Tag_STATICEXPSEQ(rs), MExpSeq(op(map(embed, [rs]))))
     end proc;
 
     red[MList] := proc(eseq)
@@ -152,8 +172,8 @@ ReduceExp := module()
             SPackageLocal(rx1, rx1[rx2]);
         elif op(0,rx1) = SPackageLocal and type(op(2,rx1), `package`) then
             SPackageLocal(rx1, op(2,rx1)[rx2]);
-        else
-            MMember(rx1, rx2);
+        else         
+            MMember(embed(rx1), embed(rx2));
         end if;
     end proc;;
 
@@ -170,7 +190,7 @@ ReduceExp := module()
     
     
     specFunc["print"] := proc(expseq)
-        return MFunction(f, reduce(expseq));
+        return MFunction(f, embed(reduce(expseq)));
     end proc;
     
     # TODO, this is not correct, because support for evaln is not there yet
@@ -196,7 +216,7 @@ ReduceExp := module()
                 end if;
             end if;
         end if;
-        MFunction(M:-ProtectedForm("assigned"), reduce(expseq));
+        MFunction(M:-ProtectedForm("assigned"), embed(reduce(expseq)));
     end proc;
     
     
@@ -213,7 +233,7 @@ ReduceExp := module()
         elif type(rf, name) and Header(re) = _Tag_STATICEXPSEQ then
             apply(convert(op(1,rf), name), op(re));
         else
-            MFunction(rf, re);
+            MFunction(embed(rf), embed(re));
         end if;
     end proc;
 
@@ -221,7 +241,7 @@ ReduceExp := module()
     # evaluates table references as expressions
     red[MTableref] := proc(tbl, eseq) # know that both args are static
         re := reduce(eseq);
-
+        
         if Header(re)=_Tag_STATICEXPSEQ then
             if member(Header(tbl), {MLocal, MParam, MGeneratedName}) then
                 try return env:-getTblVal(Name(tbl), op(re)); # TODO: won't work for expression sequence as key
@@ -241,20 +261,20 @@ ReduceExp := module()
 	        if assigned(actualTable[ref]) then
 	            actualTable[ref];
 	        else
-	            MTableref(rt, re);
+	            MTableref(embed(rt), embed(re));
 	        end if;
-        elif h = SArgs then
+        elif h = MArgs then
             argsTbl := op(1, rt);
             ref := op(re);
             if assigned(argsTbl[ref]) then
                 argsTbl[ref];
             else
-                MTableref(MArgs(), re);
+                MTableref(MArgs(), embed(re));
             end if;
         elif rt::symbol and re::Static then
             rt[re];
         else
-            MTableref(rt, re);
+            MTableref(embed(rt), embed(re));
         end if;
     end proc;
 
@@ -301,7 +321,7 @@ ReduceExp := module()
         if op(0,e) = MName then
             convert(op(1,e), name);
         else
-            MUneval(e);
+            MUneval(embed(e));
         end if;
     end proc;
 

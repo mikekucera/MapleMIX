@@ -37,7 +37,12 @@ Unfold := module()
     # the static ones should have been removed.
     UnfoldStandalone := proc(specProc::mform(Proc), specCall::mform(ExpSeq),
                              fullCall::mform(ExpSeq), genVarName) ::mform(StatSeq);
-
+        print("UnfoldStandalone");
+        print(specProc);
+        print(specCall);
+        print(fullCall);
+        print();
+        
         body := ProcBody(specProc);
         params := Params(specProc);
         body, newNames := renameAllLocals(body, genVarName);
@@ -63,6 +68,7 @@ Unfold := module()
 
         # let insert args and nargs if needed
         letNargs := NULL;
+        print("UsesNargs", UsesNargs(specProc));
         if UsesNargs(specProc) then
             argsName  := genVarName("args");
             nargsName := genVarName("nargs");
@@ -76,6 +82,7 @@ Unfold := module()
 
         # let insert nargs if needed
         letArgs := NULL;
+        print("UsesArgs", UsesArgs(specProc));
         if letNargs <> NULL or UsesArgs(specProc) then
             if not assigned(argsName) then
                 argsName := genVarName("args");
@@ -92,7 +99,7 @@ Unfold := module()
     # actually in this case removal of returns isn't needed
     UnfoldIntoAssign := proc(specProc::mform(Proc), specCall::mform(ExpSeq), fullCall::mform(ExpSeq),
                              genVarName, assignTo::mform(GeneratedName)) ::mform(StatSeq);
-
+        print("UnfoldIntoAssign");
         newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
         newbody := FlattenStatSeq(newbody);
 

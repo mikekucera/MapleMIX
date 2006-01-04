@@ -13,8 +13,9 @@ PETypes := module() option package;
 
 `type/onenv` := '`module`'('putVal', 'getVal'):
 
-`type/Static`  := 'Not'('mform'):
-`type/Dynamic` := 'mform':
+`type/Static`  := 'Not'('Dynamic'):
+`type/Dynamic` := And(Not(specfunc(anything, 'MStatic')),'mform'):
+#`type/Dynamic` := 'mform':
 
 `type/Global` := 'Or'('identical'(MName), 'identical'(MAssignedName), mform({Name, AssignedName})):
 `type/Local`  := 'Or'('identical'(MLocal), 'identical'(MParam), 'identical'(MGeneratedName), mform({Local, GenertatedName, Param})):

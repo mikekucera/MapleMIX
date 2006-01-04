@@ -35,7 +35,7 @@ env:-setTblValDynamic("r", "z");
 
 t := env:-getVal("r");
 
-Try(205, t, table(["x"=1, "y"=2, "a"=15]));
+Try[verify,table](205, t, table(["x"=1, "y"=2, "a"=15]));
 
 env:-shrink();
 
@@ -45,7 +45,7 @@ Try(208, env:-getTblVal("r", "a"), 15);
 
 t2 := env:-getVal("r");
 
-Try(209, t2, table(["x"=99, "z"=25, "a"=15]));
+Try[verify,table](209, t2, table(["x"=99, "z"=25, "a"=15]));
 
 ##########################################################################
 

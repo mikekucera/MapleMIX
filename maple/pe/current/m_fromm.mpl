@@ -57,6 +57,14 @@ FromM := module()
 
     inrt['string']  := () -> args;
     inrt['Integer'] := () -> args;
+    
+    inrt[MStatic] := proc()
+        if nargs = 1 then
+            _Inert_VERBATIM(args);
+        else
+            error "MStatic should only contain one operand";
+        end if;
+    end proc;
 
     inrt[MParam]     := n -> _Inert_PARAM(MapStack:-top()['params'](n));
     inrt[MLocal]     := n -> _Inert_LOCAL(MapStack:-top()['locals'](n));

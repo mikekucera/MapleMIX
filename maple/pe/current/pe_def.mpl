@@ -27,6 +27,19 @@ getMCode := proc(fun) option cache;
 end proc;
 
 
+embed := proc(e)
+    if nargs = 0 then
+        MStatic()
+    elif nargs = 1 and e::Static then
+        MStatic(e)
+    elif nargs = 1 and e::Dynamic then
+        e
+    elif [args] :: list(Static) then
+        MStatic(args);
+    else
+        error "illegal embed: %1", [args];
+    end if;
+end proc;
 
 ############################################################################
 # The specializer
@@ -130,15 +143,20 @@ end proc;
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 # probably won't be needed if I go with the sp-function approach
 isUnfoldable := proc(inertProcedure::mform(Proc))
+    print("isUnfoldable");
+    print(callStack:-inConditional());
     if not callStack:-inConditional() then
         return true;
     end if;
     flattened := M:-FlattenStatSeq(ProcBody(inertProcedure));
     # if all the func does is return a static value then there is no
     # reason not to unfold
-    evalb( nops(flattened) = 1 # function body has only one statement
-       and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
-       and not type(op([1,1], flattened), mform) )
+    
+    # if the function body consists of a single static than it can be easily unfolded
+    print("function body", op([1,1], flattened));
+    nops(op([1,1], flattened)) = 1 
+    and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
+    and op([1,1], flattened)::Static
 end proc;
 
 
@@ -152,11 +170,11 @@ peM := proc(m::mform)
 end proc;
 
 
-peResid := (f, e) -> f(ReduceExp(e));
+peResidualize := (f, e) -> f(ReduceExp(e));
 
-pe[MStandaloneExpr] := curry(peResid, MStandaloneExpr);
-pe[MReturn] := curry(peResid, MReturn);
-pe[MError]  := curry(peResid, MError);
+pe[MStandaloneExpr] := curry(peResidualize, MStandaloneExpr);
+pe[MReturn] := curry(peResidualize, MReturn);
+pe[MError]  := curry(peResidualize, MError);
 
 
 
@@ -196,7 +214,7 @@ end proc;
 peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
     rcond := ReduceExp(Cond(ifstat));
     if rcond::Static then
-        stmts := `if`(rcond, Then(ifstat), Else(ifstat));
+        stmts := `if`(SVal(rcond), Then(ifstat), Else(ifstat));
         peM(MStatSeq(ssop(stmts), ssop(S)));
     else
         callStack:-setConditional();
@@ -239,20 +257,19 @@ pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate}), expr::mform
 
     if Header(n) = MCatenate then
         var := ReduceExp(n);
-        if nops([var]) <> 1 then
+        if var::Dynamic then
+            return MAssign(n, reduced); # TODO, maybe don't use n
+        elif nops([SVal(var)]) <> 1 then
             error "multiple assignment not supported"
-        elif var::Dynamic then
-            # TODO, maybe don't use n
-            return MAssign(n, reduced);
         else
-            var := convert(var, string);
+            var := convert(SVal(var), string);
         end if
     else
         var := Name(n);
     end if;
 
     if reduced::Static then
-        env:-putVal(var, reduced);
+        env:-putVal(var, SVal(reduced));
         NULL;
     else
         env:-setValDynamic(var);
@@ -269,10 +286,10 @@ pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
     var := Name(Var(tr));
 
     if [rindex,rexpr]::[Static,Static] then
-        env:-putTblVal(var, rindex, rexpr);
+        env:-putTblVal(var, SVal(rindex), SVal(rexpr));
         NULL;
     elif rindex::Static then
-        env:-setTblValDynamic(var, rindex);
+        env:-setTblValDynamic(var, SVal(rindex));
         MTableAssign(subsop(2=rindex, tr), rexpr);
     else
         env:-setValDynamic(var);
@@ -308,13 +325,19 @@ pe[MForFrom] := proc(loopVar::mform({Local, ExpSeq}), fromExp, byExp, toExp, sta
     rFromExp := ReduceExp(fromExp);
     rByExp   := ReduceExp(byExp);
     rToExp   := ReduceExp(toExp);
+    print("rToExp", rToExp);
     
-    if [rFromExp,rByExp,rToExp]::[Static,Static,Static] then #unroll loop
-        unroller := StaticLoopUnroller(loopVar, statseq);        
+    if [rFromExp,rByExp,rToExp]::[Static,Static,Static] then #unroll loop        
+        rFromExp := SVal(rFromExp);
+        rByExp := SVal(rByExp);
+        rToExp := SVal(rToExp);
+        print("rToExp", rToExp);
+        
+        unroller := StaticLoopUnroller(loopVar, statseq);
         for i from rFromExp by rByExp to rToExp do
             unroller:-unrollOnce(i);
         end do;        
-        return unroller:-result();
+        unroller:-result();
     else
         error "dynamic loops not supported yet";
     end if;
@@ -326,8 +349,8 @@ end proc;
 pe[MForIn] := proc(loopVar, inExp, statseq)
     rInExp := ReduceExp(inExp);
     if [rInExp]::list(Static) then
-        unroller := StaticLoopUnroller(loopVar, statseq);  
-        for i in rInExp do
+        unroller := StaticLoopUnroller(loopVar, statseq);
+        for i in SVal(rInExp) do
             unroller:-unrollOnce(i);
         end do;
         return unroller:-result();
@@ -414,7 +437,7 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
     end proc;
 
     symbolic := proc(s)
-        callStack:-topEnv():-putVal(op(var), s);
+        callStack:-topEnv():-putVal(op(var), SVal(s));
         NULL;
     end proc;
 
@@ -442,21 +465,24 @@ peArgList := proc(params::mform(ParamSeq), argExpSeq::mform(ExpSeq))
    	        if Header(reduced) = MParam and allNotExpSeqSoFar then
    	            #argsTbl[i] := reduced;
    	            # unsound, what if proc dosen't unfold?
+   	            #error "what?"; #TODO, what?
    	        else
    	            allNotExpSeqSoFar := false;
    	        end if;
    	    else
    	        if allNotExpSeqSoFar then
    	            if i <= nops(params) then
-   	                env:-putVal(op(op(i, params)), reduced);
+   	                env:-putVal(op(op(i, params)), SVal(reduced));
    	            end if;
-   	            argsTbl[i] := reduced;
+   	            argsTbl[i] := SVal(reduced);
    	        else
    	            redCall:-enqueue(reduced);
    	        end if;
    	    end if;
    	end do;
     if allNotExpSeqSoFar then
+        print("setnargs", i);
+        print("argsTbl", op(argsTbl));
         env:-setNargs(i);
     end if;
 
@@ -475,41 +501,46 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
     if fun::Dynamic then
         # don't know what function was called, residualize call
         res := MFunction(fun, ReduceExp(argExpSeq));
-
-    elif type(eval(fun), `symbol`) then
+        PEDebug:-FunctionEnd();
+        return res;
+    end if; 
+    
+    sfun := SVal(fun);
+    
+    if type(eval(sfun), `symbol`) then
         redargs := ReduceExp(argExpSeq);
         if [redargs]::list(Static) then
-            res := symbolic(fun(redargs));
+            res := symbolic(sfun(redargs));
         else
             res := residualize(fun, MExpSeq(redargs));
         end if;
 
-    elif Header(fun) = Closure then
+    elif Header(sfun) = Closure then
         # TODO, the full functionality of peArgList is not needed here
-        newEnv, redCall, fullCall := peArgList(Params(Code(fun)), argExpSeq);
+        newEnv, redCall, fullCall := peArgList(Params(Code(sfun)), argExpSeq);
         # attach lexical environment to the environment of the function
-        newEnv:-attachLex(Lex(fun));
+        newEnv:-attachLex(Lex(sfun));
         callStack:-push(newEnv);
-        newProc := peSpecializeProc(Code(fun));
+        newProc := peSpecializeProc(Code(sfun));
         callStack:-pop();
         newEnv:-removeLex();
         # should probably be a proper unfolding
         #res := ProcBody(res);
         res := unfold(newProc, redCall, fullCall);
 
-    elif type(eval(fun), `procedure`) then
+    elif type(eval(sfun), `procedure`) then
         newName := gen(cat(op(1,f),"_"));
-        res := peRegularFunction(eval(fun), argExpSeq, unfold, residualize, newName);
+        res := peRegularFunction(eval(sfun), argExpSeq, unfold, residualize, newName);
 
-    elif Header(fun) = SPackageLocal and type(Member(fun), `procedure`) then
-        mem := Member(fun);
+    elif Header(sfun) = SPackageLocal and type(Member(sfun), `procedure`) then
+        mem := Member(sfun);
         res := peRegularFunction(mem, argExpSeq, unfold, residualize, gen("fun"));
 
-	elif type(fun, `module`) then
-	    if member(convert("ModuleApply",name), fun) then
-	        ma := fun:-ModuleApply;
+	elif type(sfun, `module`) then
+	    if member(convert("ModuleApply",name), sfun) then
+	        ma := sfun:-ModuleApply;
 	    else
-            ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(fun))]));
+            ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(sfun))]));
             if ma = NULL then error "package does not contain ModuleApply" end if;
         end if;
 	    res := peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
@@ -519,7 +550,7 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
         error "received unknown form %1", fun;
     end if;
     
-    PEDebug:-FunctionEnd();
+    
     res;
 end proc;
 
