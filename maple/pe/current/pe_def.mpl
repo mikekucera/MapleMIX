@@ -76,13 +76,13 @@ PartiallyEvaluate := proc(p)
     callStack:-push(newEnv);
     
     try
-        # perform partial evaluation
         peSpecializeProc(m, "ModuleApply");
     catch "debug":
         lprint("debug session exited");
         return;
     catch:
         lprint(stmtCount, "statements partially evaluated before error");
+        print(lastexception);
         error;
     end try;
 
@@ -150,10 +150,15 @@ isUnfoldable := proc(inertProcedure::mform(Proc))
     # if all the func does is return a static value then there is no
     # reason not to unfold
     
-    # if the function body consists of a single static than it can be easily unfolded
-    nops(op([1,1], flattened)) = 1 
-    and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
-    and op([1,1], flattened)::Static
+    # if the body of the function is empty then go ahead and unfold
+    if nops(flattened) = 0 then
+        true
+    else
+        # if the function body consists of a single static than it can be easily unfolded
+        nops(op([1,1], flattened)) = 1 
+        and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
+        and op([1,1], flattened)::Static
+    end if;
 end proc;
 
 
@@ -418,7 +423,6 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
             expr := op(2, assign);
             if expr::Static then
                 #varName := op([1,1], assign);
-                print("I'm here", expr);
                 return symbolic(expr);
                 #callStack:-topEnv():-putVal(varName, expr);
                 #return NULL;
@@ -494,7 +498,6 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
     fun := ReduceExp(f);
 
     if fun::Dynamic then
-        print("fun::Dynamic", fun);
         # don't know what function was called, residualize call
         res := residualize(fun, ReduceExp(argExpSeq));
         PEDebug:-FunctionEnd();
@@ -535,7 +538,6 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
 	    res := peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
 
 	#elif type(eval(sfun), `symbol`) then
-	#    print("Here1", sfun);
     #    redargs := ReduceExp(argExpSeq);
     #    if [redargs]::list(Static) then
     #        res := symbolic(MStatic(sfun(SVal(redargs))));

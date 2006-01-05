@@ -10,7 +10,7 @@ PEDebug := module()
     runningMode := COMPLETION;
     quitIt := false;
     x, y := 10, 10;
-    displayStats, displayReductions := false, false;
+    displayStats, displayReductions := true, true;
     stackSize := 0;
     
     

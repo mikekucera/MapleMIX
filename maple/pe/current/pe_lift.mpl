@@ -107,6 +107,7 @@ Lifter := module()
     # Lifts all static values that are embedded in the residual code.
     # Meant to be used as a post-process.
     LiftPostProcess := proc(code::table)
+        print("lifting");
         for pn in keys(code) do
             body := ProcBody(code[pn]);
             code[pn] := subsop(5 = liftStat(body), code[pn]);

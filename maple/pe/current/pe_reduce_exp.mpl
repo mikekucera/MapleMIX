@@ -74,6 +74,13 @@ ReduceExp := module()
         foldl(reduceRight, reduce(args[1]), args[2..nargs]);
     end proc;
 
+    # pulls a usable static value out of symbolic statics such as STable and SPackageLocal
+    # TODO, get rid of STable and SPackageLocal
+    # TODO, what about Closure? thats a special case where the code of the closure needs to be reified
+    extractS := proc(x)
+        eval(x, [STable = ((a,b)->b), SPackageLocal = ((a,b)->b), _Tag_STATICEXPSEQ = (() -> args)]);
+    end proc;
+    
  
     red['Integer'] := () -> args;
     red['string']  := () -> args;
@@ -126,7 +133,7 @@ ReduceExp := module()
 
     red[MExpSeq] := proc()
         rs := op(map(reduce, [args]));
-        `if`([rs]::list(Static), _Tag_STATICEXPSEQ(rs), MExpSeq(op(map(embed, [rs]))))
+        `if`([rs]::list(Static), _Tag_STATICEXPSEQ(rs), MExpSeq(op(map(embed, [rs]))));
     end proc;
 
     red[MList] := proc(eseq)
@@ -205,18 +212,15 @@ ReduceExp := module()
         re := reduce(expseq);
 
         if type(rf, procedure) and Header(re) = _Tag_STATICEXPSEQ then
-            rf(op(re));
+            rf(extractS(re));
         elif type(rf, name) and Header(re) = _Tag_STATICEXPSEQ then
-            apply(convert(op(1,rf), name), op(re));
+            apply(convert(op(1,rf), name), extractS(re));
         else
             MFunction(embed(rf), embed(re));
         end if;
     end proc;
 
-    # pulls a usable static value out of symbolic statics such as STable and SPackageLocal
-    extractS := proc(x)
-        eval(x, [STable = ((a,b)->b), SPackageLocal = ((a,b)->b), _Tag_STATICEXPSEQ = (() -> args)]);
-    end proc;
+
 
     # evaluates table references as expressions
     red[MTableref] := proc(tbl, eseq) # know that both args are static
@@ -241,7 +245,6 @@ ReduceExp := module()
 	        if assigned(actualTable[ref]) then
 	            actualTable[ref];
 	        else
-	            print("here1");
 	            MTableref(embed(rt), embed(re));
 	        end if;
         elif h = MArgs then
@@ -250,7 +253,6 @@ ReduceExp := module()
             if assigned(argsTbl[ref]) then
                 argsTbl[ref];
             else
-                print("here2");
                 MTableref(MArgs(), embed(re));
             end if; 
         elif eval(rt)::symbol and re::Static then
@@ -258,9 +260,6 @@ ReduceExp := module()
         elif rt::Static and re::Static then
             extractS(rt)[extractS(re)];
         else
-            print("here3");
-            print("rt", rt);
-            print("re", re);
             MTableref(embed(rt), embed(re));
         end if;
     end proc;
