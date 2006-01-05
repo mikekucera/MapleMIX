@@ -129,14 +129,19 @@ FromM := module()
 
     inrt[MStatSeq]            := _Inert_STATSEQ  @ mapmtoi;
     inrt[MStandaloneFunction] := _Inert_FUNCTION @ mapmtoi;
-    inrt[MFunction]           := _Inert_FUNCTION @ mapmtoi;
+    #inrt[MFunction]           := _Inert_FUNCTION @ mapmtoi;
     inrt[MAssign]             := _Inert_ASSIGN   @ mapmtoi;
     inrt[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
     inrt[MTableAssign]        := _Inert_ASSIGN   @ mapmtoi;
-
-
+        
     inrt[MWhileForIn]   := _Inert_FORIN   @ mapmtoi;
     inrt[MWhileForFrom] := _Inert_FORFROM @ mapmtoi;
+    
+    
+    # TODO, should MStandaloneFunction be similiar?
+    inrt[MFunction] := proc(n, expseq)
+        _Inert_FUNCTION(mtoi(n), _Inert_EXPSEQ(mtoi(expseq)));
+    end proc;
     
     inrt[MForFrom] := proc(loopVar, fromExp, byExp, toExp, statseq)
         _Inert_FORFROM(mapmtoi(loopVar, fromExp, byExp, toExp), inertTrue, mtoi(statseq));

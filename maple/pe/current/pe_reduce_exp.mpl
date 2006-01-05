@@ -241,6 +241,7 @@ ReduceExp := module()
 	        if assigned(actualTable[ref]) then
 	            actualTable[ref];
 	        else
+	            print("here1");
 	            MTableref(embed(rt), embed(re));
 	        end if;
         elif h = MArgs then
@@ -249,11 +250,17 @@ ReduceExp := module()
             if assigned(argsTbl[ref]) then
                 argsTbl[ref];
             else
+                print("here2");
                 MTableref(MArgs(), embed(re));
             end if; 
         elif eval(rt)::symbol and re::Static then
             rt[extractS(re)];
+        elif rt::Static and re::Static then
+            extractS(rt)[extractS(re)];
         else
+            print("here3");
+            print("rt", rt);
+            print("re", re);
             MTableref(embed(rt), embed(re));
         end if;
     end proc;

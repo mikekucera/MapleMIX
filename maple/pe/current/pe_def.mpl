@@ -418,6 +418,7 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
             expr := op(2, assign);
             if expr::Static then
                 #varName := op([1,1], assign);
+                print("I'm here", expr);
                 return symbolic(expr);
                 #callStack:-topEnv():-putVal(varName, expr);
                 #return NULL;
@@ -488,27 +489,22 @@ end proc;
 
 # takes continuations to be applied if f results in a procedure
 peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::procedure, symbolic::procedure)
+    local sfun;
     PEDebug:-FunctionStart(f);
     fun := ReduceExp(f);
 
     if fun::Dynamic then
+        print("fun::Dynamic", fun);
         # don't know what function was called, residualize call
-        res := MFunction(fun, ReduceExp(argExpSeq));
+        res := residualize(fun, ReduceExp(argExpSeq));
         PEDebug:-FunctionEnd();
         return res;
     end if; 
     
     sfun := SVal(fun);
     
-    if type(eval(sfun), `symbol`) then
-        redargs := ReduceExp(argExpSeq);
-        if [redargs]::list(Static) then
-            res := symbolic(sfun(redargs));
-        else
-            res := residualize(fun, MExpSeq(redargs));
-        end if;
-
-    elif Header(sfun) = Closure then
+    
+    if Header(sfun) = Closure then
         # TODO, the full functionality of peArgList is not needed here
         newEnv, redCall, fullCall := peArgList(Params(Code(sfun)), argExpSeq);
         # attach lexical environment to the environment of the function
@@ -538,9 +534,26 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
         end if;
 	    res := peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
 
+	#elif type(eval(sfun), `symbol`) then
+	#    print("Here1", sfun);
+    #    redargs := ReduceExp(argExpSeq);
+    #    if [redargs]::list(Static) then
+    #        res := symbolic(MStatic(sfun(SVal(redargs))));
+    #    else
+    #        res := residualize(fun, MExpSeq(redargs));
+    #    end if;
+
     else
-        genv:-display();
-        error "received unknown form %1", fun;
+        redargs := ReduceExp(argExpSeq);
+        if [redargs]::list(Static) then
+            res := symbolic(MStatic( apply(sfun, SVal(redargs)) ));
+        else
+            res := residualize(fun, MExpSeq(redargs));
+        end if;
+        
+    #else
+    ##    genv:-display();
+    #    error "peFunction received unknown form %1", fun;
     end if;
     
     
