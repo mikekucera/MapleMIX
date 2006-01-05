@@ -217,7 +217,14 @@ ToM := module()
         if member(convert(op(1,n), name), intrinsic) then
             split(expseq, x -> MStandaloneExpr(MFunction(itom(n), x)));
         else
-            split(expseq, curry(MStandaloneFunction, itom(n)));
+            ss1, r1 := splitReturn(n);
+            ss2, r2 := splitReturn(expseq);
+            
+            if nops(ss1) = 0 and nops(ss2) = 0 then
+                MStandaloneFunction(r1, r2);
+            else
+                MStatSeq(ssop(ss1), ssop(ss2), MStandaloneFunction(r1, r2));
+            end if;
         end if;
     end proc;
 
