@@ -97,7 +97,7 @@ FromM := module()
     inrt[MProd]   := _Inert_PROD   @ mapmtoi;
 
     inrt[MTableref] := _Inert_TABLEREF @ mapmtoi;
-    inrt[MArgs]     := _Inert_ARGS     @ mapmtoi;
+    inrt[MArgs]     := _Inert_ARGS();
     inrt[MNargs]    := _Inert_NARGS    @ mapmtoi;
 
     inrt[MReturn]  := _Inert_RETURN  @ mapmtoi;

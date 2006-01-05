@@ -143,8 +143,6 @@ end proc;
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 # probably won't be needed if I go with the sp-function approach
 isUnfoldable := proc(inertProcedure::mform(Proc))
-    print("isUnfoldable");
-    print(callStack:-inConditional());
     if not callStack:-inConditional() then
         return true;
     end if;
@@ -153,7 +151,6 @@ isUnfoldable := proc(inertProcedure::mform(Proc))
     # reason not to unfold
     
     # if the function body consists of a single static than it can be easily unfolded
-    print("function body", op([1,1], flattened));
     nops(op([1,1], flattened)) = 1 
     and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
     and op([1,1], flattened)::Static
@@ -325,13 +322,11 @@ pe[MForFrom] := proc(loopVar::mform({Local, ExpSeq}), fromExp, byExp, toExp, sta
     rFromExp := ReduceExp(fromExp);
     rByExp   := ReduceExp(byExp);
     rToExp   := ReduceExp(toExp);
-    print("rToExp", rToExp);
     
     if [rFromExp,rByExp,rToExp]::[Static,Static,Static] then #unroll loop        
         rFromExp := SVal(rFromExp);
         rByExp := SVal(rByExp);
         rToExp := SVal(rToExp);
-        print("rToExp", rToExp);
         
         unroller := StaticLoopUnroller(loopVar, statseq);
         for i from rFromExp by rByExp to rToExp do
@@ -481,8 +476,6 @@ peArgList := proc(params::mform(ParamSeq), argExpSeq::mform(ExpSeq))
    	    end if;
    	end do;
     if allNotExpSeqSoFar then
-        print("setnargs", i);
-        print("argsTbl", op(argsTbl));
         env:-setNargs(i);
     end if;
 

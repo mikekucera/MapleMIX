@@ -7,9 +7,9 @@ ReduceExp := module()
 
     description "online expression reducer for use with online partial evaluator";
     export ModuleApply, Reduce;
-    local env, red, specFunc, reduce, unred, unreduce, isProtectedProc;
-
-
+    local env, red, specFunc, reduce, unred, unreduce, isProtectedProc, extractS;
+    
+    
     
     Reduce := proc(exp)
         genv := OnENV();
@@ -46,9 +46,6 @@ ReduceExp := module()
     end proc;
 
 
-    #reduceAll := proc()
-    #    op(map(reduce, [args]))
-    #end proc;
 
     binOp := (f, op) -> proc(x, y)
         rx := reduce(x);
@@ -98,19 +95,14 @@ ReduceExp := module()
 
     
     red[MCatenate] := proc(x,y)
-        print("MCatenate", args);
         r := reduce(y);
-        print("r", r);
         if r::Dynamic then
             return MCatenate(x, r);
         end if;
         # now we know the right side is static
         h := Header(x);
-        print("h", h);
         if member(h, {MName, MAssignedName, MLocal, MParam, MGeneratedName}) then
-            res := `||`(convert(op(1,x), name), r);
-            print(res);
-            res;
+            `||`(convert(op(1,x), name), r);
         elif h = MString then
             `||`(op(x), r);
         else
@@ -130,24 +122,7 @@ ReduceExp := module()
     red[MNargs]    := () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
     red[MArgs]     := () -> MArgs(env:-getArgs());
 
-    # TODO, not good enough, the rules are different for procs and modules
-    red[MName] := proc(n)
-        if not assigned(genv) or genv:-isDynamic(n) then
-            c := convert(n, name);
-            evaled := eval(c);
-            if evaled :: Or(`module`, 'procedure') then
-                c
-            else
-                evaled
-            end if;
-        else
-            genv:-getVal(n);
-        end if
-    end proc;
-
-
-    red[MAssignedName] := red[MName];
-
+    
 
     red[MExpSeq] := proc()
         rs := op(map(reduce, [args]));
@@ -177,6 +152,7 @@ ReduceExp := module()
         end if;
     end proc;;
 
+    
     
     
     
@@ -237,17 +213,21 @@ ReduceExp := module()
         end if;
     end proc;
 
+    # pulls a usable static value out of symbolic statics such as STable and SPackageLocal
+    extractS := proc(x)
+        eval(x, [STable = ((a,b)->b), SPackageLocal = ((a,b)->b), _Tag_STATICEXPSEQ = (() -> args)]);
+    end proc;
 
     # evaluates table references as expressions
     red[MTableref] := proc(tbl, eseq) # know that both args are static
         re := reduce(eseq);
         
-        if Header(re)=_Tag_STATICEXPSEQ then
+        if re::Static then
             if member(Header(tbl), {MLocal, MParam, MGeneratedName}) then
-                try return env:-getTblVal(Name(tbl), op(re)); # TODO: won't work for expression sequence as key
+                try return env:-getTblVal(Name(tbl), extractS(re)); # TODO: won't work for expression sequence as key
                 catch: end try; # its dynamic so continue
             elif member(Header(tbl), {MName, MAssignedName}) then
-                try return genv:-getTblVal(Name(tbl), op(re));
+                try return genv:-getTblVal(Name(tbl), extractS(re));
                 catch: end try;
             end if;
         end if;
@@ -257,7 +237,7 @@ ReduceExp := module()
         h := op(0, rt);
         if member(h, {STable, SPackageLocal}) then
 	        actualTable := op(2, rt);
-	        ref := op(re);
+	        ref := extractS(re);
 	        if assigned(actualTable[ref]) then
 	            actualTable[ref];
 	        else
@@ -265,19 +245,41 @@ ReduceExp := module()
 	        end if;
         elif h = MArgs then
             argsTbl := op(1, rt);
-            ref := op(re);
+            ref := extractS(re);
             if assigned(argsTbl[ref]) then
                 argsTbl[ref];
             else
                 MTableref(MArgs(), embed(re));
-            end if;
-        elif rt::symbol and re::Static then
-            rt[re];
+            end if; 
+        elif eval(rt)::symbol and re::Static then
+            rt[extractS(re)];
         else
             MTableref(embed(rt), embed(re));
         end if;
     end proc;
 
+    
+    # TODO, not good enough, the rules are different for procs and modules
+    red[MName] := reduceName(MName);
+    red[MAssignedName] := reduceName(MAssignedName);
+
+    reduceName := f -> proc(n)
+        if not assigned(genv) or genv:-isDynamic(n) then
+            c := convert(n, name);
+            evaled := eval(c);
+            if evaled::Or(`module`, 'procedure') then
+                c
+            elif type(evaled, `table`) then
+                STable(f(n), evaled);
+            else
+                evaled
+            end if;
+        else
+            genv:-getVal(n);
+        end if
+    end proc;
+    
+    
     red[MParam]     := reduceVar(MParam);
     red[MLocal]     := reduceVar(MLocal);
     red[MSingleUse] := reduceVar(MSingleUse);
@@ -288,7 +290,7 @@ ReduceExp := module()
     reduceVar := f -> proc(x)
         if env:-isStatic(x) then
             val := env:-getVal(x);
-            if type(val, 'table') then
+            if type(val, `table`) then
                 STable(f(x), val);
             else
                 val;

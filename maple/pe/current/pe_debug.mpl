@@ -70,7 +70,7 @@ PEDebug := module()
             if nargs = 0 then
                 print("null");
             else
-                print(stat);
+                print("statment output:", stat);
             end if;
             print();
         end if;
