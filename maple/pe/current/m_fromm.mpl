@@ -180,11 +180,11 @@ FromM := module()
     end proc;
 
     replaceLexical := proc(f, m, n)
-        print("replaceLexical", args);
+        #print("replaceLexical", args);
         maps := MapStack:-top();
         lexTbl := maps['lextbl'];
 
-        print(op(maps['lexseq']));
+        #print(op(maps['lexseq']));
         
         if assigned(lexTbl[n]) then
             lexTbl[n];
@@ -195,7 +195,9 @@ FromM := module()
                 MapStack:-push(temp);
                 lexpair := _Inert_LEXICALPAIR(_Inert_NAME(n), _Inert_LOCAL(index));
             else
-                print("what's the difference?", maps['lexseq'][n]);
+                if not assigned(maps['lexseq'][n]) then
+                    error "lexical not found in lexical sequence", args;
+                end if;
                 lexpair := mtoi(maps['lexseq'][n]);
             end if;
 

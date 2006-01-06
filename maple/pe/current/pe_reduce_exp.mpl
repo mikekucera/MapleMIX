@@ -51,7 +51,7 @@ ReduceExp := module()
         rx := reduce(x);
         ry := reduce(y);
         if rx::Static and ry::Static then
-            op(rx,ry);
+            op(eval(rx),eval(ry));
         else
             f(embed(rx), embed(ry));
         end if;
@@ -66,7 +66,7 @@ ReduceExp := module()
         reduceRight := proc(rx,y)
             ry := reduce(y);
             if rx::Static and ry::Static then
-                op(rx,ry);
+                op(eval(rx),eval(ry));
             else
                 f(embed(rx), embed(ry));
             end if;
@@ -205,7 +205,6 @@ ReduceExp := module()
     
     red[MFunction] := proc(f, expseq)
         if isProtectedProc(f) then
-            print("its protected", specFunc[Name(f)](expseq));
             return specFunc[Name(f)](expseq);
         end if;
         

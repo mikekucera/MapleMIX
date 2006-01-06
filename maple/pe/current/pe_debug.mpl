@@ -1,9 +1,14 @@
 PEDebug := module()
     export Begin, Statement, FunctionCall,
-           DisplayReduceStart, DisplayReduceEnd, DisplayStatmentStart, DisplayStatmentEnd;
+           DisplayReduceStart, DisplayReduceEnd, 
+           DisplayStatmentStart, DisplayStatmentEnd,
+           StepUntil, GetStatementCount;
     local runningMode, quitIt, SetRunningMode, Quit, 
           x, y, displayStats, displayReductions,
-          STEP, FUNCTION_CALL, FUNCTION_RETURN, COMPLETION;    
+          STEP, # run to next statment, or run given number of statments
+          FUNCTION_CALL, # run to next function call
+          FUNCTION_RETURN, # skip over a function
+          COMPLETION; # run all the way to the end
     use Maplets[Elements], Maplets[Tools] in
         
     
@@ -11,7 +16,10 @@ PEDebug := module()
     quitIt := false;
     x, y := 10, 10;
     displayStats, displayReductions := false, false;
-    stackSize := 0;
+    
+    stackSize := 0; # used to skip over function calls
+    statementCount := 0; # number of statements that have been run so far
+    stepUntil := 'stepUntil'; # used to run the PE until a given statment number
     
     
     SetRunningMode := proc(mode)
@@ -27,37 +35,53 @@ PEDebug := module()
     end proc;
     
     
+    GetStatementCount := () -> statementCount;
+    
     Begin := proc(stmt)
         displayStats, displayReductions := true, true;
+        statementCount := 0;
         SetRunningMode(STEP);
         DisplayDebugCommand("Starting");
     end proc;
     
+    StepUntil := proc(num::positive)
+        stepUntil := num;
+        SetRunningMode(STEP);
+    end proc;
+
     Quit := proc()
         displayStats, displayReductions := false, false;
         quitIt := true;
     end proc;
     
     DisplayReduceStart := proc(r)
-        if not runningMode = FUNCTION_RETURN and displayReductions then
+        if runningMode <> FUNCTION_RETURN and displayReductions then
             print("reducing: ", r);            
         end if;
     end proc;
     
     DisplayReduceEnd := proc(r)
-        if not runningMode = FUNCTION_RETURN and displayReductions then
-            if nargs = 0 then
-                print("reduced: null");
-            else
-                print("reduced: ", r);
-            end if;
+        if runningMode <> FUNCTION_RETURN and displayReductions then
+            print("reduced:", `if`(nargs=0, "null", r));
         end if;
     end proc;
     
-
+    DisplayEnv := proc()
+        print("local env");
+        callStack:-topEnv():-display();
+        print("global env");
+        genv:-display();
+        print();
+    end proc;
+    
+    
+    # following functions are 'hooks' that are called in key places in the PE
+    
     StatementStart := proc(stmt)
+        statementCount := statementCount + 1;
         if runningMode <> FUNCTION_RETURN and displayStats then
-            print(stmt);
+            print();
+            print("statement start:", stmt);
         end if;
         if runningMode = STEP then
             DisplayDebugCommand(Header(stmt));
@@ -67,11 +91,7 @@ PEDebug := module()
     
     StatementEnd := proc(stat)
         if displayStats and runningMode <> FUNCTION_RETURN then
-            if nargs = 0 then
-                print("null");
-            else
-                print("statment output:", stat);
-            end if;
+            print("statement output:", `if`(nargs=0, "null", stat));
             print();
         end if;
     end proc;
@@ -96,23 +116,30 @@ PEDebug := module()
         end if;
     end proc;
     
-    DisplayEnv := proc()
-        print("local env");
-        callStack:-topEnv():-display();
-        print("global env");
-        genv:-display();
-    end proc;
+    
+    # displays the debug mini-gui
     
     DisplayDebugCommand := proc(message := "", skippable := false)
+        if assigned(stepUntil) and stepUntil > statementCount then 
+            return 
+        end if;
+        
         use buttonWidth = 160, 
             A1 = Action(Evaluate(function = 'RememberVals()'), CloseWindow('W1')) 
         in
 	    maplet := Maplet( 'onstartup' = RunWindow('W1'),
 	        Window['W1']( 'title'= "PE Debug", 'xcoord' = x, 'ycoord' = y, [
 	            Label(convert(message, string), 'font' = Font("courier", 18)),
+	            convert(statementCount, string),
 	            " ",
 	            Button['B1']("Step", 'width' = buttonWidth,
 	                         Action(A1)),
+	            [
+	                Button['B7']("Step Until", 'width' = buttonWidth - 40, 
+	                              Action(Evaluate(function = 'StepUntil(T1)'), A1)),
+	                TextField['T1'](3)
+	            ],
+	            " ",              
 	            Button['B2']("Skip Over Function", 'width' = buttonWidth, 'enabled' = skippable,
 	                         Action(Evaluate(function = 'SetRunningMode(FUNCTION_RETURN)'), A1)),
 	            Button['B3']("Run to Function Call", 'width' = buttonWidth,
@@ -134,6 +161,7 @@ PEDebug := module()
         if quitIt then
             error "debug session exited";
         end if;
+        NULL;
     end proc;
 
     end use;    

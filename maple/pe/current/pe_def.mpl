@@ -4,7 +4,7 @@ OnPE := module() option package;
 
     description "online partial evaluator for a subset of Maple";
     local callStack, code, gen, genv,
-          CallStack, stmtCount;
+          CallStack;
     export Debug, ModuleApply, PartiallyEvaluate, OnENV, ReduceExp, Lifter;
 
 ModuleApply := PartiallyEvaluate;
@@ -67,7 +67,6 @@ PartiallyEvaluate := proc(p)
     callStack := CallStack();
     code := table();
     genv := OnENV(); # the global environment
-    stmtCount := 0;
 
     m := getMCode(eval(p));
 
@@ -81,7 +80,7 @@ PartiallyEvaluate := proc(p)
         lprint("debug session exited");
         return;
     catch:
-        lprint(stmtCount, "statements partially evaluated before error");
+        lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
         print(lastexception);
         error;
     end try;
@@ -93,7 +92,7 @@ PartiallyEvaluate := proc(p)
         inertModule := BuildModule("ModuleApply");
     catch:
         lprint("conversion to inert module failed", lastexception);
-        return NULL; #copy(code);
+        return copy(code);
     end try;
     
     try
@@ -110,7 +109,7 @@ PartiallyEvaluate := proc(p)
     callStack := 'callStack';
     kernelopts(opaquemodules=before);
 
-    print(stmtCount, "statements processed");
+    print(PEDebug:-GetStatementCount(), "statements processed");
     return res;
 end proc;
 
@@ -190,7 +189,6 @@ pe[MError]  := curry(peResidualize, MError);
 pe[MStatSeq] := proc() :: mform(StatSeq);
     q := SimpleQueue();
     for i from 1 to nargs do
-        stmtCount := stmtCount + 1;
         stmt := args[i];
         h := Header(stmt);
 
@@ -289,6 +287,10 @@ end proc;
 
 
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
+    if Header(Var(tr)) = MTableref then
+        print("pe[MTableAssign]", tr);
+        print();
+    end if;
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
     env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
