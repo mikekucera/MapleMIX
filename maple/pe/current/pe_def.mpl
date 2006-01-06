@@ -88,11 +88,18 @@ PartiallyEvaluate := proc(p)
 
     Lifter:-LiftPostProcess(code);
 
+    
     try
-        res := eval(FromInert(BuildModule("ModuleApply")));
-        #return copy(code);
+        inertModule := BuildModule("ModuleApply");
     catch:
-        lprint("conversion to module failed", lastexception);
+        lprint("conversion to inert module failed", lastexception);
+        return NULL; #copy(code);
+    end try;
+    
+    try
+        res := eval(FromInert(inertModule));
+    catch:
+        lprint("FromInert on inertModule failed", lastexception);
         return copy(code);
     end try;
 

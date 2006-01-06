@@ -173,7 +173,7 @@ ReduceExp := module()
     
     
     specFunc["print"] := proc(expseq)
-        return MFunction(f, embed(reduce(expseq)));
+        return MFunction(M:-ProtectedForm("print"), embed(reduce(expseq)));
     end proc;
     
     # TODO, this is not correct, because support for evaln is not there yet
@@ -205,6 +205,7 @@ ReduceExp := module()
     
     red[MFunction] := proc(f, expseq)
         if isProtectedProc(f) then
+            print("its protected", specFunc[Name(f)](expseq));
             return specFunc[Name(f)](expseq);
         end if;
         

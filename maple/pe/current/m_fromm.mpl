@@ -180,9 +180,12 @@ FromM := module()
     end proc;
 
     replaceLexical := proc(f, m, n)
+        print("replaceLexical", args);
         maps := MapStack:-top();
         lexTbl := maps['lextbl'];
 
+        print(op(maps['lexseq']));
+        
         if assigned(lexTbl[n]) then
             lexTbl[n];
         else
@@ -192,6 +195,7 @@ FromM := module()
                 MapStack:-push(temp);
                 lexpair := _Inert_LEXICALPAIR(_Inert_NAME(n), _Inert_LOCAL(index));
             else
+                print("what's the difference?", maps['lexseq'][n]);
                 lexpair := mtoi(maps['lexseq'][n]);
             end if;
 
@@ -199,7 +203,7 @@ FromM := module()
             lexQueue:-enqueue(lexpair);
             index := lexQueue:-length();
             lexTbl[n] := index;
-            index;
+            index
         end if;
     end proc;
 

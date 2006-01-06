@@ -56,7 +56,7 @@ Lifter := module()
         h := Header(exp);
         
         if member(h, {MInt, MString, MParam, MName, MLocal, MGeneratedName,
-                      MSingleUse, MAssignedName, MLocalName}) then
+                      MSingleUse, MAssignedName, MLocalName, MLexicalLocal}) then
             exp;
         elif h = MStatic then
             if nops(exp) = 0 then
@@ -107,7 +107,6 @@ Lifter := module()
     # Lifts all static values that are embedded in the residual code.
     # Meant to be used as a post-process.
     LiftPostProcess := proc(code::table)
-        print("lifting");
         for pn in keys(code) do
             body := ProcBody(code[pn]);
             code[pn] := subsop(5 = liftStat(body), code[pn]);

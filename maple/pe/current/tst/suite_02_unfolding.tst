@@ -161,5 +161,25 @@ Try(501, got, expected);
 
 #######################################################################
 
+m := module() option package;
+    local l; export f;
+        l := 10;
+        f := proc()
+            print(l);
+        end proc;
+end module;
+
+
+goal := proc() m:-f() end proc;
+
+ped := OnPE(goal);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc () print(10) end proc);
+
+Try(601, got, expected);
+
+#######################################################################
+
 
 #end test
