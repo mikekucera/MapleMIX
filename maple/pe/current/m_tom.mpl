@@ -55,18 +55,6 @@ ToM := module()
     splitAssigns := proc(e::inert)
         q := SimpleQueue();
 
-        # generation of assigns is a side effect of nested proc
-        examineFunc := proc(f)
-            local newvar;
-            if member(convert(op(1, f), name), intrinsic) then
-                MFunction(args);
-            else
-                newvar := gen();
-                q:-enqueue(MAssignToFunction(MGeneratedName(newvar), MFunction(mapitom(args))));
-                MSingleUse(newvar);
-            end if;
-        end proc;
-
         # eval doesn't work properly for statments, so must remove nested lambdas
         lambdas := table();
         lamGen := NameGenerator("lambda");
@@ -81,6 +69,20 @@ ToM := module()
             lambdas[marker]
         end proc;
 
+        # generation of assigns is a side effect of nested proc
+        examineFunc := proc(f)
+            local newvar;
+            if Header(f) = MarkedLambda then
+                MFunction(replaceLambda(op(f)), args[2..-1]);
+            elif member(convert(op(1,f), name), intrinsic) then
+                MFunction(args);
+            else
+                newvar := gen();
+                q:-enqueue(MAssignToFunction(MGeneratedName(newvar), MFunction(mapitom(args))));
+                MSingleUse(newvar);
+            end if;
+        end proc;
+        
         res := eval(e,   [_Inert_PROC = removeLambda]);
         res := eval(res, [_Inert_FUNCTION = examineFunc]);
         res := eval(res, [MarkedLambda = replaceLambda]);
@@ -108,6 +110,7 @@ ToM := module()
     m['string'] := () -> args;
     m['Integer'] := () -> args;
     m[MSingleUse] := MSingleUse;
+    m[MarkedLambda] := MarkedLambda;
 
     m[_Inert_NAME]     := MName @ mapitom;
     m[_Inert_LOCAL]    := x -> MLocal(getVar('locals', x));
