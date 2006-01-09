@@ -179,6 +179,58 @@ expected := ToInert(proc () print(10) end proc);
 
 Try(601, got, expected);
 
+
+#######################################################################
+# not really unfolding, more a test of closures
+
+p := proc() local x, mul, l, l1, l2;
+    x := 2;
+    mul := a -> x * a;
+    l := [1,2,3];
+    l1 := map(mul, l);
+    x := 3;
+    l2 := map(mul, l);
+    l3 := mul(10);
+    [op(l1), op(l2), l3];
+end proc;
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() [2,4,6,3,6,9,30] end proc);
+
+Try(701, got, expected);
+
+
+p := proc(v) local x, mul, l, l3;
+    x := 2;
+    mul := (a,b) -> x * a * b;
+    l3 := mul(10, v);
+    l3;
+end proc;
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc(v) local l3; l3:=20*v; l3 end proc);
+
+Try(702, got, expected);
+
+
+p := proc() local x, mul;
+    x := 2;
+    mul := (a,b) -> x * a * b;
+    map(curry(mul, 10), [1,2,3]);
+end proc;
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() [20,40,60] end proc);
+
+
+Try(703, got, expected);
+
 #######################################################################
 
 

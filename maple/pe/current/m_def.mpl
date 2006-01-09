@@ -14,7 +14,7 @@ M := module()
 
 
     # set of builtin function names
-    intrinsic := {anames(builtin)};
+    intrinsic := {anames(builtin), 'curry'};
     
     inertTrue := _Inert_NAME("true", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected")))));
 

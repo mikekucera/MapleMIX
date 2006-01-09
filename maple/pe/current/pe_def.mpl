@@ -82,7 +82,7 @@ PartiallyEvaluate := proc(p)
     catch:
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
         print(lastexception);
-        error;
+        return copy(code);
     end try;
 
     Lifter:-LiftPostProcess(code);
@@ -287,10 +287,6 @@ end proc;
 
 
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
-    if Header(Var(tr)) = MTableref then
-        print("pe[MTableAssign]", tr);
-        print();
-    end if;
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
     env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
@@ -516,11 +512,8 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
     sfun := SVal(fun);
     
     if type(eval(sfun), `procedure`) then
-        print("procedure", f);
         newName := gen(cat(op(1,f),"_"));
-        print(newName);
         res := peRegularFunction(eval(sfun), argExpSeq, unfold, residualize, newName);
-        print("procedure done");
         
     elif Header(sfun) = SPackageLocal and type(Member(sfun), `procedure`) then
         mem := Member(sfun);
@@ -549,7 +542,6 @@ end proc;
 
 # partial evaluation of a known procedure
 peRegularFunction := proc(fun::procedure, argExpSeq::mform(ExpSeq), unfold, residualize, newName)
-    print("about to get M code for ", fun);
 	m := getMCode(eval(fun));
 
     newEnv, redCall, fullCall := peArgList(Params(m), argExpSeq);

@@ -321,25 +321,28 @@ ReduceExp := module()
     # a closure is created
     red[MProc] := proc()
         p := MProc(args);
-        lexMap := M:-CreateLexNameMap(LexSeq(p), curry(op, 2));
-        print(op(lexMap));
-        newBody := eval(ProcBody(p), MLexicalLocal = replaceClosureLexical);        
-        newProc := subsop(5=newBody, 8=MLexicalSeq(), p);
-        FromInert(M:-FromM(newProc));
+        if ormap(curry(`=`, MName("pe_thunk")), OptionSeq(p)) then
+            thunk := FromInert(M:-FromM(p));
+            thunk;
+        else
+            lexMap := M:-CreateLexNameMap(LexSeq(p), curry(op, 2));
+            newBody := eval(ProcBody(p), MLexicalLocal = replaceClosureLexical);        
+            newProc := subsop(5=newBody, 8=MLexicalSeq(), p);
+            FromInert(M:-FromM(newProc));
+        end if;
     end proc;
 
     replaceClosureLexical := proc(n)
         closureEnv := callStack:-topEnv();
         s := op(n);
         thunk := proc() 
-            #option pe_thunk; # important option used to indentify these thunks later
             if closureEnv:-isStatic(s) then
                 closureEnv:-getVal(s);
             else
                 error "dynamic lexicals in closure is not supported: %1", n; 
             end if;
         end proc;
-        thunk := setattribute(eval(thunk), "pe_thunk"); # used to identify these thunks later
+        thunk := setattribute(eval(thunk), 'pe_thunk'); # used to identify these thunks later
         MFunction(MStatic(eval(thunk)), MExpSeq());        
     end proc;
     

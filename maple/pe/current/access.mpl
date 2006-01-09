@@ -9,6 +9,7 @@ Front    := proc(x) option inline; op(1..-2, x) end proc;
 # for procs
 Params    := proc(x) option inline; op(1,x) end proc:
 Locals    := proc(x) option inline; op(2,x) end proc:
+OptionSeq := proc(x) option inline; op(3,x) end proc:
 ProcBody  := proc(x) option inline; op(5,x) end proc:
 GlobalSeq := proc(x) option inline; op(7,x) end proc:
 LexSeq    := proc(x) option inline; op(8,x) end proc:
