@@ -515,24 +515,13 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
     
     sfun := SVal(fun);
     
-    
-    if Header(sfun) = Closure then
-        # TODO, the full functionality of peArgList is not needed here
-        newEnv, redCall, fullCall := peArgList(Params(Code(sfun)), argExpSeq);
-        # attach lexical environment to the environment of the function
-        newEnv:-attachLex(Lex(sfun));
-        callStack:-push(newEnv);
-        newProc := peSpecializeProc(Code(sfun));
-        callStack:-pop();
-        newEnv:-removeLex();
-        # should probably be a proper unfolding
-        #res := ProcBody(res);
-        res := unfold(newProc, redCall, fullCall);
-
-    elif type(eval(sfun), `procedure`) then
+    if type(eval(sfun), `procedure`) then
+        print("procedure", f);
         newName := gen(cat(op(1,f),"_"));
+        print(newName);
         res := peRegularFunction(eval(sfun), argExpSeq, unfold, residualize, newName);
-
+        print("procedure done");
+        
     elif Header(sfun) = SPackageLocal and type(Member(sfun), `procedure`) then
         mem := Member(sfun);
         res := peRegularFunction(mem, argExpSeq, unfold, residualize, gen("fun"));
@@ -545,15 +534,6 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
             if ma = NULL then error "package does not contain ModuleApply" end if;
         end if;
 	    res := peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
-
-	#elif type(eval(sfun), `symbol`) then
-    #    redargs := ReduceExp(argExpSeq);
-    #    if [redargs]::list(Static) then
-    #        res := symbolic(MStatic(sfun(SVal(redargs))));
-    #    else
-    #        res := residualize(fun, MExpSeq(redargs));
-    #    end if;
-
     else
         redargs := ReduceExp(argExpSeq);
         if [redargs]::list(Static) then
@@ -561,19 +541,15 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
         else
             res := residualize(fun, MExpSeq(redargs));
         end if;
-        
-    #else
-    ##    genv:-display();
-    #    error "peFunction received unknown form %1", fun;
+
     end if;
-    
-    
     res;
 end proc;
 
 
 # partial evaluation of a known procedure
 peRegularFunction := proc(fun::procedure, argExpSeq::mform(ExpSeq), unfold, residualize, newName)
+    print("about to get M code for ", fun);
 	m := getMCode(eval(fun));
 
     newEnv, redCall, fullCall := peArgList(Params(m), argExpSeq);

@@ -76,7 +76,6 @@ ReduceExp := module()
 
     # pulls a usable static value out of symbolic statics such as STable and SPackageLocal
     # TODO, get rid of STable and SPackageLocal
-    # TODO, what about Closure? thats a special case where the code of the closure needs to be reified
     extractS := proc(x)
         eval(x, [STable = ((a,b)->b), SPackageLocal = ((a,b)->b), _Tag_STATICEXPSEQ = (() -> args)]);
     end proc;
@@ -318,13 +317,33 @@ ReduceExp := module()
         end if
     end proc;
 
-    # TODO, maybe needs to call back into the
-    # partial evaluator to reduce the body of the closure
+
+    # a closure is created
     red[MProc] := proc()
-        Closure(env, MProc(args));
+        p := MProc(args);
+        lexMap := M:-CreateLexNameMap(LexSeq(p), curry(op, 2));
+        print(op(lexMap));
+        newBody := eval(ProcBody(p), MLexicalLocal = replaceClosureLexical);        
+        newProc := subsop(5=newBody, 8=MLexicalSeq(), p);
+        FromInert(M:-FromM(newProc));
     end proc;
 
-
+    replaceClosureLexical := proc(n)
+        closureEnv := callStack:-topEnv();
+        s := op(n);
+        thunk := proc() 
+            #option pe_thunk; # important option used to indentify these thunks later
+            if closureEnv:-isStatic(s) then
+                closureEnv:-getVal(s);
+            else
+                error "dynamic lexicals in closure is not supported: %1", n; 
+            end if;
+        end proc;
+        thunk := setattribute(eval(thunk), "pe_thunk"); # used to identify these thunks later
+        MFunction(MStatic(eval(thunk)), MExpSeq());        
+    end proc;
+    
+    
     red[MUneval] := proc(e)
         if op(0,e) = MName then
             convert(op(1,e), name);

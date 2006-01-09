@@ -79,8 +79,8 @@ Lifter := module()
 
 
     liftStatic := proc(stmts::`table`, exp::Static) local n, t;
-        if Header(h) = Closure then 
-	        error "I'm not so sure about this" # Code(exp)
+        if type(exp, procedure) then
+            error "lifting of closure not supported just yet";
 	    elif Header(h) = SPackageLocal then 
 	        error "cannot lift a package local yet"
 	    elif typematch(exp, STable('n'::anything, 't'::anything)) then
@@ -109,6 +109,7 @@ Lifter := module()
     LiftPostProcess := proc(code::table)
         for pn in keys(code) do
             body := ProcBody(code[pn]);
+            print("lifting", body);
             code[pn] := subsop(5 = liftStat(body), code[pn]);
         end do;
         NULL;
