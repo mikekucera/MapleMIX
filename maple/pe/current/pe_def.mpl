@@ -82,7 +82,7 @@ PartiallyEvaluate := proc(p)
     catch:
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
         print(lastexception);
-        return copy(code);
+        error;
     end try;
 
     Lifter:-LiftPostProcess(code);
