@@ -16,18 +16,14 @@ ReduceExp := module()
         ModuleApply(exp, OnENV());
     end proc;
 
-    ModuleApply := proc(exp, reductionEnv := callStack:-topEnv()) local residual;
+    ModuleApply := proc(exp, reductionEnv := callStack:-topEnv()) 
+        local reduced;
         env := reductionEnv;
         PEDebug:-DisplayReduceStart(exp);
-        
-        residual := embed(reduce(exp));
-        
-        env := 'env';
-        # TODO: get rid of this extra eval
-        residual := eval(residual, [MArgs = (() -> MArgs())]);
-                         
+        reduced := embed(reduce(exp));
         PEDebug:-DisplayReduceEnd(residual);
-        residual;
+        env := 'env';
+        reduced;
     end proc;
 
 
@@ -130,7 +126,7 @@ ReduceExp := module()
 
     red[MComplex]  := () -> `if`(nargs=1, args * I, args[1] + args[2] * I);
     red[MNargs]    := () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
-    red[MArgs]     := () -> MArgs(env:-getArgs());
+    red[MArgs]     := MArgs;
 
     
 
@@ -255,7 +251,7 @@ ReduceExp := module()
 	            MTableref(embed(rt), embed(re));
 	        end if;
         elif h = MArgs then
-            argsTbl := op(1, rt);
+            argsTbl := env:-getArgs();
             ref := extractS(re);
             if assigned(argsTbl[ref]) then
                 argsTbl[ref];
