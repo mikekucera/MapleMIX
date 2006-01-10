@@ -109,7 +109,6 @@ Lifter := module()
     LiftPostProcess := proc(code::table)
         for pn in keys(code) do
             body := ProcBody(code[pn]);
-            print("lifting", body);
             code[pn] := subsop(5 = liftStat(body), code[pn]);
         end do;
         NULL;
