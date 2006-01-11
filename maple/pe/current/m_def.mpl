@@ -26,7 +26,7 @@ M := module()
     end proc;
 
     # returns three procs that apply their args to the given table of procs
-    createTableProcs := proc(tbl)
+    createTableProcs := proc(n::string, tbl)
         local toForm, toForm2, toFormMap;
         # takes one arg
         toForm := proc(code)
@@ -34,7 +34,7 @@ M := module()
             if assigned(tbl[h]) then
                 return tbl[h](op(code));
             end if;
-            error "(toForm) %1 not supported", h
+            error cat(n, ", %1 not supported"), h;
         end proc;
         # takes two args
         toForm2 := (y, z) -> (toForm(y), toForm(z));

@@ -5,7 +5,7 @@ ToM := module()
 
     m := table();
 
-    itom, itom2, mapitom := createTableProcs(m);
+    itom, itom2, mapitom := createTableProcs("ToM", m);
 
     gen := NameGenerator("m");
 
@@ -167,7 +167,11 @@ ToM := module()
     m[_Inert_DESCRIPTIONSEQ] := MDescriptionSeq @ mapitom;
     m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;
     m[_Inert_EOP]            := MEop            @ mapitom;
+    
+    # remember tables are not considered
+    m[_Inert_HASHTAB] := () -> MExpSeq();
 
+    
     m[_Inert_FORFROM] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
         if whileExp = inertTrue then
             MForFrom(mapitom(loopVar, fromExp, byExp, toExp, statseq));

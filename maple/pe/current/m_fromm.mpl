@@ -7,7 +7,7 @@ FromM := module()
 
 
     inrt := table();
-    mtoi, mtoi2, mapmtoi := createTableProcs(inrt);
+    mtoi, mtoi2, mapmtoi := createTableProcs("FromM", inrt);
 
 
     ModuleApply := proc(code::mform)
