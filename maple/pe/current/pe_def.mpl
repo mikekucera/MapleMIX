@@ -87,8 +87,9 @@ PartiallyEvaluate := proc(p)
         return;
     catch:
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
-        print(lastexception);
-        return copy(code);
+        error;
+        #print(lastexception);
+        #return copy(code);
     end try;
     
     try
@@ -203,20 +204,21 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
             break;
         end if;
 
-        res := peM(stmt);
+        residual := peM(stmt);
         
-        PEDebug:-StatementEnd(res);
+        PEDebug:-StatementEnd(residual);
 
-        if res <> NULL then
-            if op(0,res) = MTry and i < nargs then
+        if residual <> NULL then
+            if op(0,residual) = MTry and i < nargs then
                 error "code after a try/catch is not supported";
             end if;
-            q:-enqueue(res);
-            if M:-EndsWithErrorOrReturn(res) then
+            q:-enqueue(residual);
+            if M:-EndsWithErrorOrReturn(residual) then
                 break
             end if;
         end if;
     end do;
+    #`if`(q:-empty(), NULL, MStatSeq(qtoseq(q)))
     MStatSeq(qtoseq(q));
 end proc;
 
@@ -261,7 +263,7 @@ end proc;
 
 
 
-pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate}), expr::mform)
+pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate, GeneratedName}), expr::mform)
     reduced := ReduceExp(expr);
 
     # use the appropriate environment based on the scope of the variable
@@ -292,6 +294,7 @@ end proc;
 
 
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
+    print("MTableAssign", tr);
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
     env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);

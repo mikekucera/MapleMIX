@@ -93,5 +93,38 @@ Test(401, got, expected);
 
 ####################################################################
 
+p := proc() local t,s;
+    t := table();
+    t[1] := 99;
+    s := t;
+    s[2] := 100;
+    t[1], t[2];
+end proc;
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 99, 100 end proc);
+
+Test(501, got, expected);
+
+
+p := proc()
+    t := table();
+    l := [t];
+    q := l[1];
+    q[1] := 99;
+    t[1];
+end proc:
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 99 end proc);
+
+Test(502, got, expected);
+
+####################################################################
+
 
 #end test

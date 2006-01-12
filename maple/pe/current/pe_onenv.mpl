@@ -17,6 +17,7 @@ OnENV := module()
 ##########################################################################################
 
             ss := SuperStack(newFrame);
+            tblAddresses := table();    # stores memory addresses of rebuilt tables
 
 ##########################################################################################
 
@@ -84,7 +85,12 @@ OnENV := module()
                     elif assigned(frame:-tbls[key]) then
                         return rebuildTable(frame:-tbls[key]);
                     elif assigned(frame:-vals[key]) then
-                        return frame:-vals[key];
+                        # TODO, figure this out!
+                        #if type(frame:-vals[key], 'procedure') then
+                        #    return eval(frame:-vals[key]);
+                        #else
+                            return frame:-vals[key];
+                        #end if;
                     end if;
                 end do;
                 error "can't get dynamic value %1", key;
@@ -132,8 +138,14 @@ OnENV := module()
 
                 if type(x, `table`) then
                     frame:-vals[key] := evaln(frame:-vals[key]);
-                    rec := addTable(key);
-                    rec:-elts := copy(x);
+                    addr := addressof(eval(x));
+                    if assigned(tblAddresses[addr]) then
+                        frame := ss:-top();
+                        frame:-tbls[key] := tblAddresses[addr]; # make var point to existing table
+                    else
+                        rec := addTable(key);
+                        rec:-elts := copy(x);
+                    end if;
                 else
                     frame:-tbls[key] := evaln(frame:-tbls[key]);
                     frame:-vals[key] := x;
@@ -192,6 +204,7 @@ OnENV := module()
                     rec := rec:-link;
                 end do;
 
+                tblAddresses[addressof(eval(tbl))] := chain;
                 tbl;
             end proc;
 

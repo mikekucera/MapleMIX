@@ -20,6 +20,7 @@ Then := proc(x) option inline; op(2,x) end proc;
 Else := proc(x) option inline; op(3,x) end proc;
 
 # for MTableRef
+Tbl      := proc(x) option inline; op(1,x) end proc;
 Var      := proc(x) option inline; op(1,x) end proc;
 IndexExp := proc(x) option inline; op(2,x) end proc;
 

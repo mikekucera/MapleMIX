@@ -239,10 +239,32 @@ ToM := module()
     m[MFunction] := MFunction @ mapitom;
 
 
+    # assumes splitter has already been run on tr
+    splitTableRef := proc(tr::mform(Tableref))
+        tbl := Tbl(tr);
+        if Header(tbl) = MTableref then
+            assigns, n := splitTableRef(tbl);
+            new := MGeneratedName(gen());
+            [op(assigns), MAssign(new, MTableref(n, IndexExp(tr)))], new;
+        else
+            new := MGeneratedName(gen());
+            [MAssign(new, tr)], new;
+        end if;
+    end proc;
+    
+
     m[_Inert_ASSIGN] := proc(target, expr)
+        #in this case the assignment has multiple table refs on the left side that
+        # must be split outp
         if Header(target) = _Inert_TABLEREF then
-            assigns, strippedTarget := splitReturn(target);
-            MStatSeq(op(assigns), split(expr, curry(MTableAssign, strippedTarget)));
+            assigns, splitTarget := splitReturn(target);
+            if Header(Tbl(splitTarget)) = MTableref then
+                moreAssigns, newName := splitTableRef(Tbl(splitTarget));
+                MStatSeq(op(assigns), op(moreAssigns), 
+                         split(expr, curry(MTableAssign, MTableref(newName, IndexExp(splitTarget)))));
+            else
+                MStatSeq(op(assigns), split(expr, curry(MTableAssign, splitTarget)));
+            end if;
         else
             split(expr, curry(MAssign, itom(target)))
         end if;

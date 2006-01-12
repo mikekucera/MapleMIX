@@ -29,7 +29,8 @@ ReduceExp := module()
         if assigned(red[h]) then
             red[h](op(exp));
         else
-            exp;
+            #exp;
+            error "(reduce) Reduction of %1 not supported yet", h;
         end if;        
     end proc;
 
@@ -263,6 +264,7 @@ ReduceExp := module()
     red[MParam]     := reduceVar(MParam);
     red[MLocal]     := reduceVar(MLocal);
     red[MSingleUse] := reduceVar(MSingleUse);
+    red[MGeneratedName] := reduceVar(MGeneratedName);
 
     red[MLexicalLocal] := reduceLex(MLexicalLocal);
     red[MLexicalParam] := reduceLex(MLexicalParam);
