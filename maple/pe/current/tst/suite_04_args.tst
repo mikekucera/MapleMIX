@@ -67,5 +67,47 @@ Try(302, got, expected);
 
 ########################################################################
 
+p := proc() args end proc;
 
+goal := proc() p(1,2,3,4) end proc;
+
+ped := OnPE(goal);
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 1,2,3,4 end proc);
+Try(401, got, expected);
+
+########################################################################
+
+p1 := proc() op([args])[1] end proc;
+p2 := proc() args[1] end proc;
+
+
+goal := proc() p1(1,2,3) end proc;
+ped := OnPE(goal);
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 1 end proc);
+Try(501, got, expected);
+
+
+goal := proc() p1(1) end proc;
+ped := OnPE(goal);
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() (1)[1] end proc); # important case
+Try(501, got, expected);
+
+
+goal := proc() p2(1,2,3) end proc;
+ped := OnPE(goal);
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 1 end proc);
+Try(501, got, expected);
+
+
+goal := proc() p2(1) end proc;
+ped := OnPE(goal);
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 1 end proc);
+Try(501, got, expected);
+
+#######################################################################################
 #end test

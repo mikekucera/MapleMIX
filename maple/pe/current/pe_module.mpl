@@ -12,8 +12,9 @@ BuildModule := module()
     
         # will be mapped over each residualized procedure
         processProc := proc(eqn)
-            procName, p := lhs(eqn), M:-FromM(rhs(eqn));
-    
+            procName := lhs(eqn);
+            p := M:-FromM(rhs(eqn));
+            
             procLocalIndex := procLocalIndex + `if`(procName = n, 0, 1);
     
             lexicalLocals := []; #list of lexical pairs(equations) of local name to index

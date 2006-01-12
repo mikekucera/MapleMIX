@@ -92,7 +92,19 @@ ReduceExp := module()
     
     red[MComplex]  := () -> `if`(nargs=1, args * I, args[1] + args[2] * I);
     red[MNargs]    := () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
-    red[MArgs]     := MArgs;
+    
+    red[MArgs] := proc() 
+        if env:-hasNargs() then
+            q := SimpleQueue();
+            argsTbl := env:-getArgs();
+            for i from 1 to env:-getNargs() do
+                q:-enqueue(argsTbl[i]);
+            end do;
+            op(q:-toList());
+        else
+            MArgs();
+        end if;    
+    end proc;
     
     
     red[MCatenate] := proc(x,y)
@@ -167,9 +179,9 @@ ReduceExp := module()
             var := Var(val);
             if [rindex]::list(Static) then
                 if var::Global then
-                    genv:-isTblValAssigned(Name(var), rindex);
+                    return genv:-isTblValAssigned(Name(var), rindex);
                 elif var::Local then
-                    env:-isTblValAssigned(Name(var), rindex);
+                    return env:-isTblValAssigned(Name(var), rindex);
                 end if;
             end if;
         end if;
@@ -200,6 +212,16 @@ ReduceExp := module()
     red[MTableref] := proc(tbl, eseq) # know that both args are static
         re := reduce(eseq);
         
+        if Header(tbl) = MArgs then
+            argsTbl := env:-getArgs();
+            if assigned(argsTbl[re]) then
+                return argsTbl[re]
+            else
+                return MTableref(MArgs(), embed(re))
+            end if;
+        end if;
+    
+        # aviod evaluating the entire table if possible
         if [re]::list(Static) then
             if member(Header(tbl), {MLocal, MParam, MGeneratedName}) then
                 try return env:-getTblVal(Name(tbl), re); # TODO: won't work for expression sequence as key
@@ -211,17 +233,8 @@ ReduceExp := module()
         end if;
 
         rt := reduce(tbl);
-
-        if Header(rt) = MArgs then
-            argsTbl := env:-getArgs();
-            if assigned(argsTbl[re]) then
-                argsTbl[re]
-            else
-                MTableref(MArgs(), embed(re))
-            end if; 
-        elif eval(rt)::symbol and [re]::list(Static) then
-            rt[re]
-        elif [rt]::list(Static) and [re]::list(Static) then
+        
+        if [rt]::list(Static) and [re]::list(Static) then
             rt[re]
         else
             MTableref(embed(rt), embed(re))

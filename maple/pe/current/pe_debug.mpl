@@ -1,8 +1,8 @@
 PEDebug := module()
-    export Begin, Statement, FunctionCall,
+    export Begin, RunThenStop, Statement, FunctionCall,
            DisplayReduceStart, DisplayReduceEnd, 
            DisplayStatmentStart, DisplayStatmentEnd,
-           StepUntil, GetStatementCount;
+           StepUntil, GetStatementCount, Message;
     local runningMode, quitIt, SetRunningMode, Quit, 
           x, y, displayStats, displayReductions,
           STEP, # run to next statment, or run given number of statments
@@ -19,6 +19,7 @@ PEDebug := module()
     
     stackSize := 0; # used to skip over function calls
     statementCount := 0; # number of statements that have been run so far
+    runThenStop := false;
     stepUntil := 'stepUntil'; # used to run the PE until a given statment number
     
     
@@ -40,8 +41,16 @@ PEDebug := module()
     Begin := proc(stmt)
         displayStats, displayReductions := true, true;
         statementCount := 0;
+        stepUntil := 'stepUntil';
         SetRunningMode(STEP);
         DisplayDebugCommand("Starting");
+    end proc;
+    
+    RunThenStop := proc(num::positive)
+        displayStats, displayReductions := true, true;
+        statementCount := 0;
+        StepUntil(num);
+        runThenStop := true;
     end proc;
     
     StepUntil := proc(num::positive)
@@ -78,16 +87,28 @@ PEDebug := module()
     # following functions are 'hooks' that are called in key places in the PE
     
     StatementStart := proc(stmt)
+        if runThenStop and statementCount >= stepUntil then
+            error "debug session exited";
+        end if;    
         statementCount := statementCount + 1;
         if runningMode <> FUNCTION_RETURN and displayStats then
             print();
-            print("statement start:", stmt);
+            if Header(stmt) = MIfThenElse then
+                print("statement start: ", MIfThenElse(Cond(stmt)));
+            else
+                print("statement start:", stmt);
+            end if;
         end if;
-        if runningMode = STEP then
+        if runningMode = STEP and not runThenStop then
             DisplayDebugCommand(Header(stmt));
         end if;
     end proc;
     
+    Message := proc(msg)
+        if displayStats and runningMode <> FUNCTION_RETURN then
+            print(msg)
+        end if
+    end proc;
     
     StatementEnd := proc(stat)
         if displayStats and runningMode <> FUNCTION_RETURN then
@@ -120,7 +141,7 @@ PEDebug := module()
     # displays the debug mini-gui
     
     DisplayDebugCommand := proc(message := "", skippable := false)
-        if assigned(stepUntil) and stepUntil > statementCount then 
+        if runThenStop or (assigned(stepUntil) and stepUntil > statementCount) then 
             return 
         end if;
         

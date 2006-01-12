@@ -79,8 +79,8 @@ Lifter := module()
 
 
     liftStatic := proc(stmts::`table`, exp::Static) local n, t;
-        if type(exp, procedure) then
-            error "lifting of closure not supported just yet";
+        if type(exp, 'procedure') then
+            MStatic(exp);
 	    elif Header(h) = SPackageLocal then 
 	        error "cannot lift a package local yet"
 	    elif typematch(exp, STable('n'::anything, 't'::anything)) then

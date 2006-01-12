@@ -45,7 +45,7 @@ ToM := module()
              _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING, _Inert_COMPLEX,
              _Inert_RATIONAL, _Inert_EXPSEQ, _Inert_LIST, _Inert_SET,
              _Inert_PARAM, _Inert_LOCAL, _Inert_NAME,_Inert_ASSIGNEDNAME, _Inert_TABLEREF,
-             _Inert_MEMBER});
+             _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS});
     end proc;
     
     

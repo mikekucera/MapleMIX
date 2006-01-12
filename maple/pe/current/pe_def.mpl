@@ -46,9 +46,13 @@ end proc;
 ############################################################################
 
 
-Debug := proc(p)
+Debug := proc(p, num)
     try
-        PEDebug:-Begin();
+        if nargs = 2 then
+            PEDebug:-RunThenStop(num);
+        else
+            PEDebug:-Begin();
+        end if;
     catch "debug":
         lprint("debug session exited");
         return;
@@ -76,17 +80,16 @@ PartiallyEvaluate := proc(p)
     
     try
         peSpecializeProc(m, "ModuleApply");
+        Lifter:-LiftPostProcess(code);
     catch "debug":
         lprint("debug session exited");
+        lprint(PEDebug:-GetStatementCount(), "statements partially evaluated");
         return;
     catch:
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
         print(lastexception);
-        error;
+        return copy(code);
     end try;
-
-    Lifter:-LiftPostProcess(code);
-
     
     try
         inertModule := BuildModule("ModuleApply");
@@ -221,11 +224,13 @@ end proc;
 peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
     rcond := ReduceExp(Cond(ifstat));
     if rcond::Static then
+        PEDebug:-Message(evalb(SVal(rcond)));
         stmts := `if`(SVal(rcond), Then(ifstat), Else(ifstat));
         peM(MStatSeq(ssop(stmts), ssop(S)));
     else
         callStack:-setConditional();
         env := callStack:-topEnv();
+        PEDebug:-Message("grow");
         env:-grow();
         genv:-grow();
 

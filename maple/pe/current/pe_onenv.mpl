@@ -180,11 +180,11 @@ OnENV := module()
                 vars := {};
                 rec := chain;
 
-                while true do
+                do
                     vars := vars union rec:-dyn;
                     for key in keys(rec:-elts) do
-                        if not member(key, vars) then
-                            tbl[key] := rec:-elts[key];
+                        if not member(key, vars) then                            
+                            tbl[key] := eval(rec:-elts[key]);
                             vars := vars union {key};
                         end if;
                     end do;
