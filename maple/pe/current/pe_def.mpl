@@ -226,7 +226,8 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         end if;
     end do;
     #`if`(q:-empty(), NULL, MStatSeq(qtoseq(q)))
-    MStatSeq(qtoseq(q));
+    # TODO, removing usless exprs now is a bit of a hack, a postprocess would be better
+    M:-RemoveUselessStandaloneExprs(MStatSeq(qtoseq(q)));
 end proc;
 
 
@@ -423,6 +424,12 @@ end proc;
 pe[MStandaloneFunction] := proc()
     unfold := proc(residualProcedure, redCall, fullCall)
         M:-Unfold:-UnfoldStandalone(residualProcedure, redCall, fullCall, gen);
+        #flattened := M:-FlattenStatSeq(res);
+        #if nops(flattened) = 1 and op([1,0], flattened) = MStandaloneExpr then
+        #    NULL
+        #else
+        #    flattened;
+        #end if;
     end proc;
     residualize := ()-> MStandaloneFunction(args);
     symbolic := () -> MStandaloneExpr(args);

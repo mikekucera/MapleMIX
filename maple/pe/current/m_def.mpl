@@ -3,7 +3,7 @@ M := module()
     export Print, ToM, FromM, ReduceExp, Unfold,
            EndsWithErrorOrReturn, FlattenStatSeq, AddImplicitReturns,
            SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs, ProtectedForm,
-           CreateLexMap,
+           CreateLexMap, RemoveUselessStandaloneExprs,
            Params, Locals, ProcBody, Header, Last, Front,
            Cond, Then, Else,
            Try, CatchSeq, Finally,
@@ -157,6 +157,19 @@ M := module()
     end proc;
     
     
+    RemoveUselessStandaloneExprs := proc(statseq::mform(StatSeq))
+        ss := FlattenStatSeq(statseq);
+        q := SimpleQueue();
+        size := nops(ss);
+        i := 1;
+        for stat in ss do
+            if Header(stat) <> MStandaloneExpr or i = size then
+                q:-enqueue(stat);
+            end if;
+            i := i + 1;
+        end do;
+        MStatSeq(qtoseq(q));        
+    end proc;
     
 
     # If a statseq ends with an assignment, then an implicit return is added
