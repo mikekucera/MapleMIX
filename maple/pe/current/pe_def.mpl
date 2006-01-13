@@ -41,6 +41,8 @@ embed := proc(e)
     end if;
 end proc;
 
+
+
 ############################################################################
 # The specializer
 ############################################################################
@@ -113,7 +115,7 @@ PartiallyEvaluate := proc(p)
     callStack := 'callStack';
     kernelopts(opaquemodules=before);
 
-    print(PEDebug:-GetStatementCount(), "statements processed");
+    print(PEDebug:-GetStatementCount(), "statements processed. Success!");
     return res;
 end proc;
 
@@ -121,25 +123,28 @@ end proc;
 
 # takes inert code and assumes static variables are on top of callStack
 # called before unfold
-peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
-    params := Params(m);
-    body   := ProcBody(m);
-
-    body := M:-AddImplicitReturns(body); # if a block ends with an assignment
-
+peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);    
+    # attach lexical environment
     env := callStack:-topEnv();
     if not env:-hasLex() then
         lexMap := M:-CreateLexNameMap(LexSeq(m), curry(op,2));
         env:-attachLex(lexMap);
     end if;
+    
+    # create static locals
+    for loc in Locals(m) do
+        varName := Var(loc);
+        env:-putVal(varName, convert(varName, `local`));
+    end do;
 
+    body := M:-AddImplicitReturns(ProcBody(m)); # if a block ends with an assignment
     body := peM(body); # Partial Evaluation
 
     newProc := subsop(5=body, m);
     newProc := M:-SetArgsFlags(newProc);
 
     if not M:-UsesArgsOrNargs(newProc) then
-        newParamList := select(x -> env:-isDynamic(op(1,x)), params);
+        newParamList := select(x -> env:-isDynamic(op(1,x)), Params(m));
         newProc := subsop(1=newParamList, newProc);
     end if;
 
@@ -148,6 +153,8 @@ peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
     end if;
     newProc;
 end proc;
+
+
 
 
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
@@ -294,7 +301,6 @@ end proc;
 
 
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
-    print("MTableAssign", tr);
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
     env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
