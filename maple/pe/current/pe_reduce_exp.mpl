@@ -314,7 +314,7 @@ ReduceExp := module()
     
     
     red[MUneval] := proc(e)
-        if op(0,e) = MName then
+        if member(Header(e), {MName, MAssignedName}) then
             convert(op(1,e), name);
         else
             MUneval(embed(e));

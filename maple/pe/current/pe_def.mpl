@@ -309,8 +309,16 @@ pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
 
     if [rindex,rexpr]::[Static,Static] then
         env:-putTblVal(var, SVal(rindex), SVal(rexpr));
-        NULL;
-    elif rindex::Static then
+        return NULL;
+    end if;
+    #print("table assign generating code");
+    #print("rindex", type(rindex, Static));
+    #print("rexpr", type(rexpr, Static));
+    #print("IndexExp(tr)", IndexExp(tr));
+    #print("expr", expr);
+    #print("rexpr", rexpr);
+    #print();
+    if rindex::Static then
         env:-setTblValDynamic(var, SVal(rindex));
         MTableAssign(subsop(2=rindex, tr), rexpr);
     else
@@ -449,11 +457,18 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
             expr := op(2, assign);
             if expr::Static then
                 #varName := op([1,1], assign);
-                return symbolic(expr);
-                #callStack:-topEnv():-putVal(varName, expr);
-                #return NULL;
+                #return symbolic(expr);
+                callStack:-topEnv():-putVal(op(var), SVal(expr));
+                return NULL;
             end if;
         end if;
+        #print("returning flattened", nops(flattened));
+        #if nops(flattened) = 1 then
+        #    for w in flattened do
+        #        print(w);
+        #    end do;
+        #    callStack:-topEnv():-display();
+        #end if;
         flattened;
     end proc;
 
