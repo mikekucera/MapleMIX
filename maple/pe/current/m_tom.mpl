@@ -19,7 +19,8 @@ ToM := module()
     createVarMap := proc(varSeq)
         createMap(varSeq,
         proc(tbl, i, var)
-            tbl[i] := op(`if`(op(0,var)=_Inert_DCOLON, [1,1], 1), var)
+            properOp := x -> op(`if`(Header(x)=_Inert_DCOLON, [1,1], 1) , x);        
+            tbl[i] := properOp(`if`(Header(var)=_Inert_ASSIGN, op(1,var), var));
         end proc)
     end proc;
 
@@ -161,12 +162,44 @@ ToM := module()
     m[_Inert_MEMBER]    := MMember    @ mapitom;
     m[_Inert_ATTRIBUTE] := MAttribute @ mapitom;
 
-    m[_Inert_PARAMSEQ]       := MParamSeq       @ mapitom;
+    
     m[_Inert_LOCALSEQ]       := MLocalSeq       @ mapitom;
     m[_Inert_OPTIONSEQ]      := MOptionSeq      @ mapitom;
     m[_Inert_DESCRIPTIONSEQ] := MDescriptionSeq @ mapitom;
     m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;
-    m[_Inert_EOP]            := MEop            @ mapitom;
+    m[_Inert_EOP]            := MEop            @ mapitom;    
+    #m[_Inert_PARAMSEQ]       := MParamSeq       @ mapitom;
+    
+    m[_Inert_PARAMSEQ]  := () -> MParamSeq(op(map(paramSpec, [args])));
+    
+    paramSpec := proc(x)
+        if hasfun(x, _Inert_PARAM) then
+            error "referencing one parameter from another is not supported: %1", x;
+        elif hasfun(x, _Inert_FUNCTION) then
+            error "parameter expression cannot contain a function call: %1", x;
+        end if;
+        param := x;
+        if Header(param) = _Inert_ASSIGN then
+            d := MDefault(itom(op(2,param)));
+            param := op(1,param);
+        else
+            d := MDefault();
+        end if;
+        if Header(param) = _Inert_DCOLON then
+            n := op([1,1], param);
+            t := MType(FromInert(op(2,param)));
+        else
+            n := op(1, param);
+            t := MType();
+        end if;
+        MParamSpec(n, t, d);
+    end proc;
+    
+    
+    m[_Inert_DCOLON] := proc(n, t)
+        # TODO, the op(1,n) will strip off protected attributes, not sure if this is best
+        MTypedName(op(1,n), MType(FromInert(t)));
+    end proc;
     
     # remember tables are not considered
     m[_Inert_HASHTAB] := () -> MExpSeq();
@@ -287,10 +320,8 @@ ToM := module()
     end proc;
 
     # converts a type assertion into a 'typed name'
-    m[_Inert_DCOLON] := proc(n, t)
-        MTypedName(op(n), MType(FromInert(t)));
-    end proc;
-
+    
+    
 
     m[_Inert_TRY] := proc()
         catches := proc()

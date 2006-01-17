@@ -44,6 +44,9 @@ Member := proc(x) option inline; op(2,x) end proc;
 # for variables
 Name := proc(x) option inline; op(1,x) end proc;
 
+# for MParamSpec
+TypeAssertion := proc(x) option inline; op(2,x) end proc;
+Default := proc(x) option inline; op(3,x) end proc;
 
 #for queues
 qtoseq := proc(q) option inline; op(q:-toList()) end proc;

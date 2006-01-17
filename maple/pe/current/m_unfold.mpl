@@ -51,12 +51,17 @@ Unfold := module()
             header := Header(argExpr);
             paramName := op([i,1], params);
             # variables can be substituted directly without fear of duplication
-            if member(header, {MParam, MLocal}) then
-                body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
-            else
+            # TODO, this won't be needed if we go to a general purpose copy propagator
+            #if member(header, {MParam, MLocal}) then
+            #    body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
+            #else
+            
+            # three cases-
+            
                 let := MAssign(MGeneratedName(newNames[paramName]), argExpr);
                 lets:-enqueue(let);
-            end if;
+                
+            #end if;
             i := i + 1;
         end do;
 

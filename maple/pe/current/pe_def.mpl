@@ -216,10 +216,17 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         PEDebug:-StatementEnd(residual);
 
         if residual <> NULL then
-            if op(0,residual) = MTry and i < nargs then
+            if Header(residual) = MTry and i < nargs then
                 error "code after a try/catch is not supported";
             end if;
             q:-enqueue(residual);
+            
+            #print("residualized");
+            #print(residual);
+            #callStack:-topEnv():-display();
+            #print();
+            #print();
+            
             if M:-EndsWithErrorOrReturn(residual) then
                 break
             end if;
@@ -295,6 +302,9 @@ pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate, GeneratedName
         NULL;
     else
         env:-setValDynamic(var);
+        if var = "m32" then
+            print("alarm", var, reduced);
+        end if;
         MAssign(n, reduced);
     end if;
 end proc;
@@ -400,7 +410,6 @@ pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
         end if;
     end if;
 
-    #top := callStack:-pop();
     q := SimpleQueue();
 
     for c in catchSeq do
@@ -449,36 +458,27 @@ end proc;
 pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Function))
     unfold := proc(residualProcedure, redCall, fullCall)
         res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
-        flattened := M:-FlattenStatSeq(res);
-        # If resulting statseq has only one statment then
-        # it must be an assign because thats what UnfoldIntoAssign does
-        if nops(flattened) = 1 then
+        flattened := M:-FlattenStatSeq(res);        
+        if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
             assign := op(flattened);
             expr := op(2, assign);
             if expr::Static then
-                #varName := op([1,1], assign);
-                #return symbolic(expr);
                 callStack:-topEnv():-putVal(op(var), SVal(expr));
                 return NULL;
             end if;
         end if;
-        #print("returning flattened", nops(flattened));
-        #if nops(flattened) = 1 then
-        #    for w in flattened do
-        #        print(w);
-        #    end do;
-        #    callStack:-topEnv():-display();
-        #end if;
         flattened;
     end proc;
 
     residualize := proc()
-        callStack:-topEnv():-setValDynamic(var);
+        callStack:-topEnv():-setValDynamic(Name(var));
+        print("residualize", var);
+        print(MFunction(args));
         MAssignToFunction(var, MFunction(args));
     end proc;
 
     symbolic := proc(s)
-        callStack:-topEnv():-putVal(op(var), SVal(s));
+        callStack:-topEnv():-putVal(Name(var), SVal(s));
         NULL;
     end proc;
 
@@ -486,48 +486,87 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
 end proc;
 
 
+checkType := proc(value, paramSpec::mform(ParamSpec))
+    ta := TypeAssertion(paramSpec);
+    if nops(ta) > 0 then
+        type(value, op(ta));
+    else
+        true;
+    end if;
+end proc;
 
-peArgList := proc(params::mform(ParamSeq), argExpSeq::mform(ExpSeq))
-   	env := OnENV(); # new env for function call
-   	allNotExpSeqSoFar := true; # true until something possibly an expseq is reached
+getDefault := proc(paramSpec::mform(ParamSpec))
+    default := Default(paramSpec);
+    if nops(default) > 0 then
+        value := ReduceExp(op(default));
+        if nops(value) <> 1 then
+            error "expression sequence as default parameter value is not supported";
+        elif value::Static then
+            return op(newValue);
+        else
+            error "dynamic default values are not supported"
+        end if;
+    else
+        error "static type assertion has failed, expected type %1 but received %2", 
+              TypeAssertion(paramSpec), value;
+    end if;
+end proc;
+
+
+# returns an environment where static parameters are mapped to their static values
+# as well as the static calls that will be residualized if the function is not unfolded
+peArgList := proc(paramSeq::mform(ParamSeq), argExpSeq::mform(ExpSeq))
+    env := OnENV(); # new env for function call
    	fullCall := SimpleQueue(); # residual function call including statics
    	redCall  := SimpleQueue(); # residual function call without statics
    	argsTbl := table(); # mappings for args
 
-   	i := 0;
+   	i := 1; 
+   	numParams := nops(paramSeq);
+   	unknowExpSeqSeen := false;
 
+   	# loop over expressions in function call
    	for arg in argExpSeq do
-   	    i := i + 1;
    	    reduced := ReduceExp(arg);
-   	    fullCall:-enqueue(reduced);
-
-   	    if reduced::Dynamic then
-   	        redCall:-enqueue(reduced);
-   	        if Header(reduced) = MParam and allNotExpSeqSoFar then
-   	            #argsTbl[i] := reduced;
-   	            # unsound, what if proc dosen't unfold?
-   	            #error "what?"; #TODO, what?
-   	        else
-   	            allNotExpSeqSoFar := false;
-   	        end if;
-   	    else
-   	        if allNotExpSeqSoFar then
-   	            if i <= nops(params) then
-   	                env:-putVal(op(op(i, params)), SVal(reduced));
-   	            end if;
-   	            argsTbl[i] := SVal(reduced);
-   	        else
-   	            redCall:-enqueue(reduced);
-   	        end if;
+   	    if reduced::Static then
+   	        # argument expression may have reduced to an expression sequence
+   	        # flatten the way that Maple does
+   	        for value in reduced do
+   	            fullCall:-enqueue(embed(value));
+   	            if unknownExpSeqSeen then
+   	                redCall:-enqueue(embed(value));
+   	            else # we can still match up args to params
+       	            if i <= numParams then
+       	                paramSpec := op(i, params);
+       	                if not checkType(value, paramSpec) then
+       	                    # the default must be a static scalar
+       	                    value := getDefault(paramSpec);
+       	                end if;       	            
+       	                env:-putVal(Name(param), value);
+       	                argsTbl[i] := value;
+       	            end if;
+       	            i := i + 1;
+       	        end if;
+       	    end do; 
+   	    else # dynamic
+   	        fullCall:-enqueue(reduced);
+            redCall:-enqueue(reduced);
+            if Header(reduced) = MParam then
+                i := i + 1;
+                # i will not be used anymore if unknownExpSeqSeen is true
+            else
+                unknownExpSeqSeen := true;
+            end if;   	        
    	    end if;
    	end do;
-    if allNotExpSeqSoFar then
+   	
+    if not unknownExpSeqSeen then
         env:-setNargs(i);
     end if;
 
     env:-setArgs(argsTbl);
-    toExpSeq := q -> MExpSeq(qtoseq(q));
-    return env, toExpSeq(redCall), toExpSeq(fullCall);
+    f := MExpSeq @ qtoseq;
+    return env, f(redCall), f(fullCall);
 end proc;
 
 

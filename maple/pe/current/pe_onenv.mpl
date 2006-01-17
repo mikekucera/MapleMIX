@@ -76,7 +76,7 @@ OnENV := module()
 
 ##########################################################################################
 
-            getVal := proc(key)
+            getVal := proc(key::Not(mform))
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
@@ -96,7 +96,7 @@ OnENV := module()
                 error "can't get dynamic value %1", key;
             end proc;
 
-            setValDynamic := proc(key)
+            setValDynamic := proc(key::Not(mform))
                 frame := ss:-top();
                 if member(key, frame:-readonly) then
                     error "variable %1 is read only (assignement to for loop index not allowed)", key;
@@ -107,7 +107,7 @@ OnENV := module()
                 NULL;
             end proc;            
             
-            putVal := proc(key, x, readonly)
+            putVal := proc(key::Not(mform), x, readonly)
                 #frame := ss:-top();
                 #frame:-vals[key] := x;
                 #frame:-dyn := frame:-dyn minus {key};
@@ -156,7 +156,7 @@ OnENV := module()
                 NULL;
             end proc;
 
-            isStatic := proc(key)
+            isStatic := proc(key::Not(mform))
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
@@ -171,7 +171,7 @@ OnENV := module()
 
             isDynamic := `not` @ isStatic;
             
-            isAssigned := proc(key)
+            isAssigned := proc(key::Not(mform))
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
@@ -216,7 +216,7 @@ OnENV := module()
                                                'dyn'={}); # dynamic mask
             end proc;
 
-            isStatic := proc(key)
+            isStatic := proc(key::Not(mform))
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
@@ -229,7 +229,7 @@ OnENV := module()
                 false;
             end proc;
             
-            isTblValStatic := proc(tableName, index)
+            isTblValStatic := proc(tableName::Not(mform), index)
                 try
                     foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
                     rec := foundFrame:-tbls[tableName];
@@ -250,7 +250,7 @@ OnENV := module()
             end proc;
             
             
-            isTblValAssigned := proc(tableName, index)
+            isTblValAssigned := proc(tableName::Not(mform), index)
                 try
                     foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
                     rec := foundFrame:-tbls[tableName];
@@ -268,7 +268,7 @@ OnENV := module()
                 end try;
             end proc;
 
-            putTblVal := proc(tableName, index, x)
+            putTblVal := proc(tableName::Not(mform), index, x)
                 if assigned(ss:-top():-tbls[tableName]) then # its at the top
                     rec := ss:-top():-tbls[tableName];
                     rec:-elts[index] := x;
@@ -288,7 +288,7 @@ OnENV := module()
             end proc;
 
 
-            getTblVal := proc(tableName, index)
+            getTblVal := proc(tableName::Not(mform), index)
                 err := "table value is dynamic %1[%2]", tableName, index;
                 try
                     frame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
@@ -311,7 +311,7 @@ OnENV := module()
             end proc;
 
 
-            setTblValDynamic := proc(tableName, index)
+            setTblValDynamic := proc(tableName::Not(mform), index)
                 frame := ss:-top();
                 if assigned(frame:-tbls[tableName]) then
                     rec := frame:-tbls[tableName];

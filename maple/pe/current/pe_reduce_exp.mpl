@@ -146,7 +146,7 @@ ReduceExp := module()
     red[MMember] := proc(x1, x2)
         rx1 := reduce(x1);
         rx2 := reduce(x2); # TODO, this is strange semantics, the right side of a member is not evaluated like this
-        `if`(rx1::Static, eval(rx1)[rx2], MMember(embed(rx1), embed(rx2)))
+        `if`([rx1]::list(Static), eval(rx1)[rx2], MMember(embed(rx1), embed(rx2)))
     end proc;;
 
     
@@ -226,10 +226,12 @@ ReduceExp := module()
         if [re]::list(Static) then
             if member(Header(tbl), {MLocal, MParam, MGeneratedName}) then
                 try return env:-getTblVal(Name(tbl), re); # TODO: won't work for expression sequence as key
-                catch: end try; # its dynamic so continue
+                catch "table value is dynamic" : 
+                end try; # its dynamic so continue
             elif member(Header(tbl), {MName, MAssignedName}) then
                 try return genv:-getTblVal(Name(tbl), re);
-                catch: end try;
+                catch "table value is dynamic" :  
+                end try;
             end if;
         end if;
 

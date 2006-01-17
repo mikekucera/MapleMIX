@@ -247,8 +247,8 @@ FromM := module()
         end if;
     end proc;
 
-    inrt[MTypedName] := proc(n, t)
-        _Inert_DCOLON(_Inert_NAME(n), ToInert(op(t)));
+    inrt[MTypedName] := proc(n::string, t::mform(Type))
+        _Inert_DCOLON(_Inert_NAME(n), _Inert_VERBATIM(op(t)));
     end proc;
 
     inrt[MTry] := proc(t, catchseq, fin)
