@@ -3,9 +3,9 @@
 OnPE := module() option package;
 
     description "online partial evaluator for a subset of Maple";
-    local callStack, code, gen, genv,
+    local callStack, code, gen, genv, goptions,
           CallStack;
-    export Debug, ModuleApply, PartiallyEvaluate, OnENV, ReduceExp, Lifter;
+    export Debug, ModuleApply, PartiallyEvaluate, OnENV, ReduceExp, Lifter, isPossibleExpSeq;
 
 ModuleApply := PartiallyEvaluate;
 
@@ -62,11 +62,32 @@ Debug := proc(p, num)
     PartiallyEvaluate(p);
 end proc;
 
+
+getOption := proc(optname, default, legalValues, opts::list)
+    opt := select(eqn -> lhs(eqn) = optname, opts);
+    if nops(opt) = 0 then
+        return default;
+    end if;    
+    val := rhs(op(1,opt));
+    `if`(member(val, legalValues), val, default);
+end proc;
+
+
+processOptions := proc(opts::list)
+    try
+        goptions := Record('noexpseq' = getOption('noexpseq', false, {true,false}, opts));
+    catch:
+        error "could not process option list";
+    end try;
+end proc;
+
+
 # called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p)
+PartiallyEvaluate := proc(p, opts::list := [])
     # need access to module locals
     before := kernelopts(opaquemodules=false);
+    processOptions(opts);
     
     # set up module locals
     gen := NameGenerator();
@@ -89,8 +110,8 @@ PartiallyEvaluate := proc(p)
         return;
     catch:
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
+        print(lastexception);
         error;
-        #print(lastexception);
         #return copy(code);
     end try;
     
@@ -113,6 +134,7 @@ PartiallyEvaluate := proc(p)
     code := 'code';
     genv := 'genv';
     callStack := 'callStack';
+    goptions := 'goptions';
     kernelopts(opaquemodules=before);
 
     print(PEDebug:-GetStatementCount(), "statements processed. Success!");
@@ -143,6 +165,7 @@ peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
     newProc := subsop(5=body, m);
     newProc := M:-SetArgsFlags(newProc);
 
+    # TODO, maybe move this check somewhere else
     if not M:-UsesArgsOrNargs(newProc) then
         newParamList := select(x -> env:-isDynamic(op(1,x)), Params(m));
         newProc := subsop(1=newParamList, newProc);
@@ -157,26 +180,7 @@ end proc;
 
 
 
-# Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
-# probably won't be needed if I go with the sp-function approach
-isUnfoldable := proc(inertProcedure::mform(Proc))
-    if not callStack:-inConditional() then
-        return true;
-    end if;
-    flattened := M:-FlattenStatSeq(ProcBody(inertProcedure));
-    # if all the func does is return a static value then there is no
-    # reason not to unfold
-    
-    # if the body of the function is empty then go ahead and unfold
-    if nops(flattened) = 0 then
-        true
-    else
-        # if the function body consists of a single static than it can be easily unfolded
-        nops(op([1,1], flattened)) = 1 
-        and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
-        and op([1,1], flattened)::Static
-    end if;
-end proc;
+
 
 
 # partially evaluates an arbitrary M code
@@ -199,6 +203,7 @@ pe[MError]  := curry(peResidualize, MError);
 
 pe[MStatSeq] := proc() :: mform(StatSeq);
     q := SimpleQueue();
+    
     for i from 1 to nargs do
         stmt := args[i];
         h := Header(stmt);
@@ -210,7 +215,6 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
             PEDebug:-StatementEnd();
             break;
         end if;
-
         residual := peM(stmt);
         
         PEDebug:-StatementEnd(residual);
@@ -220,13 +224,6 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
                 error "code after a try/catch is not supported";
             end if;
             q:-enqueue(residual);
-            
-            #print("residualized");
-            #print(residual);
-            #callStack:-topEnv():-display();
-            #print();
-            #print();
-            
             if M:-EndsWithErrorOrReturn(residual) then
                 break
             end if;
@@ -302,9 +299,6 @@ pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate, GeneratedName
         NULL;
     else
         env:-setValDynamic(var);
-        if var = "m32" then
-            print("alarm", var, reduced);
-        end if;
         MAssign(n, reduced);
     end if;
 end proc;
@@ -450,6 +444,7 @@ pe[MStandaloneFunction] := proc()
     end proc;
     residualize := ()-> MStandaloneFunction(args);
     symbolic := () -> MStandaloneExpr(args);
+    
     peFunction(args, unfold, residualize, symbolic);
 end proc;
 
@@ -472,8 +467,6 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
 
     residualize := proc()
         callStack:-topEnv():-setValDynamic(Name(var));
-        print("residualize", var);
-        print(MFunction(args));
         MAssignToFunction(var, MFunction(args));
     end proc;
 
@@ -486,15 +479,13 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
 end proc;
 
 
+# used to statically evaluate a type assertion on a parameter
 checkType := proc(value, paramSpec::mform(ParamSpec))
     ta := TypeAssertion(paramSpec);
-    if nops(ta) > 0 then
-        type(value, op(ta));
-    else
-        true;
-    end if;
+    `if`(nops(ta) > 0, type(value, op(ta)), true)
 end proc;
 
+# returns a parameter's default value
 getDefault := proc(paramSpec::mform(ParamSpec))
     default := Default(paramSpec);
     if nops(default) > 0 then
@@ -513,6 +504,11 @@ getDefault := proc(paramSpec::mform(ParamSpec))
 end proc;
 
 
+isPossibleExpSeq := proc(exp::Dynamic)
+    # returns true if a dynamic argument could possibly be an expression sequence
+    `if`(goptions:-noexpseq, false, evalb(Header(exp) <> MParam))
+end proc;
+
 # returns an environment where static parameters are mapped to their static values
 # as well as the static calls that will be residualized if the function is not unfolded
 peArgList := proc(paramSeq::mform(ParamSeq), argExpSeq::mform(ExpSeq))
@@ -523,7 +519,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), argExpSeq::mform(ExpSeq))
 
    	i := 1; 
    	numParams := nops(paramSeq);
-   	unknowExpSeqSeen := false;
+   	possibleExpSeqSeen := false;
 
    	# loop over expressions in function call
    	for arg in argExpSeq do
@@ -533,40 +529,46 @@ peArgList := proc(paramSeq::mform(ParamSeq), argExpSeq::mform(ExpSeq))
    	        # flatten the way that Maple does
    	        for value in reduced do
    	            fullCall:-enqueue(embed(value));
-   	            if unknownExpSeqSeen then
+   	            if possibleExpSeqSeen then
    	                redCall:-enqueue(embed(value));
    	            else # we can still match up args to params
        	            if i <= numParams then
-       	                paramSpec := op(i, params);
+       	                paramSpec := op(i, paramSeq);
        	                if not checkType(value, paramSpec) then
        	                    # the default must be a static scalar
        	                    value := getDefault(paramSpec);
-       	                end if;       	            
-       	                env:-putVal(Name(param), value);
-       	                argsTbl[i] := value;
+       	                end if;            
+       	                env:-putVal(Name(paramSpec), value);
        	            end if;
+       	            argsTbl[i] := value; 
        	            i := i + 1;
        	        end if;
        	    end do; 
    	    else # dynamic
    	        fullCall:-enqueue(reduced);
             redCall:-enqueue(reduced);
-            if Header(reduced) = MParam then
-                i := i + 1;
-                # i will not be used anymore if unknownExpSeqSeen is true
+            if isPossibleExpSeq(reduced) then
+                # i will not be used anymore if possibleExpSeqSeen is true
+                possibleExpSeqSeen := true;
             else
-                unknownExpSeqSeen := true;
-            end if;   	        
+                i := i + 1;
+            end if; 	        
    	    end if;
    	end do;
-   	
-    if not unknownExpSeqSeen then
-        env:-setNargs(i);
+   	 
+    if not possibleExpSeqSeen then
+        env:-setNargs(i-1);
     end if;
 
     env:-setArgs(argsTbl);
+    print(op(argsTbl));
     f := MExpSeq @ qtoseq;
-    return env, f(redCall), f(fullCall);
+     
+    # return results as a record just so its more organized
+    Record('newEnv'=env, # environment mapping parameter names to static values
+           'reducedCall'=f(redCall),  # the reduced call to be residualized if the proc is not unfolded
+           'allCall'=f(fullCall), # the call but with static arguments still in their place
+           'possibleExpSeq'=possibleExpSeqSeen); # true iff there is the possibility that one of the dynamic arguments could be and expression sequence
 end proc;
 
 
@@ -615,25 +617,53 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
 end proc;
 
 
+# Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
+# probably won't be needed if I go with the sp-function approach
+isUnfoldable := proc(inertProcedure::mform(Proc), argListInfo)
+    # it dosen't matter if an argument is an expression sequence if there are no defined parameters
+    if argListInfo:-possibleExpSeq and nops(Params(inertProcedure)) > 0 then
+        return false;
+    end if;
+    if not callStack:-inConditional() then
+        return true;
+    end if;
+    flattened := M:-FlattenStatSeq(ProcBody(inertProcedure));
+    # if all the func does is return a static value then there is no
+    # reason not to unfold
+    
+    # if the body of the function is empty then go ahead and unfold
+    if nops(flattened) = 0 then
+        true
+    else
+        # if the function body consists of a single static than it can be easily unfolded
+        nops(op([1,1], flattened)) = 1 
+        and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
+        and op([1,1], flattened)::Static
+    end if;
+end proc;
+
+
+
 # partial evaluation of a known procedure
 peRegularFunction := proc(fun::procedure, argExpSeq::mform(ExpSeq), unfold, residualize, newName)
 	m := getMCode(eval(fun));
 
-    newEnv, redCall, fullCall := peArgList(Params(m), argExpSeq);
+    argListInfo := peArgList(Params(m), argExpSeq);
 #    lexMap := M:-CreateLexNameMap(LexSeq(m), curry(op,2));
 #    newEnv:-attachLex(lexMap);
 
-    callStack:-push(newEnv);
+
+    callStack:-push(argListInfo:-newEnv);
     newProc := peSpecializeProc(m, newName);
     callStack:-pop();
 
-    if isUnfoldable(newProc) then
+    if isUnfoldable(newProc, argListInfo) then
         code[newName] := evaln(code[newName]); # remove mapping from code
-        unfold(newProc, redCall, fullCall);
+        unfold(newProc, argListInfo:-reducedCall, argListInfo:-allCall);
     elif M:-UsesArgsOrNargs(newProc) then
-        residualize(MString(newName), fullCall)
+        residualize(MString(newName), argListInfo:-allCall)
     else
-        residualize(MString(newName), redCall)
+        residualize(MString(newName), argListInfo:-reducedCall)
     end if;
 end proc;
 

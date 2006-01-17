@@ -129,7 +129,6 @@ FromM := module()
 
     inrt[MStatSeq]            := _Inert_STATSEQ  @ mapmtoi;
     inrt[MStandaloneFunction] := _Inert_FUNCTION @ mapmtoi;
-    #inrt[MFunction]           := _Inert_FUNCTION @ mapmtoi;
     inrt[MAssign]             := _Inert_ASSIGN   @ mapmtoi;
     inrt[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
     inrt[MTableAssign]        := _Inert_ASSIGN   @ mapmtoi;
@@ -137,6 +136,17 @@ FromM := module()
     inrt[MWhileForIn]   := _Inert_FORIN   @ mapmtoi;
     inrt[MWhileForFrom] := _Inert_FORFROM @ mapmtoi;
     
+    
+    inrt[MParamSpec] := proc(n, t, d) # name, type, default
+        param := _Inert_NAME(n);
+        if nops(t) > 0 then
+            param := _Inert_DCOLON(param, ToInert(op(t)));
+        end if;
+        if nops(d) > 0 then
+            param := _Inert_ASSIGN(param, mtoi(op(d)));
+        end if;
+        param;
+    end proc;
     
     # TODO, should MStandaloneFunction be similiar?
     inrt[MFunction] := proc(n, expseq)

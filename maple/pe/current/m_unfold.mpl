@@ -36,7 +36,7 @@ Unfold := module()
     # specCall must be the residual call to the specialized procedure, consisting of only dynamic argument expressions,
     # the static ones should have been removed.
     UnfoldStandalone := proc(specProc::mform(Proc), specCall::mform(ExpSeq),
-                             fullCall::mform(ExpSeq), genVarName) ::mform(StatSeq);
+                             fullCall::mform(ExpSeq), genVarName) :: mform(StatSeq);
         body := ProcBody(specProc);
         params := Params(specProc);
         body, newNames := renameAllLocals(body, genVarName);
@@ -52,16 +52,17 @@ Unfold := module()
             paramName := op([i,1], params);
             # variables can be substituted directly without fear of duplication
             # TODO, this won't be needed if we go to a general purpose copy propagator
-            #if member(header, {MParam, MLocal}) then
-            #    body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
-            #else
-            
-            # three cases-
-            
+            if member(header, {MParam, MLocal}) then
+                body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
+            else
+                # TODO, this is a redundant check, remove eventually
+                # TODO, now way should this call into OnPE, must move this entire module to OnPE
+                if OnPE:-isPossibleExpSeq(argExpr) then
+                    error "cannot let-insert a dynamic expression if it could possibly be an expression sequence";
+                end if;
                 let := MAssign(MGeneratedName(newNames[paramName]), argExpr);
-                lets:-enqueue(let);
-                
-            #end if;
+                lets:-enqueue(let);                
+            end if;
             i := i + 1;
         end do;
 

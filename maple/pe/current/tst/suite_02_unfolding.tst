@@ -94,15 +94,25 @@ goal := proc(d)
     p(d, 1, 2);
 end proc;
 
-ped := OnPE(goal);
+ped := OnPE(goal, ['noexpseq'=true]);
 
-got := op(5, ToInert(eval(ped['ModuleApply']))):
-expected := _Inert_STATSEQ(
-  _Inert_ASSIGN(_Inert_LOCAL(1), _Inert_SUM(_Inert_PARAM(1), _Inert_INTPOS(2))),
-  _Inert_ASSIGN(_Inert_LOCAL(2), _Inert_SUM(_Inert_INTPOS(1), _Inert_PARAM(1))),
-  _Inert_SUM(_Inert_LOCAL(1), _Inert_LOCAL(2)));
+got := ToInert(eval(ped['ModuleApply'])):
+expected := ToInert(proc (d) local x1, y1; x1 := d+2; y1 := d+1; x1+y1 end proc);
 
 Try(301, got, expected);
+
+
+ped := OnPE(goal, ['noexpseq'=false]);
+
+got := op(5, ToInert(eval(ped['ModuleApply']))):
+expected := _Inert_STATSEQ(_Inert_FUNCTION(_Inert_LEXICAL_LOCAL(1),_Inert_EXPSEQ(_Inert_SUM(_Inert_PARAM(1),_Inert_INTPOS(2)),_Inert_SUM(_Inert_INTPOS(1),_Inert_PARAM(1)))));
+
+Try(302, got, expected);
+
+got := ToInert(eval(ped['f_1'])):
+expected := ToInert(proc (x, y) x+y end proc);
+
+Try(303, got, expected);
 
 
 # TEST 4 ##############################################################
