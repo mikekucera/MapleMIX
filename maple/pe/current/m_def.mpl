@@ -1,6 +1,6 @@
 
 M := module()
-    export Print, ToM, FromM, ReduceExp, Unfold,
+    export Print, ToM, FromM, ReduceExp,
            EndsWithErrorOrReturn, FlattenStatSeq, AddImplicitReturns,
            SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs, ProtectedForm,
            CreateLexMap, RemoveUselessStandaloneExprs,
@@ -203,7 +203,6 @@ M := module()
 $include "access.mpl"
 $include "m_tom.mpl"
 $include "m_fromm.mpl"
-$include "m_unfold.mpl"
 
 
 end module:

@@ -4,7 +4,7 @@ OnPE := module() option package;
 
     description "online partial evaluator for a subset of Maple";
     local callStack, code, gen, genv, goptions,
-          CallStack;
+          CallStack, Unfold;
     export Debug, ModuleApply, PartiallyEvaluate, OnENV, ReduceExp, Lifter, isPossibleExpSeq;
 
 ModuleApply := PartiallyEvaluate;
@@ -16,7 +16,7 @@ $include "pe_reduce_exp.mpl"
 $include "pe_lift.mpl"
 $include "pe_module.mpl"
 $include "pe_debug.mpl"
-
+$include "pe_unfold.mpl"
 
 ##################################################################################
 # utility functions used by this package
@@ -42,12 +42,34 @@ embed := proc(e)
 end proc;
 
 
+# retreives an option's value
+getOption := proc(optname, default, legalValues, opts::list)
+    opt := select(eqn -> lhs(eqn) = optname, opts);
+    if nops(opt) = 0 then
+        return default;
+    end if;    
+    val := rhs(op(1,opt));
+    `if`(member(val, legalValues), val, default);
+end proc;
+
+
+processOptions := proc(opts::list)
+    try
+        goptions := Record(
+            # when true the PE will ignore the possibility that dynamic arguments
+            # to functions may be expression sequences
+            'noexpseq' = getOption('noexpseq', false, {true,false}, opts));
+    catch:
+        error "could not process option list";
+    end try;
+end proc;
+
 
 ############################################################################
 # The specializer
 ############################################################################
 
-
+# runs the PE in debug mode
 Debug := proc(p, num)
     try
         if nargs = 2 then
@@ -63,26 +85,6 @@ Debug := proc(p, num)
 end proc;
 
 
-getOption := proc(optname, default, legalValues, opts::list)
-    opt := select(eqn -> lhs(eqn) = optname, opts);
-    if nops(opt) = 0 then
-        return default;
-    end if;    
-    val := rhs(op(1,opt));
-    `if`(member(val, legalValues), val, default);
-end proc;
-
-
-processOptions := proc(opts::list)
-    try
-        goptions := Record('noexpseq' = getOption('noexpseq', false, {true,false}, opts));
-    catch:
-        error "could not process option list";
-    end try;
-end proc;
-
-
-# called with a procedure, name of residual proc, and a list of equations
 # sets up the partial evaluation
 PartiallyEvaluate := proc(p, opts::list := [])
     # need access to module locals
@@ -434,7 +436,7 @@ end proc;
 
 pe[MStandaloneFunction] := proc()
     unfold := proc(residualProcedure, redCall, fullCall)
-        M:-Unfold:-UnfoldStandalone(residualProcedure, redCall, fullCall, gen);
+        Unfold:-UnfoldStandalone(residualProcedure, redCall, fullCall, gen);
         #flattened := M:-FlattenStatSeq(res);
         #if nops(flattened) = 1 and op([1,0], flattened) = MStandaloneExpr then
         #    NULL
@@ -452,7 +454,7 @@ end proc;
 
 pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Function))
     unfold := proc(residualProcedure, redCall, fullCall)
-        res := M:-Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
+        res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         flattened := M:-FlattenStatSeq(res);        
         if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
             assign := op(flattened);

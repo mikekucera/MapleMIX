@@ -56,8 +56,7 @@ Unfold := module()
                 body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
             else
                 # TODO, this is a redundant check, remove eventually
-                # TODO, now way should this call into OnPE, must move this entire module to OnPE
-                if OnPE:-isPossibleExpSeq(argExpr) then
+                if isPossibleExpSeq(argExpr) then
                     error "cannot let-insert a dynamic expression if it could possibly be an expression sequence";
                 end if;
                 let := MAssign(MGeneratedName(newNames[paramName]), argExpr);
@@ -68,7 +67,7 @@ Unfold := module()
 
         # let insert args and nargs if needed
         letNargs := NULL;
-        if UsesNargs(specProc) then
+        if M:-UsesNargs(specProc) then
             argsName  := genVarName("args");
             nargsName := genVarName("nargs");
             letNargs :=
@@ -81,7 +80,7 @@ Unfold := module()
 
         # let insert nargs if needed
         letArgs := NULL;
-        if letNargs <> NULL or UsesArgs(specProc) then
+        if letNargs <> NULL or M:-UsesArgs(specProc) then
             if not assigned(argsName) then
                 argsName := genVarName("args");
             end if;
@@ -98,7 +97,7 @@ Unfold := module()
     UnfoldIntoAssign := proc(specProc::mform(Proc), specCall::mform(ExpSeq), fullCall::mform(ExpSeq),
                              genVarName, assignTo::mform(GeneratedName)) ::mform(StatSeq);
         newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
-        newbody := FlattenStatSeq(newbody);
+        newbody := M:-FlattenStatSeq(newbody);
 
         last  := Last(newbody);
         if Header(last) = MStandaloneExpr then
@@ -115,7 +114,7 @@ Unfold := module()
         doAdd := proc(c) local t, cs, f;
 	        h := Header(c);
 	        if h = MStatSeq then
-	            flat := FlattenStatSeq(c);
+	            flat := M:-FlattenStatSeq(c);
 	            if flat = MStatSeq() then
 	                return MStatSeq();
 	            end if;
