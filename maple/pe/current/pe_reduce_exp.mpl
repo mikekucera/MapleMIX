@@ -20,6 +20,9 @@ ReduceExp := module()
         PEDebug:-DisplayReduceStart(exp);
         reduced := embed(reduce(exp));
         PEDebug:-DisplayReduceEnd(reduced);
+        #if reduced::Dynamic then
+        #    print("reduced", reduced);
+        #end if;
         env := 'env';
         reduced;
     end proc;
@@ -316,7 +319,7 @@ ReduceExp := module()
     
     
     red[MUneval] := proc(e)
-        if member(Header(e), {MName, MAssignedName}) then
+        if member(Header(e), {MName, MAssignedName, MGeneratedName, MSingleUse}) then
             convert(op(1,e), name);
         else
             MUneval(embed(e));

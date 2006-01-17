@@ -563,7 +563,6 @@ peArgList := proc(paramSeq::mform(ParamSeq), argExpSeq::mform(ExpSeq))
     end if;
 
     env:-setArgs(argsTbl);
-    print(op(argsTbl));
     f := MExpSeq @ qtoseq;
      
     # return results as a record just so its more organized
