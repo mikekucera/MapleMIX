@@ -168,9 +168,11 @@ peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
     newProc := M:-SetArgsFlags(newProc);
 
     # TODO, maybe move this check somewhere else
-    if not M:-UsesArgsOrNargs(newProc) then
-        newParamList := select(x -> env:-isDynamic(op(1,x)), Params(m));
-        newProc := subsop(1=newParamList, newProc);
+    if not M:-UsesArgsOrNargs(newProc) then    
+        p := x -> env:-isDynamic(Name(x));
+        newParams := select(p, Params(m));
+        newKeywords := select(p, Keywords(m));
+        newProc := subsop(1=newParams, 11=newKeywords, newProc);
     end if;
 
     if n <> "" then
@@ -560,8 +562,15 @@ peArgList := proc(paramSeq::mform(ParamSeq), argExpSeq::mform(ExpSeq))
    	 
     if not possibleExpSeqSeen then
         env:-setNargs(i-1);
-    end if;
-
+        # resolve any optional parameters
+        #unmatched := fullCall.toList()[numParams..-1];
+        # loop over indices keywords 
+        # for each one test if the keyword is in unmatched
+        # if it is then test its type
+        # set to default or given value
+        # add to env         
+    end if;   
+    
     env:-setArgs(argsTbl);
     f := MExpSeq @ qtoseq;
      
@@ -592,10 +601,6 @@ peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::
     if type(eval(sfun), `procedure`) then
         newName := gen(cat(op(1,f),"_"));
         res := peRegularFunction(eval(sfun), argExpSeq, unfold, residualize, newName);
-        
-    elif Header(sfun) = SPackageLocal and type(Member(sfun), `procedure`) then
-        mem := Member(sfun);
-        res := peRegularFunction(mem, argExpSeq, unfold, residualize, gen("fun"));
 
 	elif type(sfun, `module`) then
 	    if member(convert("ModuleApply",name), sfun) then
@@ -653,6 +658,10 @@ peRegularFunction := proc(fun::procedure, argExpSeq::mform(ExpSeq), unfold, resi
 #    lexMap := M:-CreateLexNameMap(LexSeq(m), curry(op,2));
 #    newEnv:-attachLex(lexMap);
 
+    if ormap(x -> evalb(op(1,x) = "$"), Params(m)) then
+        print("found it", Params(m));
+        print("the call", argListInfo:-allCall);
+    end if;
 
     callStack:-push(argListInfo:-newEnv);
     newProc := peSpecializeProc(m, newName);

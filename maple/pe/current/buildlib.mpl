@@ -54,4 +54,7 @@ Save(M);
 
 $include "pe_def.mpl"
 
+$include "interp.mpl"
+Save(Interp1);
+
 Save(OnPE);

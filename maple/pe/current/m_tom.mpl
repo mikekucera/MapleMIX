@@ -170,7 +170,20 @@ ToM := module()
     m[_Inert_EOP]            := MEop            @ mapitom;    
     #m[_Inert_PARAMSEQ]       := MParamSeq       @ mapitom;
     
-    m[_Inert_PARAMSEQ]  := () -> MParamSeq(op(map(paramSpec, [args])));
+    m[_Inert_PARAMSEQ]  := proc()
+        if nargs = 0 then
+            return MParamSeq(), MKeywords();
+        end if;
+        lastArg := args[-1];
+        # if there are keyword parameters
+        if Header(lastArg) = _Inert_SET then
+            MParamSeq(op(map(paramSpec, [args[1..-2]]))),
+            MKeywords(op(map(paramSpec, [op(op(lastArg))])))
+        else
+            MParamSeq(op(map(paramSpec, [args]))),
+            MKeywords()
+        end if;                 
+    end proc;
     
     paramSpec := proc(x)
         if hasfun(x, _Inert_PARAM) then
@@ -178,7 +191,9 @@ ToM := module()
         elif hasfun(x, _Inert_FUNCTION) then
             error "parameter expression cannot contain a function call: %1", x;
         end if;
+        
         param := x;
+        
         if Header(param) = _Inert_ASSIGN then
             d := MDefault(itom(op(2,param)));
             param := op(1,param);
@@ -192,7 +207,12 @@ ToM := module()
             n := op(1, param);
             t := MType();
         end if;
-        MParamSpec(n, t, d);
+        
+        if not type(n, string)  then
+            error "unknown form in parameter sequence: %1", n
+        end if;
+        
+        MParamSpec(n, t, d)
     end proc;
     
     
@@ -228,8 +248,12 @@ ToM := module()
         maps['locals'] := createVarMap([args][2]);
         maps['lex']    := createLexIndexMap([args][8]);
         MapStack:-push(maps);
-        # add placeholders for flags
-        MProc(mapitom(args), MFlags( MArgsFlag(UNKNOWN), MNargsFlag(UNKNOWN) ));
+        
+        pars, keys := m[_Inert_PARAMSEQ](op([args][1]));
+        others := mapitom(args[2..-1]);
+        flags := MFlags( MArgsFlag(UNKNOWN), MNargsFlag(UNKNOWN) );
+        
+        MProc(pars, others, flags, keys);
     end proc;
 
     # The lexical sequence comes after the proc body so its ok to pop the stacks

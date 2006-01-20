@@ -148,6 +148,10 @@ FromM := module()
         param;
     end proc;
     
+    inrt[MKeywords] := proc()
+        _Inert_SET(_Inert_EXPSEQ(mapmtoi(args)));
+    end proc;
+    
     # TODO, should MStandaloneFunction be similiar?
     inrt[MFunction] := proc(n, expseq)
         _Inert_FUNCTION(mtoi(n), _Inert_EXPSEQ(mtoi(expseq)));
@@ -182,9 +186,14 @@ FromM := module()
         maps['lextbl'] := table();
 
         MapStack:-push(maps);
+
         inertProc := _Inert_PROC(mapmtoi(args));
+        pars := op(1, inertProc);
+        keys := op(10, inertProc); # keywords are at spot 10 because MFlags maps to NULL
+        pars := _Inert_PARAMSEQ(op(pars), keys);
+        
         MapStack:-pop();
-        subsop(2=newLocalList(), inertProc);
+        subsop(1=pars, 2=newLocalList(), 10=NULL, inertProc);
     end proc;
 
 

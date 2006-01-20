@@ -13,6 +13,33 @@ OptionSeq := proc(x) option inline; op(3,x) end proc:
 ProcBody  := proc(x) option inline; op(5,x) end proc:
 GlobalSeq := proc(x) option inline; op(7,x) end proc:
 LexSeq    := proc(x) option inline; op(8,x) end proc:
+Keywords  := proc(x) option inline; op(11,x) end proc:
+
+# returns true if a parameter sequence contains keyword parameters
+#hasKeywords := proc(params::mform(ParamSeq))
+#    nops(params) > 0 and Header(op(-1, params)) = MKeywords
+#end proc;
+#params := op(1,x);
+#    if hasKeywords(params) then
+#        if nops(params) = 1 then
+#            MParamSeq()
+#        else
+#            MParamSeq(op(1..-2, params))
+#        end if;
+#    else
+#        params
+#    end if;
+#end proc:
+
+#Keywords := proc(x)
+#    params := op(1,x);
+#    if hasKeywords(params) then
+#        op(-1, params);
+#    else
+#        MKeywords();
+#    end if;
+#end proc;
+
 
 # for MIfThenElse
 Cond := proc(x) option inline; op(1,x) end proc;
