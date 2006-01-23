@@ -378,6 +378,18 @@ OnENV := module()
                 end do;
             end proc;
             
+            displayNames := proc()
+                iter := ss:-topDownIterator();
+                while iter:-hasNext() do
+                    frame := iter:-getNext();
+                    print("level");
+                    print("vals", indices(frame:-vals));
+                    print("dyn", frame:-dyn);
+                    for tblName in keys(frame:-tbls) do
+                        print("rec", tblName)
+                    end do;
+                end do;
+            end proc;
             
         end module;
 

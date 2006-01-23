@@ -193,6 +193,14 @@ ReduceExp := module()
     end proc;
     
     
+    
+    specFunc["seq"] := proc(expseq)
+        m := MFunction( M:-ProtectedForm("seq"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
+        eval(FromInert(M:-FromM(m)));
+    end proc;
+    
+    
+    
     red[MFunction] := proc(f, expseq)
         if isProtectedProc(f) then
             return specFunc[Name(f)](expseq);
@@ -200,7 +208,7 @@ ReduceExp := module()
         
         rf := reduce(f);
         re := reduce(expseq);
-
+        
         if type(rf, 'procedure') and [re]::list(Static) then
             rf(re);
         elif type(rf, name) and [re]::list(Static) then
@@ -297,20 +305,35 @@ ReduceExp := module()
             thunk;
         else
             lexMap := M:-CreateLexNameMap(LexSeq(p), curry(op, 2));
-            newBody := eval(ProcBody(p), MLexicalLocal = replaceClosureLexical);        
+            newBody := eval(ProcBody(p), MLexicalLocal = curry(replaceClosureLexical, lexMap));        
             newProc := subsop(5=newBody, 8=MLexicalSeq(), p);
             FromInert(M:-FromM(newProc));
         end if;
     end proc;
 
-    replaceClosureLexical := proc(n)
+    replaceClosureLexical := proc(lexMap, n)
         closureEnv := callStack:-topEnv();
         s := op(n);
-        thunk := proc() 
-            if closureEnv:-isStatic(s) then
+        thunk := proc()
+            if assigned(lexMap[s]) then
+                if closureEnv:-hasLex() then
+                    lex := closureEnv:-getLex();
+                    lexName := op(lexMap[s]);
+                    if assigned(lex[lexName]) then
+                        #print("lex[lexName]", lex[lexName]);
+                        res := FromInert(M:-FromM(lex[lexName]));
+                        print(eval(res));
+                        res;
+                    else
+                        error "invalid lexical name: %1", s;
+                    end if;
+                else
+                    error "can't find lexical: %1", s;
+                end if;
+            elif closureEnv:-isStatic(s) then
                 closureEnv:-getVal(s);
             else
-                error "dynamic lexicals in closure is not supported: %1", n; 
+                error "dynamic lexicals in closure is not supported: %1", s; 
             end if;
         end proc;
         thunk := setattribute(eval(thunk), 'pe_thunk'); # used to identify these thunks later

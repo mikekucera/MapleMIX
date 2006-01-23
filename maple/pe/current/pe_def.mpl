@@ -130,7 +130,7 @@ PartiallyEvaluate := proc(p, opts::list := [])
         lprint("FromInert on inertModule failed", lastexception);
         return copy(code);
     end try;
-
+    
     # unassign module locals
     gen := 'gen';
     code := 'code';
@@ -140,7 +140,7 @@ PartiallyEvaluate := proc(p, opts::list := [])
     kernelopts(opaquemodules=before);
 
     print(PEDebug:-GetStatementCount(), "statements processed. Success!");
-    return res;
+    return res;    
 end proc;
 
 
@@ -176,7 +176,7 @@ peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
     end if;
 
     if n <> "" then
-       code[n] := newProc;
+        code[n] := newProc;
     end if;
     newProc;
 end proc;
@@ -319,13 +319,6 @@ pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
         env:-putTblVal(var, SVal(rindex), SVal(rexpr));
         return NULL;
     end if;
-    #print("table assign generating code");
-    #print("rindex", type(rindex, Static));
-    #print("rexpr", type(rexpr, Static));
-    #print("IndexExp(tr)", IndexExp(tr));
-    #print("expr", expr);
-    #print("rexpr", rexpr);
-    #print();
     if rindex::Static then
         env:-setTblValDynamic(var, SVal(rindex));
         MTableAssign(subsop(2=rindex, tr), rexpr);
@@ -457,7 +450,8 @@ end proc;
 pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Function))
     unfold := proc(residualProcedure, redCall, fullCall)
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
-        flattened := M:-FlattenStatSeq(res);        
+        #flattened := M:-FlattenStatSeq(res);
+        flattened := M:-RemoveUselessStandaloneExprs(res);
         if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
             assign := op(flattened);
             expr := op(2, assign);
@@ -581,7 +575,6 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
         for i from numParams+1 to fullCall:-length() do
             
             if not member(i, equationArgs) then next end if;
-            print(i, reducedArg);
             reducedArg := reducedArgs[i];
             if reducedArg::Static then
                 eqn := SVal(reducedArg);                
