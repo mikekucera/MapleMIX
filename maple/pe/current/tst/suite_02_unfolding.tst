@@ -244,4 +244,26 @@ Try(703, got, expected);
 #######################################################################
 
 
+p := proc(x, {a:=100}, y) x,y,a end proc;
+goal1 := proc() p(1,2,3) end proc;
+goal2 := proc() p(1,2,a=3) end proc;
+
+ped := OnPE(goal1);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 1,2,100 end proc);
+Try(801, got, expected);
+
+
+ped := OnPE(goal2);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 1,2,3 end proc);
+Try(802, got, expected);
+
+
+#######################################################################
+
+
+
 #end test

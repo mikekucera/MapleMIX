@@ -17,6 +17,7 @@ M := module()
     intrinsic := {anames(builtin), 'curry'};
     
     inertTrue := _Inert_NAME("true", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected")))));
+    inertDollar := _Inert_ASSIGNEDNAME("$","PROC",_Inert_ATTRIBUTE(_Inert_NAME("protected",_Inert_ATTRIBUTE(_Inert_NAME("protected")))));
 
     # mforms for variables
     variables := {MParam, MLocal, MGeneratedName, MSingleUse};
@@ -40,7 +41,7 @@ M := module()
         toForm2 := (y, z) -> (toForm(y), toForm(z));
         # takes any number of args
         toFormMap := () -> op(map(toForm, [args]));
-        return toForm, toForm2, toFormMap;
+        return eval(toForm), eval(toForm2), eval(toFormMap);
     end proc;
 
     # used by ToM and FromM to create mapping tables

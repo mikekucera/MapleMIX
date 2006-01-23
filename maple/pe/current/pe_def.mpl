@@ -170,7 +170,7 @@ peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);
     # TODO, maybe move this check somewhere else
     if not M:-UsesArgsOrNargs(newProc) then    
         p := x -> env:-isDynamic(Name(x));
-        newParams := select(p, Params(m));
+        newParams   := select(p, Params(m));
         newKeywords := select(p, Keywords(m));
         newProc := subsop(1=newParams, 11=newKeywords, newProc);
     end if;
@@ -515,7 +515,7 @@ end proc;
 
 # returns an environment where static parameters are mapped to their static values
 # as well as the static calls that will be residualized if the function is not unfolded
-peArgList := proc(paramSeq::mform(ParamSeq), argExpSeq::mform(ExpSeq))
+peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
     env := OnENV(); # new env for function call
    	fullCall := SimpleQueue(); # residual function call including statics
    	redCall  := SimpleQueue(); # residual function call without statics
@@ -524,11 +524,14 @@ peArgList := proc(paramSeq::mform(ParamSeq), argExpSeq::mform(ExpSeq))
    	i := 1; 
    	numParams := nops(paramSeq);
    	possibleExpSeqSeen := false;
+   	# table that remembers if an argument expression was a MEquation
+   	equationArgs := {}; # set(integer)
 
    	# loop over expressions in function call
    	for arg in argExpSeq do
    	    reduced := ReduceExp(arg);
    	    if reduced::Static then
+   	        
    	        # argument expression may have reduced to an expression sequence
    	        # flatten the way that Maple does
    	        for value in reduced do
@@ -536,6 +539,10 @@ peArgList := proc(paramSeq::mform(ParamSeq), argExpSeq::mform(ExpSeq))
    	            if possibleExpSeqSeen then
    	                redCall:-enqueue(embed(value));
    	            else # we can still match up args to params
+   	                # remember if this arg was coded directly as an equation
+   	                if Header(arg) = MEquation then
+   	                    equationArgs := equationArgs union {i};
+   	                end if;
        	            if i <= numParams then
        	                paramSpec := op(i, paramSeq);
        	                if not checkType(value, paramSpec) then
@@ -555,20 +562,53 @@ peArgList := proc(paramSeq::mform(ParamSeq), argExpSeq::mform(ExpSeq))
                 # i will not be used anymore if possibleExpSeqSeen is true
                 possibleExpSeqSeen := true;
             else
+                if Header(arg) = MEquation then
+	                equationArgs := equationArgs union {i};
+	            end if;
                 i := i + 1;
             end if; 	        
    	    end if;
    	end do;
+   	
+   	if possibleExpSeqSeen and nops(keywords) > 0 then
+        error "the partial evaluator must be able to statically resolve all keyword arguments";
+   	end if;
    	 
     if not possibleExpSeqSeen then
         env:-setNargs(i-1);
-        # resolve any optional parameters
-        #unmatched := fullCall.toList()[numParams..-1];
-        # loop over indices keywords 
-        # for each one test if the keyword is in unmatched
-        # if it is then test its type
-        # set to default or given value
-        # add to env         
+        # loop over arguments which are unmatched
+        reducedArgs := fullCall:-toList();
+        for i from numParams+1 to fullCall:-length() do
+            
+            if not member(i, equationArgs) then next end if;
+            print(i, reducedArg);
+            reducedArg := reducedArgs[i];
+            if reducedArg::Static then
+                eqn := SVal(reducedArg);                
+                paramName := convert(lhs(eqn), string);            
+                paramVal  := rhs(eqn);
+                paramSpec := op(select(k -> Name(k) = paramName, keywords));
+                if paramSpec <> NULL then
+                    t := TypeAssertion(paramSpec);
+                    if nops(t) > 0 and not type(paramVal, op(t)) then
+                        #TODO, perhaps embed an error in the code?
+                        error "invalid input: option `%1` expected to be of type %2, but received %3",
+                              paramName, op(t), paramVal;
+                    end if;
+                    env:-putVal(paramName, paramVal);
+                end if;
+            else
+                paramName := op([1,1], reducedArg);
+                error "dynamic keyword equation arguments are not supported: %1", paramName;
+            end if;        
+        end do;
+        
+        # TODO, dynamic keyword equation arguments are not supported yet
+        for paramSpec in keywords do
+            if env:-isDynamic(Name(paramSpec)) then
+                env:-putVal(Name(paramSpec), SVal(ReduceExp(op(Default(paramSpec)))));
+            end if;
+        end do
     end if;   
     
     env:-setArgs(argsTbl);
@@ -654,14 +694,7 @@ end proc;
 peRegularFunction := proc(fun::procedure, argExpSeq::mform(ExpSeq), unfold, residualize, newName)
 	m := getMCode(eval(fun));
 
-    argListInfo := peArgList(Params(m), argExpSeq);
-#    lexMap := M:-CreateLexNameMap(LexSeq(m), curry(op,2));
-#    newEnv:-attachLex(lexMap);
-
-    if ormap(x -> evalb(op(1,x) = "$"), Params(m)) then
-        print("found it", Params(m));
-        print("the call", argListInfo:-allCall);
-    end if;
+    argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
 
     callStack:-push(argListInfo:-newEnv);
     newProc := peSpecializeProc(m, newName);

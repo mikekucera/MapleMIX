@@ -1,7 +1,7 @@
 ToM := module()
     export ModuleApply;
     local MapStack, isInertTrue,
-    	  itom, itom2, mapitom,  m, gen, createVarMap, getVar;
+    	  itom, itom2, mapitom,  m, gen, getVar;
 
     m := table();
 
@@ -16,21 +16,43 @@ ToM := module()
 		res;
     end proc;
 
-    createVarMap := proc(varSeq)
+    
+    createParamMap := proc(varSeq)
+        mapParam := proc(tbl,i,var)
+            if var <> inertDollar then
+                properOp := x -> op(`if`(Header(x)=_Inert_DCOLON, [1,1], 1) , x);     
+                tbl[i] := properOp(`if`(Header(var)=_Inert_ASSIGN, op(1,var), var));
+            end if
+        end proc;
+    
         createMap(varSeq,
-        proc(tbl, i, var)
-            properOp := x -> op(`if`(Header(x)=_Inert_DCOLON, [1,1], 1) , x);        
-            tbl[i] := properOp(`if`(Header(var)=_Inert_ASSIGN, op(1,var), var));
-        end proc)
+            proc(tbl, i, var)
+                if Header(var) = _Inert_SET then
+                    index := i;
+                    for x in op(var) do
+                        mapParam(tbl, index, x);
+                        index := index + 1;
+                    end do;
+                else
+                    mapParam(tbl, i, var);
+                end if;
+            end proc)       
     end proc;
-
+    
+    createLocalMap := proc(varSeq)
+        createMap(varSeq,
+            proc(tbl, i, var)
+                tbl[i] := Name(var);
+            end proc)
+    end proc;
+    
 
     # maps lexical indicies to their names
     createLexIndexMap := proc(lexicalseq)
         createMap(lexicalseq,
-        proc(tbl, i, lexpair)
-            tbl[i] := op([1,1], lexpair)
-        end proc)
+            proc(tbl, i, lexpair)
+                tbl[i] := op([1,1], lexpair)
+            end proc)
     end proc;
 
 
@@ -170,19 +192,37 @@ ToM := module()
     m[_Inert_EOP]            := MEop            @ mapitom;    
     #m[_Inert_PARAMSEQ]       := MParamSeq       @ mapitom;
     
-    m[_Inert_PARAMSEQ]  := proc()
+    m[_Inert_PARAMSEQ]  := proc()       
         if nargs = 0 then
             return MParamSeq(), MKeywords();
         end if;
-        lastArg := args[-1];
+        
+        paramq := SimpleQueue();
+        keywordq := SimpleQueue();
+        
+        for arg in [args] do
+            if arg = inertDollar then next end if;
+            if Header(arg) = _Inert_SET then
+                map(keywordq:-enqueue, map(paramSpec, [op(op(arg))]));
+            else
+                paramq:-enqueue(paramSpec(arg));
+            end if;
+        end do;
+        
+        MParamSeq(qtoseq(paramq)), MKeywords(qtoseq(keywordq));
+        
+        
+        
+        #lastArg := [args][-1];
         # if there are keyword parameters
-        if Header(lastArg) = _Inert_SET then
-            MParamSeq(op(map(paramSpec, [args[1..-2]]))),
-            MKeywords(op(map(paramSpec, [op(op(lastArg))])))
-        else
-            MParamSeq(op(map(paramSpec, [args]))),
-            MKeywords()
-        end if;                 
+        #print("lastArg", lastArg);
+        #if Header(lastArg) = _Inert_SET then
+        #    MParamSeq(op(map(paramSpec, [args[1..-2]]))),
+        #    MKeywords(op(map(paramSpec, [op(op(lastArg))])))
+        #else
+        #    MParamSeq(op(map(paramSpec, [args]))),
+        #    MKeywords()
+        #end if;                 
     end proc;
     
     paramSpec := proc(x)
@@ -209,6 +249,7 @@ ToM := module()
         end if;
         
         if not type(n, string)  then
+            print(x);
             error "unknown form in parameter sequence: %1", n
         end if;
         
@@ -244,8 +285,16 @@ ToM := module()
     
     m[_Inert_PROC] := proc()
         maps := table();
-        maps['params'] := createVarMap([args][1]);
-        maps['locals'] := createVarMap([args][2]);
+        
+        # $ in the parameter sequence throws the index of keywords off        
+        ps := [args][1];
+        if member(inertDollar, ps) and hasfun(ps, _Inert_SET) then
+            front := [Front(ps)]; # the $ will be in the last position
+            ps := _Inert_PARAMSEQ(Front(front), inertDollar, Last(front));            
+        end if;
+        
+        maps['params'] := createParamMap(ps);        
+        maps['locals'] := createLocalMap([args][2]);
         maps['lex']    := createLexIndexMap([args][8]);
         MapStack:-push(maps);
         
