@@ -315,7 +315,9 @@ ReduceExp := module()
         closureEnv := callStack:-topEnv();
         s := op(n);
         thunk := proc()
-            if assigned(lexMap[s]) then
+            if closureEnv:-isStatic(s) then
+                closureEnv:-getVal(s);
+            elif assigned(lexMap[s]) then
                 if closureEnv:-hasLex() then
                     lex := closureEnv:-getLex();
                     lexName := op(lexMap[s]);
@@ -330,8 +332,6 @@ ReduceExp := module()
                 else
                     error "can't find lexical: %1", s;
                 end if;
-            elif closureEnv:-isStatic(s) then
-                closureEnv:-getVal(s);
             else
                 error "dynamic lexicals in closure is not supported: %1", s; 
             end if;
