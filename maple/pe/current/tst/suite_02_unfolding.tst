@@ -94,7 +94,9 @@ goal := proc(d)
     p(d, 1, 2);
 end proc;
 
-ped := OnPE(goal, ['noexpseq'=true]);
+opts := PEOptions();
+opts:-setConsiderExpseq(false);
+ped := OnPE(goal, opts);
 
 got := ToInert(eval(ped['ModuleApply'])):
 expected := ToInert(proc (d) local x1, y1; x1 := d+2; y1 := d+1; x1+y1 end proc);

@@ -46,14 +46,14 @@ PEDebug := module()
         DisplayDebugCommand("Starting");
     end proc;
     
-    RunThenStop := proc(num::positive)
+    RunThenStop := proc(num::nonnegative)
         displayStats, displayReductions := true, true;
         statementCount := 0;
         StepUntil(num);
         runThenStop := true;
     end proc;
     
-    StepUntil := proc(num::positive)
+    StepUntil := proc(num::nonnegative)
         stepUntil := num;
         SetRunningMode(STEP);
     end proc;

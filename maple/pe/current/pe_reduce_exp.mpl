@@ -295,6 +295,10 @@ ReduceExp := module()
             error "cannot find '%1' in lexical environment: %2", x, [op(lex)];
         end if
     end proc;
+    
+    red[MAssignedLocalName] := proc()
+        FromInert(_Inert_ASSIGNEDLOCALNAME(args));
+    end proc;
 
 
     # a closure is created

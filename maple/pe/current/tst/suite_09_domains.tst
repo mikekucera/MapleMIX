@@ -1,6 +1,6 @@
 #test
 
-# TEST SUITE 8: Loops ################################################
+# TEST SUITE 9: Domains ################################################
 
 with(TestTools):
 kernelopts(opaquemodules=false):

@@ -52,9 +52,15 @@ $include "m_def.mpl"
 
 Save(M);
 
+$include "pe_options.mpl"
+Save(PEOptions);
+
 $include "pe_def.mpl"
+Save(OnPE);
+
+
 
 #$include "interp.mpl"
 #Save(Interp1);
 
-Save(OnPE);
+

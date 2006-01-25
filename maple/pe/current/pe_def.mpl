@@ -3,11 +3,13 @@
 OnPE := module() option package;
 
     description "online partial evaluator for a subset of Maple";
-    local callStack, code, gen, genv, goptions,
+    local callStack, code, gen, genv, gopts,
           CallStack, Unfold;
     export Debug, ModuleApply, PartiallyEvaluate, OnENV, ReduceExp, Lifter, isPossibleExpSeq;
 
 ModuleApply := PartiallyEvaluate;
+
+use PEOptions in
 
 $include "access.mpl"
 $include "pe_stack.mpl"
@@ -18,78 +20,16 @@ $include "pe_module.mpl"
 $include "pe_debug.mpl"
 $include "pe_unfold.mpl"
 
-##################################################################################
-# utility functions used by this package
-
-# caches M code of procedures so don't need to call ToM unneccesarily
-getMCode := proc(fun) option cache;
-    M:-ToM(ToInert(fun))
-end proc;
-
-
-embed := proc(e)
-    if nargs = 0 then
-        MStatic()
-    elif nargs = 1 and e::Static then
-        MStatic(e)
-    elif nargs = 1 and e::Dynamic then
-        e
-    elif [args] :: list(Static) then
-        MStatic(args);
-    else
-        error "illegal embed: %1", [args];
-    end if;
-end proc;
-
-
-# retreives an option's value
-getOption := proc(optname, default, legalValues, opts::list)
-    opt := select(eqn -> lhs(eqn) = optname, opts);
-    if nops(opt) = 0 then
-        return default;
-    end if;    
-    val := rhs(op(1,opt));
-    `if`(member(val, legalValues), val, default);
-end proc;
-
-
-processOptions := proc(opts::list)
-    try
-        goptions := Record(
-            # when true the PE will ignore the possibility that dynamic arguments
-            # to functions may be expression sequences
-            'noexpseq' = getOption('noexpseq', false, {true,false}, opts));
-    catch:
-        error "could not process option list";
-    end try;
-end proc;
-
 
 ############################################################################
 # The specializer
 ############################################################################
 
-# runs the PE in debug mode
-Debug := proc(p, num)
-    try
-        if nargs = 2 then
-            PEDebug:-RunThenStop(num);
-        else
-            PEDebug:-Begin();
-        end if;
-    catch "debug":
-        lprint("debug session exited");
-        return;
-    end try;
-    PartiallyEvaluate(p);
-end proc;
-
-
 # sets up the partial evaluation
-PartiallyEvaluate := proc(p, opts::list := [])
+PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     # need access to module locals
     before := kernelopts(opaquemodules=false);
-    processOptions(opts);
+    gopts := opts;
     
     # set up module locals
     gen := NameGenerator();
@@ -104,7 +44,7 @@ PartiallyEvaluate := proc(p, opts::list := [])
     callStack:-push(newEnv);
     
     try
-        peSpecializeProc(m, "ModuleApply");
+        peFunction_GenerateNewSpecializedProc(m, "ModuleApply");
         Lifter:-LiftPostProcess(code);
     catch "debug":
         lprint("debug session exited");
@@ -136,58 +76,59 @@ PartiallyEvaluate := proc(p, opts::list := [])
     code := 'code';
     genv := 'genv';
     callStack := 'callStack';
-    goptions := 'goptions';
+    gopts := 'gopts';
     kernelopts(opaquemodules=before);
 
     print(PEDebug:-GetStatementCount(), "statements processed. Success!");
     return res;    
 end proc;
 
+# runs the PE in debug mode
+Debug := proc(p, opts:=PEOptions(), {num:=0})
+    try
+        if num > 0 then
+            PEDebug:-RunThenStop(num);
+        else
+            PEDebug:-Begin();
+        end if;
+    catch "debug":
+        lprint("debug session exited");
+        return;
+    end try;
+    PartiallyEvaluate(p, opts);
+end proc;
 
+######################################################################################
+# utility functions used by this package
+######################################################################################
 
-# takes inert code and assumes static variables are on top of callStack
-# called before unfold
-peSpecializeProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);    
-    # attach lexical environment
-    env := callStack:-topEnv();
-    if not env:-hasLex() then
-        lexMap := M:-CreateLexNameMap(LexSeq(m), curry(op,2));
-        env:-attachLex(lexMap);
-    end if;
-    
-    # create static locals
-    for loc in Locals(m) do
-        varName := Var(loc);
-        env:-putVal(varName, convert(varName, `local`));
-    end do;
-
-    body := M:-AddImplicitReturns(ProcBody(m)); # if a block ends with an assignment
-    body := peM(body); # Partial Evaluation
-
-    newProc := subsop(5=body, m);
-    newProc := M:-SetArgsFlags(newProc);
-
-    # TODO, maybe move this check somewhere else
-    if not M:-UsesArgsOrNargs(newProc) then    
-        p := x -> env:-isDynamic(Name(x));
-        newParams   := select(p, Params(m));
-        newKeywords := select(p, Keywords(m));
-        newProc := subsop(1=newParams, 11=newKeywords, newProc);
-    end if;
-
-    if n <> "" then
-        code[n] := newProc;
-    end if;
-    newProc;
+# caches M code of procedures so don't need to call ToM unneccesarily
+getMCode := proc(fun) option cache;
+    M:-ToM(ToInert(fun))
 end proc;
 
 
+embed := proc(e)
+    if nargs = 0 then
+        MStatic()
+    elif nargs = 1 and e::Static then
+        MStatic(e)
+    elif nargs = 1 and e::Dynamic then
+        e
+    elif [args] :: list(Static) then
+        MStatic(args);
+    else
+        error "illegal embed: %1", [args];
+    end if;
+end proc;
 
 
+############################################################################
+# Partial Evaluation of statements
+############################################################################
 
 
-
-# partially evaluates an arbitrary M code
+# partially evaluates an arbitrary M statement
 peM := proc(m::mform)
     h := Header(m);
     if assigned(pe[h]) then
@@ -197,12 +138,11 @@ peM := proc(m::mform)
 end proc;
 
 
-peResidualize := (f, e) -> f(ReduceExp(e));
+peResidualizeStatement := (f, e) -> f(ReduceExp(e));
 
-pe[MStandaloneExpr] := curry(peResidualize, MStandaloneExpr);
-pe[MReturn] := curry(peResidualize, MReturn);
-pe[MError]  := curry(peResidualize, MError);
-
+pe[MStandaloneExpr] := curry(peResidualizeStatement, MStandaloneExpr);
+pe[MReturn] := curry(peResidualizeStatement, MReturn);
+pe[MError]  := curry(peResidualizeStatement, MError);
 
 
 pe[MStatSeq] := proc() :: mform(StatSeq);
@@ -428,6 +368,10 @@ pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
 end proc;
 
 
+##########################################################################################
+# Statements that have function calls inside them
+##########################################################################################
+
 
 pe[MStandaloneFunction] := proc()
     unfold := proc(residualProcedure, redCall, fullCall)
@@ -468,6 +412,7 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
         MAssignToFunction(var, MFunction(args));
     end proc;
 
+    # TODO, symbolic is bad name, change to something that has to do with static
     symbolic := proc(s)
         callStack:-topEnv():-putVal(Name(var), SVal(s));
         NULL;
@@ -476,15 +421,19 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
     peFunction(op(funcCall), unfold, residualize, symbolic);
 end proc;
 
+###########################################################################################
+# Partial Evaluation of function calls
+###########################################################################################
+
 
 # used to statically evaluate a type assertion on a parameter
-checkType := proc(value, paramSpec::mform(ParamSpec))
+checkParameterTypeAssertion := proc(value, paramSpec::mform(ParamSpec))
     ta := TypeAssertion(paramSpec);
     `if`(nops(ta) > 0, type(value, op(ta)), true)
 end proc;
 
 # returns a parameter's default value
-getDefault := proc(paramSpec::mform(ParamSpec))
+getParameterDefault := proc(paramSpec::mform(ParamSpec))
     default := Default(paramSpec);
     if nops(default) > 0 then
         value := ReduceExp(op(default));
@@ -504,8 +453,9 @@ end proc;
 
 isPossibleExpSeq := proc(exp::Dynamic)
     # returns true if a dynamic argument could possibly be an expression sequence
-    `if`(goptions:-noexpseq, false, evalb(Header(exp) <> MParam))
+    gopts:-getConsiderExpseq() and Header(exp) <> MParam
 end proc;
+
 
 # returns an environment where static parameters are mapped to their static values
 # as well as the static calls that will be residualized if the function is not unfolded
@@ -539,9 +489,9 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	                end if;
        	            if i <= numParams then
        	                paramSpec := op(i, paramSeq);
-       	                if not checkType(value, paramSpec) then
+       	                if not checkParameterTypeAssertion(value, paramSpec) then
        	                    # the default must be a static scalar
-       	                    value := getDefault(paramSpec);
+       	                    value := getParameterDefault(paramSpec);
        	                end if;            
        	                env:-putVal(Name(paramSpec), value);
        	            end if;
@@ -615,47 +565,6 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
 end proc;
 
 
-
-# takes continuations to be applied if f results in a procedure
-peFunction := proc(f, argExpSeq::mform(ExpSeq), unfold::procedure, residualize::procedure, symbolic::procedure)
-    local sfun;
-    PEDebug:-FunctionStart(f);
-    fun := ReduceExp(f);
-
-    if fun::Dynamic then
-        # don't know what function was called, residualize call
-        res := residualize(fun, ReduceExp(argExpSeq));
-        PEDebug:-FunctionEnd();
-        return res;
-    end if; 
-    
-    sfun := SVal(fun);
-    
-    if type(eval(sfun), `procedure`) then
-        newName := gen(cat(op(1,f),"_"));
-        res := peRegularFunction(eval(sfun), argExpSeq, unfold, residualize, newName);
-
-	elif type(sfun, `module`) then
-	    if member(convert("ModuleApply",name), sfun) then
-	        ma := sfun:-ModuleApply;
-	    else
-            ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(sfun))]));
-            if ma = NULL then error "package does not contain ModuleApply" end if;
-        end if;
-	    res := peRegularFunction(ma, argExpSeq, unfold, residualize, gen("ma"));
-    else
-        redargs := ReduceExp(argExpSeq);
-        if [redargs]::list(Static) then
-            res := symbolic(MStatic( apply(sfun, SVal(redargs)) ));
-        else
-            res := residualize(fun, MExpSeq(redargs));
-        end if;
-
-    end if;
-    res;
-end proc;
-
-
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 # probably won't be needed if I go with the sp-function approach
 isUnfoldable := proc(inertProcedure::mform(Proc), argListInfo)
@@ -682,15 +591,86 @@ isUnfoldable := proc(inertProcedure::mform(Proc), argListInfo)
 end proc;
 
 
+# takes continuations to be applied if f results in a procedure
+peFunction := proc(funRef::Dynamic, 
+                   argExpSeq::mform(ExpSeq), 
+                   unfold::procedure, 
+                   residualize::procedure, 
+                   symbolic::procedure)
+    local sfun;
+    PEDebug:-FunctionStart(funRef);
+    fun := ReduceExp(funRef);
 
-# partial evaluation of a known procedure
-peRegularFunction := proc(fun::procedure, argExpSeq::mform(ExpSeq), unfold, residualize, newName)
+    if fun::Dynamic then
+        # don't know what function was called, residualize call
+        res := residualize(fun, ReduceExp(argExpSeq));
+        PEDebug:-FunctionEnd();
+        return res;
+    end if; 
+    
+    sfun := SVal(fun);
+    
+    if type(eval(sfun), `procedure`) then
+        newName := gen(cat(op(1,funRef),"_"));
+        peFunction_StaticFunction(funRef, eval(sfun), argExpSeq, newName, unfold, residualize, symbolic);
+
+	elif type(sfun, `module`) then
+	    if member(convert("ModuleApply",name), sfun) then
+	        ma := sfun:-ModuleApply;
+	    else
+            ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(sfun))]));
+            if ma = NULL then error "package does not contain ModuleApply" end if;
+        end if;
+	    peFunction_StaticFunction(funRef, ma, argExpSeq, gen("ma"), unfold, residualize, symbolic);
+	    
+    else
+        redargs := ReduceExp(argExpSeq);
+        if [redargs]::list(Static) then
+            symbolic(embed( apply(sfun, SVal(redargs)) ));
+        else
+            residualize(fun, MExpSeq(redargs));
+        end if;
+    end if;
+end proc;
+
+
+
+# partial evaluation of a known procedure, when the function is static
+peFunction_StaticFunction := proc(funRef::Dynamic, 
+                                  fun::procedure, 
+                                  argExpSeq::mform(ExpSeq), 
+                                  newName, unfold, residualize, symbolic)
+    if gopts:-hasFuncOpt(fun) then
+        funOption := gopts:-funcOpt(fun);
+        rcall := ReduceExp(argExpSeq);
+        
+        s := () -> (symbolic @ embed @ fun @ SVal)(rcall);
+        r := () -> residualize(funRef, rcall);
+        
+        # if the function should be treated as PURE
+        if funOption = PURE then
+            `if`(rcall::Static, s(), peFunction_SpecializeThenDecideToUnfold(args[2..-1]))
+        elif funOption = INTRINSIC then
+            `if`(rcall::Static, s(), r())
+        elif funOption = DYNAMIC then
+            r()
+        else
+            error "unknown function option %1", funOption;
+        end if;
+    else
+        peFunction_SpecializeThenDecideToUnfold(args[2..-1]);
+    end if;
+end proc;
+ 
+
+# specialize the function
+peFunction_SpecializeThenDecideToUnfold := proc(fun::procedure, argExpSeq::mform(ExpSeq), newName, unfold, residualize, symbolic)
 	m := getMCode(eval(fun));
 
     argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
 
     callStack:-push(argListInfo:-newEnv);
-    newProc := peSpecializeProc(m, newName);
+    newProc := peFunction_GenerateNewSpecializedProc(m, newName);
     callStack:-pop();
 
     if isUnfoldable(newProc, argListInfo) then
@@ -704,10 +684,46 @@ peRegularFunction := proc(fun::procedure, argExpSeq::mform(ExpSeq), unfold, resi
 end proc;
 
 
+# takes inert code and assumes static variables are on top of callStack
+# called before unfold
+peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);    
+    # attach lexical environment
+    env := callStack:-topEnv();
+    if not env:-hasLex() then
+        lexMap := M:-CreateLexNameMap(LexSeq(m), curry(op,2));
+        env:-attachLex(lexMap);
+    end if;
+    
+    # create static locals
+    for loc in Locals(m) do
+        varName := Var(loc);
+        env:-putVal(varName, convert(varName, `local`));
+    end do;
+
+    body := M:-AddImplicitReturns(ProcBody(m)); # if a block ends with an assignment
+    body := peM(body); # Partial Evaluation
+
+    newProc := subsop(5=body, m);
+    newProc := M:-SetArgsFlags(newProc);
+
+    # TODO, maybe move this check somewhere else
+    if not M:-UsesArgsOrNargs(newProc) then    
+        p := x -> env:-isDynamic(Name(x));
+        newParams   := select(p, Params(m));
+        newKeywords := select(p, Keywords(m));
+        newProc := subsop(1=newParams, 11=newKeywords, newProc);
+    end if;
+
+    if n <> "" then
+        code[n] := newProc;
+    end if;
+    newProc;
+end proc;
+
 
 ########################################################################################
 
 
 
-
+end use
 end module:
