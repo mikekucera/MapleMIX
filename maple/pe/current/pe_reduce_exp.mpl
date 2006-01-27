@@ -199,6 +199,10 @@ ReduceExp := module()
         eval(FromInert(M:-FromM(m)));
     end proc;
     
+    specFunc["if"] := proc(expseq)
+        m := MFunction( M:-ProtectedForm("if"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
+        eval(FromInert(M:-FromM(m)));
+    end proc;
     
     
     red[MFunction] := proc(f, expseq)
@@ -208,12 +212,18 @@ ReduceExp := module()
         
         rf := reduce(f);
         re := reduce(expseq);
+
+        print("rf", rf);
+        print("re", re);
         
         if type(rf, 'procedure') and [re]::list(Static) then
+            print("here1");
             rf(re);
         elif type(rf, name) and [re]::list(Static) then
+            print("here2");
             apply(convert(op(1,rf), name), re);
         else
+            print("here3");
             MFunction(embed(rf), embed(re));
         end if;
     end proc;
@@ -223,7 +233,6 @@ ReduceExp := module()
     # evaluates table references as expressions
     red[MTableref] := proc(tbl, eseq) # know that both args are static
         re := reduce(eseq);
-        
         if Header(tbl) = MArgs then
             argsTbl := env:-getArgs();
             if assigned(argsTbl[re]) then
@@ -236,22 +245,24 @@ ReduceExp := module()
         # aviod evaluating the entire table if possible
         if [re]::list(Static) then
             if member(Header(tbl), {MLocal, MParam, MGeneratedName}) then
-                try return env:-getTblVal(Name(tbl), re); # TODO: won't work for expression sequence as key
+                try
+                    return env:-getTblVal(Name(tbl), re); # TODO: won't work for expression sequence as key
+                catch "table value is dynamic" :
+                    return MTableref(tbl, embed(re));
+                end try;
+            elif member(Header(tbl), {MName, MAssignedName}) then
+                try
+                    return genv:-getTblVal(Name(tbl), re);
                 catch "table value is dynamic" : 
                 end try; # its dynamic so continue
-            elif member(Header(tbl), {MName, MAssignedName}) then
-                try return genv:-getTblVal(Name(tbl), re);
-                catch "table value is dynamic" :  
-                end try;
             end if;
         end if;
 
         rt := reduce(tbl);
-        
-        if [rt]::list(Static) and [re]::list(Static) then
-            rt[re]
+        if [rt]::list(Static) and [re]::list(Static) then #and assigned(rt[re]) then
+            rt[re];
         else
-            MTableref(embed(rt), embed(re))
+            MTableref(embed(rt), embed(re));
         end if
     end proc;
 

@@ -128,7 +128,6 @@ FromM := module()
     inrt[MStandaloneExpr] := mapmtoi;
 
     inrt[MStatSeq]            := _Inert_STATSEQ  @ mapmtoi;
-    inrt[MStandaloneFunction] := _Inert_FUNCTION @ mapmtoi;
     inrt[MAssign]             := _Inert_ASSIGN   @ mapmtoi;
     inrt[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
     inrt[MTableAssign]        := _Inert_ASSIGN   @ mapmtoi;
@@ -156,6 +155,8 @@ FromM := module()
     inrt[MFunction] := proc(n, expseq)
         _Inert_FUNCTION(mtoi(n), _Inert_EXPSEQ(mtoi(expseq)));
     end proc;
+    
+    inrt[MStandaloneFunction] := inrt[MFunction];
     
     inrt[MForFrom] := proc(loopVar, fromExp, byExp, toExp, statseq)
         _Inert_FORFROM(mapmtoi(loopVar, fromExp, byExp, toExp), inertTrue, mtoi(statseq));

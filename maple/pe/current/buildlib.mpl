@@ -58,7 +58,8 @@ Save(PEOptions);
 $include "pe_def.mpl"
 Save(OnPE);
 
-
+$include "minimaple.mpl"
+Save(MiniMapleInterpreter);
 
 #$include "interp.mpl"
 #Save(Interp1);
