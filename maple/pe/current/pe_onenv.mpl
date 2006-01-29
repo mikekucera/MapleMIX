@@ -162,13 +162,28 @@ OnENV := module()
                     frame := iter:-getNext();
                     if member(key, frame:-dyn) then
                         return false;
-                    elif assigned(frame:-vals[key]) or assigned(frame:-tbls[key]) then
+                    elif assigned(frame:-vals[key]) then
                         return true;
+                    elif assigned(frame:-tbls[key]) then
+                        # ok, the table is partly static, is it completely static?
+                        rec := frame:-tbls[key];
+                        do # if all the dynamic masks are empty the the table is fully static
+                            if rec:-dyn = {} then
+                                if assigned(rec:-link) then
+                                    rec := rec:-link;
+                                else
+                                    return true;
+                                end if;
+                            else
+                                return false;
+                            end if;
+                        end do;
+                        return true; # TODO, remove this line
                     end if;
                 end do;
                 false;
             end proc;
-
+            
             isDynamic := `not` @ isStatic;
             
             isAssigned := proc(key::Not(mform))
@@ -186,7 +201,7 @@ OnENV := module()
 
 ##########################################################################################
 
-
+            # precondition, isStatic(table) = true
             rebuildTable := proc(chain::`record`)
                 tbl := table();
                 vars := {};
@@ -195,6 +210,7 @@ OnENV := module()
                 do
                     vars := vars union rec:-dyn;
                     for key in keys(rec:-elts) do
+                        # TODO, this code is wrong, older value will override newer value
                         if not member(key, vars) then                            
                             tbl[key] := eval(rec:-elts[key]);
                             vars := vars union {key};
@@ -216,18 +232,7 @@ OnENV := module()
                                                'dyn'={}); # dynamic mask
             end proc;
 
-            isStatic := proc(key::Not(mform))
-                iter := ss:-topDownIterator();
-                while iter:-hasNext() do
-                    frame := iter:-getNext();
-                    if member(key, frame:-dyn) then
-                        return false;
-                    elif assigned(frame:-vals[key]) or assigned(frame:-tbls[key]) then
-                        return true;
-                    end if;
-                end do;
-                false;
-            end proc;
+
             
             isTblValStatic := proc(tableName::Not(mform), index)
                 try
