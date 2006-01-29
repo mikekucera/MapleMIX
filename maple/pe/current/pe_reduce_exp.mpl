@@ -73,7 +73,9 @@ ReduceExp := module()
     
     red['Integer'] := () -> args;
     red['string']  := () -> args;
+    red['symbol']  := () -> args;
 
+    red[MStatic] := () -> args;
     red[MInt]    := () -> args;
     red[MString] := () -> args;
     red[MFloat]  := (x,y) -> FromInert(_Inert_FLOAT(M:-FromM(x),M:-FromM(y)));
@@ -212,18 +214,12 @@ ReduceExp := module()
         
         rf := reduce(f);
         re := reduce(expseq);
-
-        print("rf", rf);
-        print("re", re);
         
         if type(rf, 'procedure') and [re]::list(Static) then
-            print("here1");
             rf(re);
         elif type(rf, name) and [re]::list(Static) then
-            print("here2");
             apply(convert(op(1,rf), name), re);
         else
-            print("here3");
             MFunction(embed(rf), embed(re));
         end if;
     end proc;

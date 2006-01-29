@@ -267,18 +267,34 @@ ToM := module()
 
     
     m[_Inert_FORFROM] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
+        ss1, e1 := splitReturn(loopVar);
+        ss2, e2 := splitReturn(fromExp);
+        ss3, e3 := splitReturn(byExp);
+        ss4, e4 := splitReturn(toExp);
+        
         if whileExp = inertTrue then
-            MForFrom(mapitom(loopVar, fromExp, byExp, toExp, statseq));
+            MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4),
+                MForFrom(e1, e2, e3, e4, MStatSeq(itom(statseq))));
         else
-            MWhileForFrom(mapitom(args));
+            ss5, e5 := splitReturn(whileExp);
+            MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4), ssop(ss5),
+                MWhileForFrom(e1, e2, e3, e4, e5, MStatSeq(itom(statseq))));
         end if;
     end proc;
     
+    
     m[_Inert_FORIN] := proc(loopVar, inExp, whileExp, statseq)
+        ss1, e1 := splitReturn(loopVar);
+        ss2, e2 := splitReturn(inExp);
+        
         if whileExp = inertTrue then
-            MForIn(mapitom(loopVar, inExp, statseq));
+            MStatSeq(ssop(ss1), ssop(ss2), 
+                MForIn(e1, e2, MStatSeq(itom(statseq))));
         else
-            MWhileForIn(mapitom(args));
+            ss3, e3 := splitReturn(whileExp);
+            #TODO, if nops(ss3) > 0 then error, maybe sideeffecting while condition (not supported)
+            MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), 
+                MWhileForIn(e1, e2, e3, MStatSeq(itom(statseq))));
         end if;
     end proc;    
     
@@ -381,14 +397,14 @@ ToM := module()
 
     m[_Inert_IF] := proc()
         if typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything)]) then
-            split(c, red -> MIfThenElse(red, itom(s), MStatSeq(MStandaloneExpr(MExpSeq()))));
+            split(c, red -> MIfThenElse(red, MStatSeq(itom(s)), MStatSeq(MStandaloneExpr(MExpSeq()))));
         elif typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything), 'el'::inert(STATSEQ)]) then
-            split(c, red -> MIfThenElse(red, itom(s), itom(el)));
+            split(c, red -> MIfThenElse(red, MStatSeq(itom(s)), MStatSeq(itom(el))));
         else
             condpair := op(1, [args]);
             rest := op(2..-1, [args]);
             c, s := op(1, condpair), op(2, condpair);
-            split(c, red -> MIfThenElse(red, itom(s), itom(_Inert_IF(rest))));
+            split(c, red -> MIfThenElse(red, MStatSeq(itom(s)), MStatSeq(itom(_Inert_IF(rest)))));
         end if;
     end proc;
 

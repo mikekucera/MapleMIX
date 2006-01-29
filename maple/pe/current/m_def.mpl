@@ -14,7 +14,7 @@ M := module()
 
 
     # set of builtin function names
-    intrinsic := {anames(builtin), 'curry'};
+    intrinsic := {anames(builtin), 'curry', 'table'};
     
     inertTrue := _Inert_NAME("true", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected")))));
     inertDollar := _Inert_ASSIGNEDNAME("$","PROC",_Inert_ATTRIBUTE(_Inert_NAME("protected",_Inert_ATTRIBUTE(_Inert_NAME("protected")))));

@@ -131,6 +131,14 @@ end proc;
 # partially evaluates an arbitrary M statement
 peM := proc(m::mform)
     h := Header(m);
+    
+    if h = MWhileForFrom then
+        print(MWhileForFrom);
+        for i in m do
+            print(i)
+        end do;
+    end if;
+    
     if assigned(pe[h]) then
         return pe[h](op(m));
     end if;
@@ -292,27 +300,25 @@ StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
 end proc;
 
 
-pe[MForFrom] := proc(loopVar::mform({Local, ExpSeq}), fromExp, byExp, toExp, statseq)
-    rFromExp := ReduceExp(fromExp);
-    rByExp   := ReduceExp(byExp);
-    rToExp   := ReduceExp(toExp);
-    
-    if [rFromExp,rByExp,rToExp]::[Static,Static,Static] then #unroll loop        
-        rFromExp := SVal(rFromExp);
-        rByExp := SVal(rByExp);
-        rToExp := SVal(rToExp);
-        
-        unroller := StaticLoopUnroller(loopVar, statseq);
-        for i from rFromExp by rByExp to rToExp do
-            unroller:-unrollOnce(i);
-        end do;        
-        unroller:-result();
-    else
-        error "dynamic loops not supported yet";
-    end if;
-end proc;
-
-
+#pe[MForFrom] := proc(loopVar::mform({Local, ExpSeq}), fromExp, byExp, toExp, statseq)
+#    rFromExp := ReduceExp(fromExp);
+#    rByExp   := ReduceExp(byExp);
+#    rToExp   := ReduceExp(toExp);
+#    
+#    if [rFromExp,rByExp,rToExp]::[Static,Static,Static] then #unroll loop        
+#        rFromExp := SVal(rFromExp);
+#        rByExp := SVal(rByExp);
+#        rToExp := SVal(rToExp);
+#        
+#        unroller := StaticLoopUnroller(loopVar, statseq);
+#        for i from rFromExp by rByExp to rToExp do
+#            unroller:-unrollOnce(i);
+#        end do;        
+#        unroller:-result();
+#    else
+#        error "dynamic loops not supported yet";
+#    end if;
+#end proc;
 
 
 pe[MForIn] := proc(loopVar, inExp, statseq)
@@ -323,6 +329,36 @@ pe[MForIn] := proc(loopVar, inExp, statseq)
             unroller:-unrollOnce(i);
         end do;
         return unroller:-result();
+    else
+        error "dynamic loops not supported yet";
+    end if;
+end proc;
+
+
+pe[MForFrom] := proc(loopVar, fromExp, byExp, toExp, statseq)
+    pe[MWhileForFrom](loopVar, fromExp, byExp, toExp, true, statseq);
+end proc;
+
+pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
+    rFromExp  := ReduceExp(fromExp);
+    rByExp    := ReduceExp(byExp);
+    rToExp    := ReduceExp(toExp);    
+    
+    if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop        
+        rFromExp := SVal(rFromExp);
+        rByExp := SVal(rByExp);
+        rToExp := SVal(rToExp);
+                
+        unroller := StaticLoopUnroller(loopVar, statseq);
+        for i from rFromExp by rByExp to rToExp do
+            rWhileExp := ReduceExp(whileExp);
+            if rWhileExp::Dynamic then
+                error "dynamic while condition not supported";
+            end if;
+            if not SVal(rWhileExp) then break end if;
+            unroller:-unrollOnce(i);
+        end do;        
+        unroller:-result();
     else
         error "dynamic loops not supported yet";
     end if;

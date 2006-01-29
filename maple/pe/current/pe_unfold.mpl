@@ -129,6 +129,9 @@ Unfold := module()
 	        elif h = MStandaloneExpr then
 	            MAssign(MGeneratedName(var), op(c));
 
+	        elif h = MStandaloneFunction then
+	            MAssignToFunction(MGeneratedName(var), MFunction(op(c)));
+	            
             elif typematch(c, MTry('t'::anything, 'cs'::anything, 'f'::anything)) then
                 MTry(procname(t), procname(cs), MFinally(procname(op(f))));
 
