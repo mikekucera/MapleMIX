@@ -241,9 +241,14 @@ pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate, GeneratedName
     if reduced::Static then
         env:-putVal(var, SVal(reduced));
         NULL;
-    else
+    elif reduced::Both then
+        env:-putVal(var, SVal(StaticPart(reduced)));
+        MAssign(n, DynamicPart(reduced));
+    elif reduced::Dynamic then
         env:-setValDynamic(var);
         MAssign(n, reduced);
+    else
+        error "(pe[MAssign]) unknown binding time";
     end if;
 end proc;
 
@@ -253,15 +258,21 @@ pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
     env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
+    # ToM will ensure that tableref will be a name
     var := Name(Var(tr));
 
     if [rindex,rexpr]::[Static,Static] then
         env:-putTblVal(var, SVal(rindex), SVal(rexpr));
-        return NULL;
-    end if;
-    if rindex::Static then
+        NULL;
+        
+    elif [rindex,rexpr]::[Static,Both] then
+        env:-putTblVal(var, SVal(rindex), SVal(StaticPart(rexpr)));
+        MTableAssign(subsop(2=rindex, tr), SVal(StaticPart(rexpr)));
+        
+    elif [rindex,rexpr]::[Static,Dynamic] then
         env:-setTblValDynamic(var, SVal(rindex));
         MTableAssign(subsop(2=rindex, tr), rexpr);
+        
     else
         env:-setValDynamic(var);
         MTableAssign(subsop(2=rindex, tr), rexpr);
@@ -328,7 +339,7 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
         for i in SVal(rInExp) do
             unroller:-setVal(i);
             rWhileExp := ReduceExp(whileExp);
-            if rWhileExp::Dynamic then
+            if rWhileExp::Or(Dynamic,Both) then
                 error "dynamic while condition not supported: %1", rWhileExp;
             end if;
             if not SVal(rWhileExp) then break end if;
@@ -356,7 +367,7 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
         for i from SVal(rFromExp) by SVal(rByExp) to SVal(rToExp) do
             unroller:-setVal(i);
             rWhileExp := ReduceExp(whileExp);
-            if rWhileExp::Dynamic then
+            if rWhileExp::Or(Dynamic,Both) then
                 error "dynamic while condition not supported: %1", rWhileExp;
             end if;
             if not SVal(rWhileExp) then break end if;
@@ -442,6 +453,8 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
             if expr::Static then
                 callStack:-topEnv():-putVal(op(var), SVal(expr));
                 return NULL;
+            elif expr::Both then
+                callStack:-topEnv():-putVal(op(var), SVal(StaticPart(expr)));
             end if;
         end if;
         flattened;
@@ -514,10 +527,15 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	# loop over expressions in function call
    	for arg in argExpSeq do
    	    reduced := ReduceExp(arg);
+   	    
+   	    if reduced::Both then
+   	        error "cannot reliably match up parameters";
+   	    end if;
+   	    
    	    if reduced::Static then
-   	        
    	        # argument expression may have reduced to an expression sequence
    	        # flatten the way that Maple does
+   	        #for value in reduced do
    	        for value in reduced do
    	            fullCall:-enqueue(embed(value));
    	            if possibleExpSeqSeen then
@@ -538,7 +556,8 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
        	            argsTbl[i] := value; 
        	            i := i + 1;
        	        end if;
-       	    end do; 
+       	    end do;
+       	    
    	    else # dynamic
    	        fullCall:-enqueue(reduced);
             redCall:-enqueue(reduced);

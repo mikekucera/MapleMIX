@@ -65,6 +65,10 @@ FromM := module()
             error "MStatic should only contain one operand";
         end if;
     end proc;
+    
+    inrt[MBoth] := proc(s, d)
+        mtoi(d);
+    end proc;
 
     inrt[MParam]     := n -> _Inert_PARAM(MapStack:-top()['params'](n));
     inrt[MLocal]     := n -> _Inert_LOCAL(MapStack:-top()['locals'](n));

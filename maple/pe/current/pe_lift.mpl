@@ -66,6 +66,8 @@ Lifter := module()
             else
                 liftStatic(stmts, op(exp));
             end if;
+        elif h = MBoth then
+            DynamicPart(exp);
         elif typematch(exp, MTableref('t'::anything, 'i'::anything)) then
             MTableref(lift(t), MExpSeq(lift(i)));
         elif typematch(exp, MFunction('s'::anything, 'e'::anything)) then

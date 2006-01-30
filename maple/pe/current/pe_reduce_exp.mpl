@@ -6,7 +6,7 @@
 ReduceExp := module()
     description "online expression reducer for use with online partial evaluator";
     export ModuleApply, Reduce;
-    local env, red, specFunc, reduce, unred, unreduce, isProtectedProc;
+    local treatAsDynamic, env, red, specFunc, reduce, unred, unreduce, isProtectedProc;
     
     
     Reduce := proc(exp)
@@ -14,17 +14,46 @@ ReduceExp := module()
         ModuleApply(exp, OnENV());
     end proc;
 
-    ModuleApply := proc(exp, reductionEnv := callStack:-topEnv()) 
-        local reduced;
+    #ModuleApply := proc(exp) 
+    #    local reduced;
+    ##    treatAsDynamic := false;
+    #    env := callStack:-topEnv();
+    #    PEDebug:-DisplayReduceStart(exp);
+    #    reduced := embed(reduce(exp));
+    #    PEDebug:-DisplayReduceEnd(reduced);
+    #    
+    #    
+    #    if reduced::Dynamic then
+    #        print("reduced", reduced);
+    #    end if;
+    #    env := 'env';
+    #    reduced;
+    #end proc;
+    
+    ModuleApply := proc(exp, reductionEnv := callStack:-topEnv())
         env := reductionEnv;
         PEDebug:-DisplayReduceStart(exp);
-        reduced := embed(reduce(exp));
-        PEDebug:-DisplayReduceEnd(reduced);
-        if reduced::Dynamic then
-            print("reduced", reduced);
+        
+        treatAsDynamic := false;
+        reduced1 := embed(reduce(exp));
+        if reduced1::Dynamic then
+            res := reduced1;
+        else # reduced1 is static
+            treatAsDynamic := true;
+            reduced2 := embed(reduce(exp));
+            if reduced2::Dynamic then
+                res := MBoth(reduced1, reduced2);
+            else
+                res := reduced1;
+            end if;
         end if;
+        
         env := 'env';
-        reduced;
+        PEDebug:-DisplayReduceEnd(res);
+        if res::Not(Static) then
+            print("reduced", res);
+        end if;
+        res;
     end proc;
 
     reduce := proc(exp)
@@ -98,6 +127,10 @@ ReduceExp := module()
     
     red[MComplex]  := () -> `if`(nargs=1, args * I, args[1] + args[2] * I);
     red[MNargs]    := () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
+    
+    red[MBoth] := proc(s, d)
+        `if`(treatAsDynamic, d, SVal(s));
+    end proc;
     
     red[MArgs] := proc() 
         if env:-hasNargs() then
@@ -239,12 +272,13 @@ ReduceExp := module()
         end if;
     
         # aviod evaluating the entire table if possible
+        # TODO, rewrite this!
         if [re]::list(Static) then
             if member(Header(tbl), {MLocal, MParam, MGeneratedName}) then
                 try
                     return env:-getTblVal(Name(tbl), re); # TODO: won't work for expression sequence as key
                 catch "table value is dynamic" :
-                    #return MTableref(tbl, embed(re));
+                    return MTableref(tbl, embed(re));
                 end try;
             elif member(Header(tbl), {MName, MAssignedName}) then
                 try
@@ -266,7 +300,7 @@ ReduceExp := module()
     red[MName] := reduceName(MName);
     red[MAssignedName] := reduceName(MAssignedName);
 
-    reduceName := f -> proc(n)
+    reduceName := f -> proc(n) local hasDyn;
         if not assigned(genv) or genv:-isDynamic(n) then
             c := convert(n, name);
             evaled := eval(c);
@@ -276,7 +310,8 @@ ReduceExp := module()
                 evaled
             end if;
         else
-            genv:-getVal(n);
+            val := genv:-getVal(n, 'hasDyn');
+            `if`(hasDyn and treatAsDynamic, f(n), val);
         end if
     end proc;
     
@@ -289,7 +324,14 @@ ReduceExp := module()
     red[MLexicalLocal] := reduceLex(MLexicalLocal);
     red[MLexicalParam] := reduceLex(MLexicalParam);
 
-    reduceVar := f -> x -> `if`(env:-isStatic(x), env:-getVal(x), f(x));
+    reduceVar := f -> proc(x) local hasDyn;
+        if env:-isStatic(x) then
+            val := env:-getVal(x, 'hasDyn');
+            `if`(hasDyn and treatAsDynamic, f(x), val);
+        else
+            f(x);
+        end if;
+    end proc;
 
     reduceLex := f -> proc(x)
         if not env:-hasLex() then
@@ -327,16 +369,14 @@ ReduceExp := module()
         s := op(n);
         thunk := proc()
             if closureEnv:-isStatic(s) then
+                # TODO, pass hasDyn to getVal?
                 closureEnv:-getVal(s);
             elif assigned(lexMap[s]) then
                 if closureEnv:-hasLex() then
                     lex := closureEnv:-getLex();
                     lexName := op(lexMap[s]);
                     if assigned(lex[lexName]) then
-                        #print("lex[lexName]", lex[lexName]);
-                        res := FromInert(M:-FromM(lex[lexName]));
-                        print(eval(res));
-                        res;
+                        FromInert(M:-FromM(lex[lexName]));
                     else
                         error "invalid lexical name: %1", s;
                     end if;

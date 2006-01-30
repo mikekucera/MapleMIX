@@ -1,7 +1,7 @@
 
 PETypes := module() option package;
     global `type/inert`, `type/mform`,
-           `type/onenv`, `type/Static`, `type/Dynamic`,
+           `type/onenv`, `type/Static`, `type/Dynamic`, `type/Both`,
            `type/Global`, `type/Local`;
     export ModuleLoad;
 
@@ -13,9 +13,9 @@ PETypes := module() option package;
 
 `type/onenv` := '`module`'('putVal', 'getVal'):
 
-`type/Static`  := 'Not'('Dynamic'):
-`type/Dynamic` := And(Not(specfunc(anything, 'MStatic')),'mform'):
-#`type/Dynamic` := 'mform':
+`type/Both`    := specfunc(anything, 'MBoth');
+`type/Dynamic` := And('mform', Not(specfunc(anything, 'MStatic')), Not(Both)):
+`type/Static`  := And(Not(Dynamic), Not(Both));
 
 `type/Global` := 'Or'('identical'(MName), 'identical'(MAssignedName), mform({Name, AssignedName})):
 `type/Local`  := 'Or'('identical'(MLocal), 'identical'(MParam), 'identical'(MGeneratedName), mform({Local, GenertatedName, Param})):
