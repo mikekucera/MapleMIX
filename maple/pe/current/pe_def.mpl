@@ -132,13 +132,6 @@ end proc;
 peM := proc(m::mform)
     h := Header(m);
     
-    if h = MWhileForFrom then
-        print(MWhileForFrom);
-        for i in m do
-            print(i)
-        end do;
-    end if;
-    
     if assigned(pe[h]) then
         return pe[h](op(m));
     end if;
@@ -229,7 +222,6 @@ end proc;
 
 pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate, GeneratedName}), expr::mform)
     reduced := ReduceExp(expr);
-
     # use the appropriate environment based on the scope of the variable
     env := `if`(Header(n)=MLocal, callStack:-topEnv(), genv);
 
@@ -285,11 +277,14 @@ StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
     env := callStack:-topEnv();
     q := SimpleQueue();
     
-    return module() export unrollOnce, result;    
-        unrollOnce := proc(i) # pass in the loop index
+    
+    return module() export unrollOnce, result;
+        setVal := proc(x)
             if assigned(loopVarName) then
-                env:-putVal(loopVarName, i, 'readonly');                
+                env:-putVal(loopVarName, x, 'readonly');
             end if;
+        end proc;
+        unrollOnce := proc() # pass in the loop index
             res := peM(statseq);
             if res <> NULL then
                 q:-enqueue(res);
@@ -320,13 +315,24 @@ end proc;
 #    end if;
 #end proc;
 
-
+# TODO: rewrinte
 pe[MForIn] := proc(loopVar, inExp, statseq)
+    pe[MWhileForIn](loopVar, inExp, true, statseq);
+end proc;
+
+
+pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
     rInExp := ReduceExp(inExp);
     if [rInExp]::list(Static) then
         unroller := StaticLoopUnroller(loopVar, statseq);
         for i in SVal(rInExp) do
-            unroller:-unrollOnce(i);
+            unroller:-setVal(i);
+            rWhileExp := ReduceExp(whileExp);
+            if rWhileExp::Dynamic then
+                error "dynamic while condition not supported: %1", rWhileExp;
+            end if;
+            if not SVal(rWhileExp) then break end if;
+            unroller:-unrollOnce();
         end do;
         return unroller:-result();
     else
@@ -345,18 +351,16 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
     rToExp    := ReduceExp(toExp);    
     
     if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop        
-        rFromExp := SVal(rFromExp);
-        rByExp := SVal(rByExp);
-        rToExp := SVal(rToExp);
-                
         unroller := StaticLoopUnroller(loopVar, statseq);
-        for i from rFromExp by rByExp to rToExp do
+        
+        for i from SVal(rFromExp) by SVal(rByExp) to SVal(rToExp) do
+            unroller:-setVal(i);
             rWhileExp := ReduceExp(whileExp);
             if rWhileExp::Dynamic then
-                error "dynamic while condition not supported";
+                error "dynamic while condition not supported: %1", rWhileExp;
             end if;
             if not SVal(rWhileExp) then break end if;
-            unroller:-unrollOnce(i);
+            unroller:-unrollOnce();
         end do;        
         unroller:-result();
     else

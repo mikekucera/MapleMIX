@@ -53,4 +53,21 @@ Try(200, got, expected);
 
 #######################################################################
 
+goal := proc()
+    x := [];
+    for i in [1,2,3,4,5] while i < 4 do
+        x := [op(x), i];
+    end do;
+    x
+end proc;
+
+ped := OnPE(goal);
+got := ToInert(eval(ped:-ModuleApply));
+
+expected := ToInert(proc () [1, 2, 3] end proc);
+
+Try(300, got, expected);
+
+#######################################################################
+
 #end test

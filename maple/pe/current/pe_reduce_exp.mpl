@@ -244,7 +244,7 @@ ReduceExp := module()
                 try
                     return env:-getTblVal(Name(tbl), re); # TODO: won't work for expression sequence as key
                 catch "table value is dynamic" :
-                    return MTableref(tbl, embed(re));
+                    #return MTableref(tbl, embed(re));
                 end try;
             elif member(Header(tbl), {MName, MAssignedName}) then
                 try
@@ -304,7 +304,7 @@ ReduceExp := module()
     end proc;
     
     red[MAssignedLocalName] := proc()
-        FromInert(_Inert_ASSIGNEDLOCALNAME(args));
+        FromInert(M:-FromM(MAssignedLocalName(args)));
     end proc;
 
 
