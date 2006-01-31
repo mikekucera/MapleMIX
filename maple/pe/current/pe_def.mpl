@@ -482,7 +482,8 @@ end proc;
 # used to statically evaluate a type assertion on a parameter
 checkParameterTypeAssertion := proc(value, paramSpec::mform(ParamSpec))
     ta := TypeAssertion(paramSpec);
-    `if`(nops(ta) > 0, type(value, op(ta)), true)
+    pass := `if`(nops(ta) > 0, type(value, op(ta)), true);
+    `if`(pass, value, getParameterDefault(paramSpec));
 end proc;
 
 # returns a parameter's default value
@@ -517,41 +518,41 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	fullCall := SimpleQueue(); # residual function call including statics
    	redCall  := SimpleQueue(); # residual function call without statics
    	argsTbl := table(); # mappings for args
-
-   	i := 1; 
+   	
    	numParams := nops(paramSeq);
    	possibleExpSeqSeen := false;
    	# table that remembers if an argument expression was a MEquation
    	equationArgs := {}; # set(integer)
-
+   	toRemove := {}; # set of parameter names to be removed from the parameter sequence
+    i := 1; 
+    
    	# loop over expressions in function call
    	for arg in argExpSeq do
    	    reduced := ReduceExp(arg);
-   	    
-   	    if reduced::Both then
+   	    if reduced::Both and nops(StaticPart(reduced)) <> 1 then
    	        error "cannot reliably match up parameters";
    	    end if;
    	    
-   	    if reduced::Static then
+   	    if reduced::Or(Static, Both) then
    	        # argument expression may have reduced to an expression sequence
    	        # flatten the way that Maple does
-   	        #for value in reduced do
-   	        for value in reduced do
-   	            fullCall:-enqueue(embed(value));
-   	            if possibleExpSeqSeen then
-   	                redCall:-enqueue(embed(value));
-   	            else # we can still match up args to params
+            staticPart := `if`(reduced::Both, StaticPart(reduced), reduced);
+            
+   	        for value in staticPart do
+   	            toEnqueue := `if`(reduced::Both, DynamicPart(reduced), embed(value));
+   	            fullCall:-enqueue(toEnqueue);
+   	            if possibleExpSeqSeen or reduced::Both then
+   	                redCall:-enqueue(toEnqueue);
+   	            end if;
+   	            if not possibleExpSeqSeen then 
+   	                # we can still match up args to params
    	                # remember if this arg was coded directly as an equation
-   	                if Header(arg) = MEquation then
-   	                    equationArgs := equationArgs union {i};
-   	                end if;
+   	                equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
        	            if i <= numParams then
        	                paramSpec := op(i, paramSeq);
-       	                if not checkParameterTypeAssertion(value, paramSpec) then
-       	                    # the default must be a static scalar
-       	                    value := getParameterDefault(paramSpec);
-       	                end if;            
+       	                value := checkParameterTypeAssertion(value, paramSpec);       
        	                env:-putVal(Name(paramSpec), value);
+       	                toRemove := toRemove union `if`(reduced::Both, {}, {Name(paramSpec)});
        	            end if;
        	            argsTbl[i] := value; 
        	            i := i + 1;
@@ -561,13 +562,10 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	    else # dynamic
    	        fullCall:-enqueue(reduced);
             redCall:-enqueue(reduced);
-            if isPossibleExpSeq(reduced) then
-                # i will not be used anymore if possibleExpSeqSeen is true
+            if isPossibleExpSeq(reduced) then # i will not be used anymore if possibleExpSeqSeen is true
                 possibleExpSeqSeen := true;
             else
-                if Header(arg) = MEquation then
-	                equationArgs := equationArgs union {i};
-	            end if;
+                equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
                 i := i + 1;
             end if; 	        
    	    end if;
@@ -582,7 +580,6 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
         # loop over arguments which are unmatched
         reducedArgs := fullCall:-toList();
         for i from numParams+1 to fullCall:-length() do
-            
             if not member(i, equationArgs) then next end if;
             reducedArg := reducedArgs[i];
             if reducedArg::Static then
@@ -598,6 +595,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
                               paramName, op(t), paramVal;
                     end if;
                     env:-putVal(paramName, paramVal);
+                    toRemove := toRemove union {paramName};
                 end if;
             else
                 paramName := op([1,1], reducedArg);
@@ -620,7 +618,8 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
     Record('newEnv'=env, # environment mapping parameter names to static values
            'reducedCall'=f(redCall),  # the reduced call to be residualized if the proc is not unfolded
            'allCall'=f(fullCall), # the call but with static arguments still in their place
-           'possibleExpSeq'=possibleExpSeqSeen); # true iff there is the possibility that one of the dynamic arguments could be and expression sequence
+           'possibleExpSeq'=possibleExpSeqSeen,# true iff there is the possibility that one of the dynamic arguments could be and expression sequence
+           'removeParams'=toRemove); # parameters to remove from the parameter sequence
 end proc;
 
 
@@ -730,7 +729,7 @@ peFunction_SpecializeThenDecideToUnfold := proc(fun::procedure, argExpSeq::mform
     argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
 
     callStack:-push(argListInfo:-newEnv);
-    newProc := peFunction_GenerateNewSpecializedProc(m, newName);
+    newProc := peFunction_GenerateNewSpecializedProc(m, newName, argListInfo);
     callStack:-pop();
 
     if isUnfoldable(newProc, argListInfo) then
@@ -746,7 +745,7 @@ end proc;
 
 # takes inert code and assumes static variables are on top of callStack
 # called before unfold
-peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string := "") :: mform(Proc);    
+peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argListInfo) :: mform(Proc);    
     # attach lexical environment
     env := callStack:-topEnv();
     if not env:-hasLex() then
@@ -766,17 +765,17 @@ peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string := "") :
     newProc := subsop(5=body, m);
     newProc := M:-SetArgsFlags(newProc);
 
-    # TODO, maybe move this check somewhere else
-    if not M:-UsesArgsOrNargs(newProc) then    
-        p := x -> env:-isDynamic(Name(x));
-        newParams   := select(p, Params(m));
-        newKeywords := select(p, Keywords(m));
+    # this doesn't need to be done for the goal function
+    if nargs > 2 and not M:-UsesArgsOrNargs(newProc) then
+        # This needs to be here because SetArgsFlags is called after partial evaluation of body of proc
+        #p := x -> env:-isDynamic(Name(x));
+        p := x -> member(Name(x), argListInfo:-removeParams);
+        newParams   := remove(p, Params(m));
+        newKeywords := remove(p, Keywords(m));
         newProc := subsop(1=newParams, 11=newKeywords, newProc);
     end if;
 
-    if n <> "" then
-        code[n] := newProc;
-    end if;
+    code[n] := newProc;
     newProc;
 end proc;
 

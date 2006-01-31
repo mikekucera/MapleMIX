@@ -3,7 +3,7 @@
 
 
 OnENV := module()
-    export NewOnENV, ModuleApply;
+    export NewOnENV, ModuleApply, DYN;
     local newFrame, OldEnv;
 
     ModuleApply := NewOnENV;
@@ -11,8 +11,7 @@ OnENV := module()
     NewOnENV := proc()
         newEnv := module()
             local ss, newFrame, lex, argsVal, nargsVal, rebuildTable;
-            export DYNAMIC,
-                   putVal, getVal, grow, shrink, shrinkGrow, display, markTop,
+            export putVal, getVal, grow, shrink, shrinkGrow, display, markTop,
                    isDynamic, isStatic, isTblValStatic, isAssigned, setValDynamic, equalsTop;
 
 ##########################################################################################
@@ -210,7 +209,7 @@ OnENV := module()
                     for key in keys(rec:-elts) do
                         if not assigned(tbl[key]) then
                             tbl[key] := eval(rec:-elts[key]);
-                            if nargs > 1 and tbl[key] = DYNAMIC then
+                            if nargs > 1 and tbl[key] = OnENV:-DYN then
                                 hasDyn := true;
                             end if;
                         end if;
@@ -238,7 +237,7 @@ OnENV := module()
                     rec := foundFrame:-tbls[tableName];
                     do
                         if assigned(rec:-elts[index]) then
-                            return `if`(rec:-elts[index] = DYNAMIC, false, true);
+                            return `if`(rec:-elts[index] = OnENV:-DYN, false, true);
                         elif assigned(rec:-link) then
                             rec := rec:-link;
                         else
@@ -298,7 +297,7 @@ OnENV := module()
                 do
                     if assigned(rec:-elts[index]) then
                         val := rec:-elts[index];
-                        if val = DYNAMIC then
+                        if val = OnENV:-DYN then
                             error err;
                         else
                             return val;
@@ -319,7 +318,7 @@ OnENV := module()
                 else
                     rec := addTable(tableName);
                 end if;
-                rec:-elts[index] := DYNAMIC;
+                rec:-elts[index] := OnENV:-DYN;
                 NULL;
             end proc;
 

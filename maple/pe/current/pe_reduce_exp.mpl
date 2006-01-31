@@ -50,9 +50,9 @@ ReduceExp := module()
         
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
-        if res::Not(Static) then
-            print("reduced", res);
-        end if;
+        #if res::Not(Static) then
+        #    print("reduced", res);
+        #end if;
         res;
     end proc;
 
