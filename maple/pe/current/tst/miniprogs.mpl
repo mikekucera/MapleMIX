@@ -35,7 +35,8 @@ goal(3);
 opts := PEOptions();
 opts:-setConsiderExpseq(false);
 ps := OnPE(goal, opts);
-
 printmod(ps);
 
 ps(3);
+
+M:-Print(M:-ToM(ToInert(eval(ps:-ModuleApply))));

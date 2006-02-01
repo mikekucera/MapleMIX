@@ -442,7 +442,7 @@ end proc;
 
 
 
-pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Function))
+pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Function))
     unfold := proc(residualProcedure, redCall, fullCall)
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         #flattened := M:-FlattenStatSeq(res);

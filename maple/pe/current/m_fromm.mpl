@@ -72,7 +72,7 @@ FromM := module()
 
     inrt[MParam]     := n -> _Inert_PARAM(MapStack:-top()['params'](n));
     inrt[MLocal]     := n -> _Inert_LOCAL(MapStack:-top()['locals'](n));
-    inrt[MGeneratedName]     := inrt[MLocal];
+    #inrt[MGeneratedName]     := inrt[MLocal];
     inrt[MLocalName]         := _Inert_LOCALNAME @ mapmtoi;
     inrt[MAssignedLocalName] := _Inert_ASSIGNEDLOCALNAME @ mapmtoi;
 
@@ -246,13 +246,15 @@ FromM := module()
     end proc;
 
 
-    inrt[MSingleAssign] := proc(n::mform(GeneratedName), e::mform)
-        #singleAssigns[op(n)] := mtoi(e);
-        #NULL;
-        _Inert_ASSIGN(mapmtoi(args));
+    inrt[MSingleAssign] := proc(n::mform({GeneratedName, SingleUse}), e::mform)
+        singleAssigns[op(n)] := mtoi(e);
+        NULL;
+        #_Inert_ASSIGN(mapmtoi(args));
     end proc;
 
 
+    
+    
     inrt[MSingleUse] := proc(n)
         if assigned(singleAssigns[n]) then
             singleAssigns[n];
@@ -261,6 +263,7 @@ FromM := module()
         end if;
     end proc;
 
+    inrt[MGeneratedName] := inrt[MSingleUse];
 
     inrt[MIfThenElse] := proc(c, s1, s2)
         if IsNoOp(s1) and IsNoOp(s2) then

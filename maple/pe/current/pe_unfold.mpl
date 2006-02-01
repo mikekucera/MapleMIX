@@ -4,7 +4,6 @@ Unfold := module()
     local addAssigns, removeReturns, renameAllLocals;
 
     renameAllLocals := proc(m::mform(StatSeq), genVarName)
-        local names, rename;
         names := table();
 
         rename := proc(f)
@@ -20,7 +19,8 @@ Unfold := module()
         end proc;
 
         body := eval(m, [MLocal=rename(MGeneratedName),
-                         MParam=rename(MGeneratedName)]);
+                         MParam=rename(MGeneratedName),
+                         MSingleUse=rename(MGeneratedName)]); # ok because MSingleUse is removed by FromM
         return body, names;
     end proc;
 
@@ -92,10 +92,9 @@ Unfold := module()
     end proc;
 
 
-    # Requires input to be in if-normal-form.
-    # actually in this case removal of returns isn't needed
+
     UnfoldIntoAssign := proc(specProc::mform(Proc), specCall::mform(ExpSeq), fullCall::mform(ExpSeq),
-                             genVarName, assignTo::mform(GeneratedName)) ::mform(StatSeq);
+                             genVarName, assignTo::mform({Local, SingleUse})) ::mform(StatSeq);
         newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
         newbody := M:-FlattenStatSeq(newbody);
 

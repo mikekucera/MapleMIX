@@ -68,9 +68,9 @@ MiniMapleInterpreter := module() option package;
             op(e1, e2);
         elif h = mmBin then
             o := op(1,e);
-            e_1 := evalExpr(op(2,e), env, defs);
-            e_2 := evalExpr(op(3,e), env, defs);
-            evalBin(o, e_1, e_2);
+            e1 := evalExpr(op(2,e), env, defs);
+            e2 := evalExpr(op(3,e), env, defs);
+            evalBin(o, e1, e2);
         elif h = mmUn then
             o := op(1,e);
             e1 := evalExpr(op(2,e), env, defs);

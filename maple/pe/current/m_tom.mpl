@@ -101,7 +101,7 @@ ToM := module()
                 MFunction(args);
             else
                 newvar := gen();
-                q:-enqueue(MAssignToFunction(MGeneratedName(newvar), MFunction(mapitom(args))));
+                q:-enqueue(MAssignToFunction(MSingleUse(newvar), MFunction(mapitom(args))));
                 MSingleUse(newvar);
             end if;
         end proc;
@@ -366,10 +366,10 @@ ToM := module()
         tbl := Tbl(tr);
         if Header(tbl) = MTableref then
             assigns, n := splitTableRef(tbl);
-            new := MGeneratedName(gen());
+            new := MLocal(gen());
             [op(assigns), MAssign(new, MTableref(n, IndexExp(tr)))], new;
         else
-            new := MGeneratedName(gen());
+            new := MLocal(gen());
             [MAssign(new, tr)], new;
         end if;
     end proc;
