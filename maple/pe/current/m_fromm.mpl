@@ -247,8 +247,9 @@ FromM := module()
 
 
     inrt[MSingleAssign] := proc(n::mform(GeneratedName), e::mform)
-        singleAssigns[op(n)] := mtoi(e);
-        NULL;
+        #singleAssigns[op(n)] := mtoi(e);
+        #NULL;
+        _Inert_ASSIGN(mapmtoi(args));
     end proc;
 
 

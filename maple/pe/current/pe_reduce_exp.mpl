@@ -50,7 +50,8 @@ ReduceExp := module()
         
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
-        #if res::Not(Static) then
+        #if res::Static then
+        #    print("reducing", exp);
         #    print("reduced", res);
         #end if;
         res;
@@ -203,6 +204,8 @@ ReduceExp := module()
     
     # TODO, this is not correct, because support for evaln is not there yet
     specFunc["assigned"] := proc(expseq)
+        #print("assigned", expseq);
+        #env :- display();
         if nops(expseq) <> 1 then
             error "assigned expects 1 argument, but received %1", nops(expseq);
         end if;

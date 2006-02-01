@@ -237,7 +237,7 @@ pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate, GeneratedName
     else
         var := Name(n);
     end if;
-
+    
     if reduced::Static then
         env:-putVal(var, SVal(reduced));
         NULL;
@@ -447,6 +447,7 @@ pe[MAssignToFunction] := proc(var::mform(GeneratedName), funcCall::mform(Functio
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         #flattened := M:-FlattenStatSeq(res);
         flattened := M:-RemoveUselessStandaloneExprs(res);
+        #print("unfold", flattened);
         if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
             assign := op(flattened);
             expr := op(2, assign);
@@ -630,6 +631,7 @@ isUnfoldable := proc(inertProcedure::mform(Proc), argListInfo)
     if argListInfo:-possibleExpSeq and nops(Params(inertProcedure)) > 0 then
         return false;
     end if;
+    
     if not callStack:-inConditional() then
         return true;
     end if;

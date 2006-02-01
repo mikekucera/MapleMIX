@@ -371,7 +371,7 @@ OnENV := module()
                     print("dyn", frame:-dyn);
                     for tblName in keys(frame:-tbls) do
                         rec := frame:-tbls[tblName];
-                        print("rec", tblName, op(rec:-elts), rec:-dyn, `if`(assigned(rec:-link), "linked", "null"));
+                        print("rec", tblName, op(rec:-elts), `if`(assigned(rec:-link), "linked", "null"));
                     end do;
                 end do;
             end proc;
