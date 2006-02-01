@@ -34,6 +34,8 @@ ReduceExp := module()
         env := reductionEnv;
         PEDebug:-DisplayReduceStart(exp);
         
+        print("reducing", exp);
+        
         treatAsDynamic := false;
         reduced1 := embed(reduce(exp));
         if reduced1::Dynamic then
@@ -50,10 +52,9 @@ ReduceExp := module()
         
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
-        #if res::Static then
-        #    print("reducing", exp);
-        #    print("reduced", res);
-        #end if;
+        if not res::Static then
+            print("reduced", res);
+        end if;
         res;
     end proc;
 
@@ -275,20 +276,16 @@ ReduceExp := module()
         end if;
     
         # aviod evaluating the entire table if possible
-        # TODO, rewrite this!
-        if [re]::list(Static) then
-            if member(Header(tbl), {MLocal, MParam, MGeneratedName}) then
-                try
-                    return env:-getTblVal(Name(tbl), re); # TODO: won't work for expression sequence as key
-                catch "table value is dynamic" :
+        h := Header(tbl);
+        if [re]::list(Static) and member(h, {MLocal, MParam, MGeneratedName, MName, MAssignedName}) then        
+            lookupEnv := `if`(member(h, {MName, MAssignedName}), genv, env);
+            try
+                return lookupEnv:-getTblVal(Name(tbl), re); # TODO: won't work for expression sequence as key
+            catch "table value is dynamic" :
+                if not lookupEnv:-isStatic(Name(tbl)) then
                     return MTableref(tbl, embed(re));
-                end try;
-            elif member(Header(tbl), {MName, MAssignedName}) then
-                try
-                    return genv:-getTblVal(Name(tbl), re);
-                catch "table value is dynamic" : 
-                end try; # its dynamic so continue
-            end if;
+                end if;
+            end try;
         end if;
 
         rt := reduce(tbl);
@@ -328,9 +325,14 @@ ReduceExp := module()
     red[MLexicalParam] := reduceLex(MLexicalParam);
 
     reduceVar := f -> proc(x) local hasDyn;
+        print("reducing var", f(x));
         if env:-isStatic(x) then
             val := env:-getVal(x, 'hasDyn');
-            `if`(hasDyn and treatAsDynamic, f(x), val);
+            res := `if`(hasDyn and treatAsDynamic, f(x), val);
+            if x = "x" then
+                print("res", res);
+            end if;
+            res;
         else
             f(x);
         end if;

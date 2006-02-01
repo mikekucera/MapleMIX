@@ -515,6 +515,11 @@ end proc;
 # returns an environment where static parameters are mapped to their static values
 # as well as the static calls that will be residualized if the function is not unfolded
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
+    print("peArgList", args);
+    try
+    print(callStack:-topEnv():-getVal("r"));
+    catch: end try;
+    
     env := OnENV(); # new env for function call
    	fullCall := SimpleQueue(); # residual function call including statics
    	redCall  := SimpleQueue(); # residual function call without statics
@@ -614,7 +619,10 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
     
     env:-setArgs(argsTbl);
     f := MExpSeq @ qtoseq;
-     
+    
+    print("here it is");
+    env:-display();
+    
     # return results as a record just so its more organized
     Record('newEnv'=env, # environment mapping parameter names to static values
            'reducedCall'=f(redCall),  # the reduced call to be residualized if the proc is not unfolded

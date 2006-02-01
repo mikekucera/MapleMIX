@@ -125,6 +125,20 @@ expected := ToInert(proc() 99 end proc);
 Test(502, got, expected);
 
 ####################################################################
+# in this case x is not a table, it should still work
 
+p := proc () local x; 
+    x := [1, 2, 3, 4]; 
+    x[3] 
+end proc;
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 3 end proc);
+
+Test(601, got, expected);
+
+####################################################################
 
 #end test
