@@ -259,23 +259,35 @@ ReduceExp := module()
     
         # aviod evaluating the entire table if possible
         h := Header(tbl);
-        if [re]::list(Static) and member(h, {MLocal, MParam, MGeneratedName, MName, MAssignedName}) then        
-            lookupEnv := `if`(member(h, {MName, MAssignedName}), genv, env);
-            try
-                return lookupEnv:-getTblVal(Name(tbl), re); # TODO: won't work for expression sequence as key
-            catch "table value is dynamic" :
-                if not lookupEnv:-isStatic(Name(tbl)) then
-                    return MTableref(tbl, embed(re));
-                end if;
-            end try;
+        if [re]::list(Static) and member(h, {MLocal, MParam, MGeneratedName, MName, MAssignedName}) then 
+        
+            if member(h, {MLocal, MParam, MGeneratedName}) then
+                try
+                    return env:-getTblVal(Name(tbl), re);
+                catch "table value is dynamic" :
+                    if not env:-isStatic(Name(tbl)) then
+                        return MTableref(tbl, embed(re));
+                    end if;
+                end try;
+            elif member(h, {MName, MAssignedName}) then
+                try
+                    return genv:-getTblVal(Name(tbl), re);
+                catch "table value is dynamic" :
+                    # fall through
+                end try;
+            end if;
         end if;
 
         rt := reduce(tbl);
         if [rt]::list(Static) and [re]::list(Static) then #and assigned(rt[re]) then
-            rt[re];
-        else
-            MTableref(embed(rt), embed(re));
-        end if
+            val := rt[re];
+            if val = OnENV:-DYN then
+                error "lookup of dynamic value in table, table expressions must be names";
+            else
+                return val
+            end if;
+        end if;
+        MTableref(embed(rt), embed(re));
     end proc;
 
     
