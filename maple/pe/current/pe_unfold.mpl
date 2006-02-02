@@ -37,7 +37,7 @@ Unfold := module()
     # the static ones should have been removed.
     UnfoldStandalone := proc(specProc::mform(Proc), specCall::mform(ExpSeq),
                              fullCall::mform(ExpSeq), genVarName) :: mform(StatSeq);
-        body := ProcBody(specProc);
+        body := M:-TransformIfNormalForm(ProcBody(specProc));
         params := Params(specProc);
         body, newNames := renameAllLocals(body, genVarName);
         body := removeReturns(body);

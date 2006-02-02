@@ -266,6 +266,25 @@ Try(802, got, expected);
 
 #######################################################################
 
+p := proc(d)
+    if d then
+        return 4;
+    end if;
+    if d then
+        return 6;
+    end if;
+end proc;
 
+goal := proc(d) local x;
+    x := p(d);
+end proc;
+
+ped := OnPE(goal);
+
+Try(901, ped(true), p(true));
+Try(902, ped(false), p(false));
+
+
+#######################################################################
 
 #end test

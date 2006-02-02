@@ -418,14 +418,14 @@ ToM := module()
 
     m[_Inert_IF] := proc()
         if typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything)]) then
-            split(c, red -> MIfThenElse(red, MStatSeq(itom(s)), MStatSeq(MStandaloneExpr(MExpSeq()))));
+            split(c, red -> MIfThenElse(red, MStatSeq(ssop(itom(s))), MStatSeq(MStandaloneExpr(MExpSeq()))));
         elif typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything), 'el'::inert(STATSEQ)]) then
-            split(c, red -> MIfThenElse(red, MStatSeq(itom(s)), MStatSeq(itom(el))));
+            split(c, red -> MIfThenElse(red, MStatSeq(ssop(itom(s))), MStatSeq(ssop(itom(el)))));
         else
             condpair := op(1, [args]);
             rest := op(2..-1, [args]);
             c, s := op(1, condpair), op(2, condpair);
-            split(c, red -> MIfThenElse(red, MStatSeq(itom(s)), MStatSeq(itom(_Inert_IF(rest)))));
+            split(c, red -> MIfThenElse(red, MStatSeq(ssop(itom(s))), MStatSeq(itom(_Inert_IF(rest)))));
         end if;
     end proc;
 

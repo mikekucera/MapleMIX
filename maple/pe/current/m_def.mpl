@@ -1,6 +1,6 @@
 
 M := module()
-    export Print, ToM, FromM, ReduceExp,
+    export Print, ToM, FromM, ReduceExp, TransformIfNormalForm,
            EndsWithErrorOrReturn, FlattenStatSeq, AddImplicitReturns,
            SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs, ProtectedForm,
            CreateLexMap, RemoveUselessStandaloneExprs,
@@ -204,6 +204,6 @@ M := module()
 $include "access.mpl"
 $include "m_tom.mpl"
 $include "m_fromm.mpl"
-
+$include "m_if_transform.mpl"
 
 end module:

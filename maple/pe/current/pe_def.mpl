@@ -375,7 +375,8 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
             end if;
             if not SVal(rWhileExp) then break end if;
             unroller:-unrollOnce();
-        end do;        
+        end do;   
+        print("done");     
         unroller:-result();
     else
         error "dynamic loops not supported yet";
@@ -450,15 +451,10 @@ end proc;
 
 
 pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Function))
-        if op(1, var) = "domains/DenseUnivariatePolynomial/badge0" then
-        print("found it");
-    end if;
-    
     unfold := proc(residualProcedure, redCall, fullCall)
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         #flattened := M:-FlattenStatSeq(res);
         flattened := M:-RemoveUselessStandaloneExprs(res);
-        #print("unfold", flattened);
         if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
             assign := op(flattened);
             expr := op(2, assign);
