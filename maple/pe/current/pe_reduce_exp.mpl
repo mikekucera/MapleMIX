@@ -13,28 +13,10 @@ ReduceExp := module()
         genv := OnENV();
         ModuleApply(exp, OnENV());
     end proc;
-
-    #ModuleApply := proc(exp) 
-    #    local reduced;
-    ##    treatAsDynamic := false;
-    #    env := callStack:-topEnv();
-    #    PEDebug:-DisplayReduceStart(exp);
-    #    reduced := embed(reduce(exp));
-    #    PEDebug:-DisplayReduceEnd(reduced);
-    #    
-    #    
-    #    if reduced::Dynamic then
-    #        print("reduced", reduced);
-    #    end if;
-    #    env := 'env';
-    #    reduced;
-    #end proc;
     
     ModuleApply := proc(exp, reductionEnv := callStack:-topEnv())
         env := reductionEnv;
         PEDebug:-DisplayReduceStart(exp);
-        
-        print("reducing", exp);
         
         treatAsDynamic := false;
         reduced1 := embed(reduce(exp));
@@ -325,14 +307,9 @@ ReduceExp := module()
     red[MLexicalParam] := reduceLex(MLexicalParam);
 
     reduceVar := f -> proc(x) local hasDyn;
-        print("reducing var", f(x));
         if env:-isStatic(x) then
             val := env:-getVal(x, 'hasDyn');
-            res := `if`(hasDyn and treatAsDynamic, f(x), val);
-            if x = "x" then
-                print("res", res);
-            end if;
-            res;
+            `if`(hasDyn and treatAsDynamic, f(x), val);
         else
             f(x);
         end if;

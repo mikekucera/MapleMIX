@@ -70,7 +70,7 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
         lprint("FromInert on inertModule failed", lastexception);
         return copy(code);
     end try;
-    
+
     # unassign module locals
     gen := 'gen';
     code := 'code';
@@ -220,10 +220,11 @@ end proc;
 
 
 
-pe[MAssign] := proc(n::mform({Local, Name, AssignedName, Catenate, GeneratedName}), expr::mform)
+pe[MAssign] := proc(n::mform({Local, GeneratedName, Name, AssignedName, Catenate}), expr::mform)
+    # MCatenate is always global
     reduced := ReduceExp(expr);
     # use the appropriate environment based on the scope of the variable
-    env := `if`(Header(n)=MLocal, callStack:-topEnv(), genv);
+    env := `if`(member(Header(n), {MLocal, MGeneratedName}), callStack:-topEnv(), genv);
 
     if Header(n) = MCatenate then
         var := ReduceExp(n);
@@ -333,6 +334,7 @@ end proc;
 
 
 pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
+    print("MWhileForIn", args);
     rInExp := ReduceExp(inExp);
     if [rInExp]::list(Static) then
         unroller := StaticLoopUnroller(loopVar, statseq);
@@ -357,6 +359,7 @@ pe[MForFrom] := proc(loopVar, fromExp, byExp, toExp, statseq)
 end proc;
 
 pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
+    print("MWhileForFrom", args);
     rFromExp  := ReduceExp(fromExp);
     rByExp    := ReduceExp(byExp);
     rToExp    := ReduceExp(toExp);    
@@ -424,7 +427,7 @@ end proc;
 ##########################################################################################
 
 
-pe[MStandaloneFunction] := proc()
+pe[MStandaloneFunction] := proc(var)
     unfold := proc(residualProcedure, redCall, fullCall)
         Unfold:-UnfoldStandalone(residualProcedure, redCall, fullCall, gen);
         #flattened := M:-FlattenStatSeq(res);
@@ -434,8 +437,12 @@ pe[MStandaloneFunction] := proc()
         #    flattened;
         #end if;
     end proc;
-    residualize := ()-> MStandaloneFunction(args);
-    symbolic := () -> MStandaloneExpr(args);
+    residualize := proc()
+        MStandaloneFunction(args);
+    end proc;
+    symbolic := proc()
+        MStandaloneExpr(args);
+    end proc;
     
     peFunction(args, unfold, residualize, symbolic);
 end proc;
@@ -443,6 +450,10 @@ end proc;
 
 
 pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Function))
+        if op(1, var) = "domains/DenseUnivariatePolynomial/badge0" then
+        print("found it");
+    end if;
+    
     unfold := proc(residualProcedure, redCall, fullCall)
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         #flattened := M:-FlattenStatSeq(res);
@@ -515,11 +526,6 @@ end proc;
 # returns an environment where static parameters are mapped to their static values
 # as well as the static calls that will be residualized if the function is not unfolded
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
-    print("peArgList", args);
-    try
-    print(callStack:-topEnv():-getVal("r"));
-    catch: end try;
-    
     env := OnENV(); # new env for function call
    	fullCall := SimpleQueue(); # residual function call including statics
    	redCall  := SimpleQueue(); # residual function call without statics
@@ -619,9 +625,6 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
     
     env:-setArgs(argsTbl);
     f := MExpSeq @ qtoseq;
-    
-    print("here it is");
-    env:-display();
     
     # return results as a record just so its more organized
     Record('newEnv'=env, # environment mapping parameter names to static values

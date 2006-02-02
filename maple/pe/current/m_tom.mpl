@@ -272,13 +272,15 @@ ToM := module()
         ss3, e3 := splitReturn(byExp);
         ss4, e4 := splitReturn(toExp);
         
+        body := RemoveNext(statseq);
+
         if whileExp = inertTrue then
             MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4),
-                MForFrom(e1, e2, e3, e4, MStatSeq(itom(statseq))));
+                MForFrom(e1, e2, e3, e4, MStatSeq(itom(body))));
         else
             ss5, e5 := splitReturn(whileExp);
             MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4), ssop(ss5),
-                MWhileForFrom(e1, e2, e3, e4, e5, MStatSeq(itom(statseq))));
+                MWhileForFrom(e1, e2, e3, e4, e5, MStatSeq(itom(body))));
         end if;
     end proc;
     
@@ -287,16 +289,35 @@ ToM := module()
         ss1, e1 := splitReturn(loopVar);
         ss2, e2 := splitReturn(inExp);
         
+        body := RemoveNext(statseq);
+        
         if whileExp = inertTrue then
             MStatSeq(ssop(ss1), ssop(ss2), 
-                MForIn(e1, e2, MStatSeq(itom(statseq))));
+                MForIn(e1, e2, MStatSeq(itom(body))));
         else
             ss3, e3 := splitReturn(whileExp);
             #TODO, if nops(ss3) > 0 then error, maybe sideeffecting while condition (not supported)
             MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), 
-                MWhileForIn(e1, e2, e3, MStatSeq(itom(statseq))));
+                MWhileForIn(e1, e2, e3, MStatSeq(itom(body))));
         end if;
     end proc;    
+    
+    # removes a common usage of next in loops
+    RemoveNext := proc(loopBody::inert(STATSEQ)) local c;
+        num := nops(loopBody);
+        for i from 1 to num do
+            stmt := op(i, loopBody);
+            if typematch(stmt, _Inert_IF(_Inert_CONDPAIR('c'::anything, _Inert_STATSEQ(_Inert_NEXT())))) then
+                newIf := _Inert_IF(_Inert_CONDPAIR(_Inert_NOT(c), _Inert_STATSEQ(op(i+1..num, loopBody))));
+                return _Inert_STATSEQ(op(1..i-1, loopBody), newIf);
+            end if;
+        end do;
+        return loopBody;
+    end proc;
+    
+    m[_Inert_NEXT] := proc()
+        error "only very limited usage of next is supported";
+    end proc;
     
     
     m[_Inert_PROC] := proc()

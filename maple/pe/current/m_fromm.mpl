@@ -108,7 +108,7 @@ FromM := module()
     inrt[MSum]    := _Inert_SUM    @ mapmtoi;
     inrt[MProd]   := _Inert_PROD   @ mapmtoi;
 
-    inrt[MTableref] := _Inert_TABLEREF @ mapmtoi;
+    #inrt[MTableref] := _Inert_TABLEREF @ mapmtoi;
     inrt[MArgs]     := _Inert_ARGS     @ mapmtoi;
     inrt[MNargs]    := _Inert_NARGS    @ mapmtoi;
 
@@ -158,6 +158,10 @@ FromM := module()
     # TODO, should MStandaloneFunction be similiar?
     inrt[MFunction] := proc(n, expseq)
         _Inert_FUNCTION(mtoi(n), _Inert_EXPSEQ(mtoi(expseq)));
+    end proc;
+    
+    inrt[MTableref] := proc(t, expseq)
+        _Inert_TABLEREF(mtoi(t), _Inert_EXPSEQ(mtoi(expseq)));
     end proc;
     
     inrt[MStandaloneFunction] := inrt[MFunction];
