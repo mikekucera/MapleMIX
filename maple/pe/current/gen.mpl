@@ -4,8 +4,15 @@ NameGenerator := module()
     
     ModuleApply := proc(default::string := "x")
     	module()
-    	    export ModuleApply;
-    	    local vals, getVal;   	    
+    	    export ModuleApply, addSymbols;
+    	    local vals, getVal, knownSymbols;   	    
+    	    
+    	    knownSymbols := {};
+    	    
+    	    addNames := proc(newSymbols::set(string))
+    	        knownSymbols := knownSymbols union newSymbols;
+    	        NULL;
+    	    end proc;
     	    
     	    getVal := proc(prefix)
     	        if assigned(vals[prefix]) then
@@ -15,8 +22,16 @@ NameGenerator := module()
     	        end if;
     	    end proc;
     	    
+    	    genName := proc(prefix)
+    	        cat(prefix, getVal(prefix));
+    	    end proc;
+    	    
     	    ModuleApply := proc(prefix::string := default)
-    	        cat(prefix, getVal(prefix))
+    	        newName := genName(prefix);
+    	        while member(newName, knownSymbols) do
+    	            newName := genName(prefix);
+    	        end do;
+    	        newName;
     	    end proc;
     	    	
     	end module;

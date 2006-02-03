@@ -104,7 +104,9 @@ end proc;
 
 # caches M code of procedures so don't need to call ToM unneccesarily
 getMCode := proc(fun) option cache;
-    M:-ToM(ToInert(fun))
+    code, uniqueNames := M:-ToM(ToInert(fun));
+    gen:-addNames(uniqueNames);
+    code;
 end proc;
 
 

@@ -1,27 +1,37 @@
 ToM := module()
     export ModuleApply;
     local MapStack, isInertTrue,
-    	  itom, itom2, mapitom,  m, gen, getVar;
+    	  itom, itom2, mapitom,  m, gen, getVar, knownNames;
 
     m := table();
 
     itom, itom2, mapitom := createTableProcs("ToM", m);
 
     gen := NameGenerator("m");
-
+    
     ModuleApply := proc(x::inert)
     	MapStack := SimpleStack();
+    	knownNames := table();
     	res := itom(x);
+    	names := {op(map(op, [indices(knownNames)]))};
+    	print("keys", names);
+    	knownNames := 'knownNames';
 		MapStack := 'MapStack';
-		res;
+		res, names;
     end proc;
 
+    addName := proc(n)
+        if assigned(knownNames) then
+            knownNames[n] := NULL;
+        end if;
+    end proc;
     
     createParamMap := proc(varSeq)
         mapParam := proc(tbl,i,var)
             if var <> inertDollar then
                 properOp := x -> op(`if`(Header(x)=_Inert_DCOLON, [1,1], 1) , x);     
                 tbl[i] := properOp(`if`(Header(var)=_Inert_ASSIGN, op(1,var), var));
+                addName(tbl[i]);
             end if
         end proc;
     
@@ -43,6 +53,7 @@ ToM := module()
         createMap(varSeq,
             proc(tbl, i, var)
                 tbl[i] := Name(var);
+                addName(Name(var));
             end proc)
     end proc;
     
@@ -56,7 +67,10 @@ ToM := module()
     end proc;
 
 
-    getVar := (mapname, x) -> MapStack:-top()[mapname][x];
+    getVar := proc(mapname, x) 
+        MapStack:-top()[mapname][x];
+    end proc;
+    
     getLexVar := x -> getVar('lex', x);
 
 
@@ -101,6 +115,7 @@ ToM := module()
                 MFunction(args);
             else
                 newvar := gen();
+                addName(newvar);
                 q:-enqueue(MAssignToFunction(MSingleUse(newvar), MFunction(mapitom(args))));
                 MSingleUse(newvar);
             end if;
@@ -330,7 +345,7 @@ ToM := module()
     end proc;
     
     
-    m[_Inert_PROC] := proc()
+    m[_Inert_PROC] := proc() local keys;
         maps := table();
         
         # $ in the parameter sequence throws the index of keywords off        
@@ -397,10 +412,14 @@ ToM := module()
         tbl := Tbl(tr);
         if Header(tbl) = MTableref then
             assigns, n := splitTableRef(tbl);
-            new := MLocal(gen());
+            newName := gen();
+            addName(newName);
+            new := MLocal(newName);
             [op(assigns), MAssign(new, MTableref(n, IndexExp(tr)))], new;
         else
-            new := MLocal(gen());
+            newName := gen();
+            addName(newName);
+            new := MLocal(newName);
             [MAssign(new, tr)], new;
         end if;
     end proc;
