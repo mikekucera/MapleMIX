@@ -56,7 +56,7 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     #    error;
         #return copy(code);
     end try;
-    
+
     try
         inertModule := BuildModule("ModuleApply");
     catch:
@@ -143,7 +143,11 @@ end proc;
 
 peResidualizeStatement := (f, e) -> f(ReduceExp(e));
 
-pe[MStandaloneExpr] := curry(peResidualizeStatement, MStandaloneExpr);
+#pe[MStandaloneExpr] := curry(peResidualizeStatement, MStandaloneExpr);
+pe[MStandaloneExpr] := proc(e)
+    MStandaloneExpr(ReduceExp(e));
+end proc;
+
 pe[MReturn] := curry(peResidualizeStatement, MReturn);
 pe[MError]  := curry(peResidualizeStatement, MError);
 
@@ -376,13 +380,17 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
             if not SVal(rWhileExp) then break end if;
             unroller:-unrollOnce();
         end do;   
-        print("done");     
         unroller:-result();
     else
         error "dynamic loops not supported yet";
     end if;
 end proc;
 
+pe[MWhile] := proc()
+    print("while loop fould");
+    print(args);
+    error "While loops are not supported";
+end proc;
 
 pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
     rtry := peM(tryBlock);

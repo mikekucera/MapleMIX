@@ -14,7 +14,6 @@ ToM := module()
     	knownNames := table();
     	res := itom(x);
     	names := {op(map(op, [indices(knownNames)]))};
-    	print("keys", names);
     	knownNames := 'knownNames';
 		MapStack := 'MapStack';
 		res, names;
@@ -82,7 +81,7 @@ ToM := module()
              _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING, _Inert_COMPLEX,
              _Inert_RATIONAL, _Inert_EXPSEQ, _Inert_LIST, _Inert_SET,
              _Inert_PARAM, _Inert_LOCAL, _Inert_NAME,_Inert_ASSIGNEDNAME, _Inert_TABLEREF,
-             _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS});
+             _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS, _Inert_UNEVAL});
     end proc;
     
     
@@ -289,7 +288,11 @@ ToM := module()
         ss5, e5 := splitReturn(whileExp);
         
         if nops(ss5) > 0 then
-            error "possible side-effecting while condition";
+            #print("error", whileExp);
+            #print(ss5);
+            #print(e5);
+            #error "possible side-effecting while condition";
+            print("warning, possible side-effecting while condition");
         end if;
         
         assigns := ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4);

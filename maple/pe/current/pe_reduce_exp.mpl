@@ -35,7 +35,7 @@ ReduceExp := module()
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
         #if not res::Static then
-        #    print("reduced", res);
+            #print("reduced", res);
         #end if;
         res;
     end proc;
@@ -140,7 +140,7 @@ ReduceExp := module()
         # here ToInert is used for its real purpose, to create an expression that can't be evaluated
         h := Header(x);
         if member(h, {MName, MAssignedName, MLocal, MParam, MGeneratedName}) then
-            n := _Inert_UNEVAL(ToInert(convert(op(1,x), name)));
+            n := _Inert_UNEVAL(ToInert(convert(Name(x), name)));
         elif h = MString then
             n := _Inert_UNEVAL(ToInert(op(x)));
         else
@@ -385,8 +385,11 @@ ReduceExp := module()
     
     
     red[MUneval] := proc(e)
-        if member(Header(e), {MName, MAssignedName, MGeneratedName, MSingleUse}) then
-            convert(op(1,e), name);
+        if member(Header(e), {MName, MAssignedName}) then
+            print("here", FromInert(_Inert_UNEVAL(ToInert(convert(op(1,e), name)))));
+            FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), name))));
+        elif member(Header(e), {MGeneratedName, MSingleUse, MLocal}) then
+            FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), `local`))));
         else
             MUneval(embed(e));
         end if;

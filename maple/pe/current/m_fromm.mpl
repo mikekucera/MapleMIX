@@ -178,6 +178,9 @@ FromM := module()
         end if;
     end proc;
     
+    inrt[MWhile] := proc(loopVar, fromExp, byExp, whileExp, statseq)
+        _Inert_FORFROM(mapmtoi(loopVar, fromExp, byExp), _Inert_EXPSEQ(), mtoi(whileExp), mtoi(statseq));
+    end proc;
     
     inrt[MProc] := proc()
         maps := table();
