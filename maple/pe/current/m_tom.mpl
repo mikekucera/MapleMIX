@@ -271,16 +271,21 @@ ToM := module()
         ss2, e2 := splitReturn(fromExp);
         ss3, e3 := splitReturn(byExp);
         ss4, e4 := splitReturn(toExp);
+        ss5, e5 := splitReturn(whileExp);
         
+        if nops(ss5) > 0 then
+            error "possible side-effecting while condition";
+        end if;
+        
+        assigns := ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4);
         body := RemoveNext(statseq);
 
-        if whileExp = inertTrue then
-            MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4),
-                MForFrom(e1, e2, e3, e4, MStatSeq(itom(body))));
+        if toExp = _Inert_EXPSEQ() then # its a simple while loop
+            MStatSeq(assigns, MWhile(e1, e2, e3, e5, MStatSeq(itom(body))));
+        elif whileExp = inertTrue then
+            MStatSeq(assigns, MForFrom(e1, e2, e3, e4, MStatSeq(itom(body))));
         else
-            ss5, e5 := splitReturn(whileExp);
-            MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4), ssop(ss5),
-                MWhileForFrom(e1, e2, e3, e4, e5, MStatSeq(itom(body))));
+            MStatSeq(assigns, MWhileForFrom(e1, e2, e3, e4, e5, MStatSeq(itom(body))));
         end if;
     end proc;
     
@@ -296,6 +301,11 @@ ToM := module()
                 MForIn(e1, e2, MStatSeq(itom(body))));
         else
             ss3, e3 := splitReturn(whileExp);
+            
+            if nops(ss3) > 0 then
+                error "possible side-effecting while condition";
+            end if;
+            
             #TODO, if nops(ss3) > 0 then error, maybe sideeffecting while condition (not supported)
             MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), 
                 MWhileForIn(e1, e2, e3, MStatSeq(itom(body))));
