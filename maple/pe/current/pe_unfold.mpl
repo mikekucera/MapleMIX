@@ -102,13 +102,13 @@ Unfold := module()
         if Header(last) = MStandaloneExpr then
             MStatSeq(Front(newbody), MSingleAssign(assignTo, op(last)));
         else
-            addAssigns(newbody, op(assignTo));
+            addAssigns(newbody, assignTo);
         end if;
     end proc;
 
 
     # assumes returns have been removed and code is in if normal form
-    addAssigns := proc(code::mform, var::string)
+    addAssigns := proc(code::mform, var)
         # TODO need to add support for loops and other structures
         doAdd := proc(c) local t, cs, f;
 	        h := Header(c);
@@ -123,13 +123,13 @@ Unfold := module()
 	            MIfThenElse(Cond(c), procname(Then(c)), procname(Else(c)));
 
 	        elif h = MAssign then # shouldn't need this
-	            MStatSeq(c, MAssign(MGeneratedName(var), op(1, c)));
+	            MStatSeq(c, MAssign(var, op(1, c)));
 
 	        elif h = MStandaloneExpr then
-	            MAssign(MGeneratedName(var), op(c));
+	            MAssign(var, op(c));
 
 	        elif h = MStandaloneFunction then
-	            MAssignToFunction(MGeneratedName(var), MFunction(op(c)));
+	            MAssignToFunction(var, MFunction(op(c)));
 	            
             elif typematch(c, MTry('t'::anything, 'cs'::anything, 'f'::anything)) then
                 MTry(procname(t), procname(cs), MFinally(procname(op(f))));
