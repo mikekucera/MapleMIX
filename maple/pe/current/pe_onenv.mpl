@@ -12,7 +12,8 @@ OnENV := module()
         newEnv := module()
             local ss, newFrame, lex, argsVal, nargsVal, rebuildTable;
             export putVal, getVal, grow, shrink, shrinkGrow, display, markTop,
-                   isDynamic, isStatic, isTblValStatic, isAssigned, setValDynamic, equalsTop;
+                   isDynamic, isStatic, isStaticVal, isTblValStatic, isAssigned, 
+                   setValDynamic, equalsTop;
 
 ##########################################################################################
 
@@ -162,23 +163,22 @@ OnENV := module()
                     frame := iter:-getNext();
                     if member(key, frame:-dyn) then
                         return false;
+                    elif assigned(frame:-vals[key]) or assigned(frame:-tbls[key]) then
+                        return true;
+                    end if;
+                end do;
+                false;
+            end proc;
+            
+            
+            isStaticVal := proc(key::Not(mform)) # does not consider tables
+                iter := ss:-topDownIterator();
+                while iter:-hasNext() do
+                    frame := iter:-getNext();
+                    if member(key, frame:-dyn) then
+                        return false;
                     elif assigned(frame:-vals[key]) then
                         return true;
-                    elif assigned(frame:-tbls[key]) then
-                        # ok, the table is partly static, is it completely static?
-                        #rec := frame:-tbls[key];
-                        #do # if all the dynamic masks are empty the the table is fully static
-                        #    if rec:-dyn = {} then
-                        #        if assigned(rec:-link) then
-                        #            rec := rec:-link;
-                        #        else
-                        #            return true;
-                        #        end if;
-                        #    else
-                        #        return false;
-                        #    end if;
-                        #end do;
-                        return true; # TODO, remove this line
                     end if;
                 end do;
                 false;

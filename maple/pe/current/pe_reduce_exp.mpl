@@ -34,9 +34,9 @@ ReduceExp := module()
         
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
-        if not res::Static then
-            print("reduced", res);
-        end if;
+        #if not res::Static then
+        #    print("reduced", res);
+        #end if;
         res;
     end proc;
 
@@ -260,20 +260,18 @@ ReduceExp := module()
         # aviod evaluating the entire table if possible
         h := Header(tbl);
         if [re]::list(Static) and member(h, {MLocal, MParam, MGeneratedName, MName, MAssignedName}) then 
-        
             if member(h, {MLocal, MParam, MGeneratedName}) then
                 try
                     return env:-getTblVal(Name(tbl), re);
                 catch "table value is dynamic" :
-                    if not env:-isStatic(Name(tbl)) then
+                    if not env:-isStaticVal(Name(tbl)) then
                         return MTableref(tbl, embed(re));
                     end if;
                 end try;
             elif member(h, {MName, MAssignedName}) then
                 try
                     return genv:-getTblVal(Name(tbl), re);
-                catch "table value is dynamic" :
-                    # fall through
+                catch "table value is dynamic" : # fall through
                 end try;
             end if;
         end if;

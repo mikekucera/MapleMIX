@@ -334,7 +334,6 @@ end proc;
 
 
 pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
-    print("MWhileForIn", args);
     rInExp := ReduceExp(inExp);
     if [rInExp]::list(Static) then
         unroller := StaticLoopUnroller(loopVar, statseq);
@@ -359,7 +358,6 @@ pe[MForFrom] := proc(loopVar, fromExp, byExp, toExp, statseq)
 end proc;
 
 pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
-    print("MWhileForFrom", args);
     rFromExp  := ReduceExp(fromExp);
     rByExp    := ReduceExp(byExp);
     rToExp    := ReduceExp(toExp);    
