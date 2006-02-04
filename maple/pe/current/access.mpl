@@ -1,5 +1,10 @@
 Header   := proc(x) option inline; op(0,x) end proc:
 
+
+# for pairs
+Fst := proc(x) option inline; op(1,x) end proc;
+Snd := proc(x) option inline; op(2,x) end proc;
+
 # for MStatic
 SVal := proc(x::specfunc(anything, MStatic)) op(x) end proc;
 # for MBoth

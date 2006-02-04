@@ -81,7 +81,7 @@ ToM := module()
              _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING, _Inert_COMPLEX,
              _Inert_RATIONAL, _Inert_EXPSEQ, _Inert_LIST, _Inert_SET,
              _Inert_PARAM, _Inert_LOCAL, _Inert_NAME,_Inert_ASSIGNEDNAME, _Inert_TABLEREF,
-             _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS, _Inert_UNEVAL});
+             _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS, _Inert_UNEVAL, _Inert_TABLE});
     end proc;
     
     
@@ -92,17 +92,18 @@ ToM := module()
         q := SimpleQueue();
 
         # eval doesn't work properly for statments, so must remove nested lambdas
-        lambdas := table();
+        lambdaz := table();
         lamGen := NameGenerator("lambda");
         removeLambda := proc()
             marker := lamGen();
-            lambdas[marker] := _Inert_PROC(args);
+            print("marker", marker);
+            lambdaz[marker] := _Inert_PROC(args);
             MarkedLambda(marker);
         end proc;
 
         # replace lambdas after the expression has been split
         replaceLambda := proc(marker)
-            lambdas[marker]
+            `if`(assigned(lambdaz[marker]), lambdaz[marker], MarkedLambda(marker))
         end proc;
 
         # generation of assigns is a side effect of nested proc
@@ -278,7 +279,22 @@ ToM := module()
     
     # remember tables are not considered
     m[_Inert_HASHTAB] := () -> MExpSeq();
+    
+    
 
+    m[_Inert_TABLE] := proc(indexFcn, hashTab)
+        if indexFcn <> _Inert_EXPSEQ() then
+            error "custom indexing functions are not supported"
+        end if;
+
+        processHashPair := proc(pair)
+            MEquation(itom(Fst(pair)), itom(Snd(pair)));
+        end proc;
+    
+        lst := MList(MExpSeq(op(map(processHashPair, hashTab))));
+        MFunction(ProtectedForm("table"), MExpSeq(lst));
+    end proc;
+    
     
     m[_Inert_FORFROM] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
         ss1, e1 := splitReturn(loopVar);

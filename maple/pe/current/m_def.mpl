@@ -35,7 +35,7 @@ M := module()
             if assigned(tbl[h]) then
                 return tbl[h](op(code));
             end if;
-            error cat(n, ", %1 not supported"), h;
+            error cat(n, ", %1 not supported yo"), h;
         end proc;
         # takes two args
         toForm2 := (y, z) -> (toForm(y), toForm(z));
