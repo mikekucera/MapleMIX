@@ -12,14 +12,15 @@ interface(labelling=false):
 with(PEOptions):
 
 opts := PEOptions();
-#opts:-addFunction(PURE, DUP);
+opts:-addFunction(PURE, DUP);
 opts:-addFunction(PURE, Domains:-RepeatedSquaring);
 
 xx := proc() local C,x,m,m2;
     C := DUP(Q,x);
     m := C[Input](x^4-10*x^2+1);
-    m2 := C[`^`](m,2);
-    return C[Output](m2);
+    return m;
+    #m2 := C[`^`](m,2);
+    #return C[Output](m2);
 end proc;
 
 

@@ -1,22 +1,26 @@
 ToM := module()
     export ModuleApply;
     local MapStack, isInertTrue,
-    	  itom, itom2, mapitom,  m, gen, getVar, knownNames;
+    	  itom, itom2, mapitom,  m, gen, lamGen, getVar, knownNames;
 
     m := table();
 
     itom, itom2, mapitom := createTableProcs("ToM", m);
 
     gen := NameGenerator("m");
+    lamGen := NameGenerator("lambda");
     
     ModuleApply := proc(x::inert)
+        #InertForms:-Print(x);
     	MapStack := SimpleStack();
     	knownNames := table();
     	res := itom(x);
     	names := {op(map(op, [indices(knownNames)]))};
     	knownNames := 'knownNames';
 		MapStack := 'MapStack';
+		#Print(res);
 		res, names;
+		
     end proc;
 
     addName := proc(n)
@@ -80,38 +84,18 @@ ToM := module()
              _Inert_AND, _Inert_OR, _Inert_XOR, _Inert_NOT, _Inert_INTPOS,
              _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING, _Inert_COMPLEX,
              _Inert_RATIONAL, _Inert_EXPSEQ, _Inert_LIST, _Inert_SET,
-             _Inert_PARAM, _Inert_LOCAL, _Inert_NAME,_Inert_ASSIGNEDNAME, _Inert_TABLEREF,
+             _Inert_PARAM, _Inert_LOCAL, _Inert_LEXICAL_LOCAL, _Inert_NAME,
+             _Inert_ASSIGNEDNAME, _Inert_TABLEREF,
              _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS, _Inert_UNEVAL, _Inert_TABLE});
     end proc;
-    
-    
-
 
     # takes an inert expression and splits it
     splitAssigns := proc(e::inert)
         q := SimpleQueue();
-
-        # eval doesn't work properly for statments, so must remove nested lambdas
-        lambdaz := table();
-        lamGen := NameGenerator("lambda");
-        removeLambda := proc()
-            marker := lamGen();
-            print("marker", marker);
-            lambdaz[marker] := _Inert_PROC(args);
-            MarkedLambda(marker);
-        end proc;
-
-        # replace lambdas after the expression has been split
-        replaceLambda := proc(marker)
-            `if`(assigned(lambdaz[marker]), lambdaz[marker], MarkedLambda(marker))
-        end proc;
-
-        # generation of assigns is a side effect of nested proc
+        
         examineFunc := proc(f)
             local newvar;
-            if Header(f) = MarkedLambda then
-                MFunction(replaceLambda(op(f)), args[2..-1]);
-            elif member(convert(op(1,f), name), intrinsic) then
+            if member(convert(op(1,f), name), intrinsic) then
                 MFunction(args);
             else
                 newvar := gen();
@@ -120,10 +104,23 @@ ToM := module()
                 MSingleUse(newvar);
             end if;
         end proc;
+    
+        doIt := proc(expr)
+            h := Header(expr);
+            if not type(expr, inert) or h = _Inert_PROC then
+                expr;
+            elif h = _Inert_FUNCTION then
+                examineFunc(op(map(doIt,expr)))
+            else
+                map(doIt, expr);
+            end if;
+        end proc;
+        # generation of assigns is a side effect of nested proc
         
-        res := eval(e,   [_Inert_PROC = removeLambda]);
-        res := eval(res, [_Inert_FUNCTION = examineFunc]);
-        res := eval(res, [MarkedLambda = replaceLambda]);
+        #print("before", e);
+        
+        res := doIt(e);
+        #print("after", res);
         return q:-toList(), itom(res);
     end proc;
 
@@ -149,7 +146,8 @@ ToM := module()
     m['Integer'] := () -> args;
     m[MSingleUse] := MSingleUse;
     m[MarkedLambda] := MarkedLambda;
-
+    m[MProc] := MProc;
+    
     m[_Inert_NAME]     := MName @ mapitom;
     m[_Inert_LOCAL]    := x -> MLocal(getVar('locals', x));
     m[_Inert_PARAM]    := x -> MParam(getVar('params', x));

@@ -70,3 +70,7 @@ end proc;
 keys := proc(tbl) option inline;
     map(op, [indices(tbl)])
 end proc;
+
+hasOption := proc(n::name, p::procedure)
+    member(n, {op(3, eval(p))});
+end proc;

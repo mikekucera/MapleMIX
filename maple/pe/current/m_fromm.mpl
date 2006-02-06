@@ -69,6 +69,11 @@ FromM := module()
     inrt[MBoth] := proc(s, d)
         mtoi(d);
     end proc;
+    
+    inrt[MarkedLambda] := proc()
+        print("MarkedLambda", args);
+        error "(FromM) MarkedLambda not supported";
+    end proc;
 
     inrt[MParam]     := n -> _Inert_PARAM(MapStack:-top()['params'](n));
     inrt[MLocal]     := n -> _Inert_LOCAL(MapStack:-top()['locals'](n));

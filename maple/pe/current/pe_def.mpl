@@ -50,10 +50,10 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
         lprint("debug session exited");
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated");
         return;
-    #catch:
-    #    lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
-    #    print(lastexception);
-    #    error;
+    catch:
+        lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
+        print(lastexception);
+        error;
         #return copy(code);
     end try;
 
@@ -685,7 +685,7 @@ peFunction := proc(funRef::Dynamic,
     
     sfun := SVal(fun);
     
-    if type(eval(sfun), `procedure`) and not member('builtin', [op(3, eval(sfun))])then
+    if type(eval(sfun), `procedure`) and not ormap(hasOption, ['builtin','pe_thunk'], eval(sfun)) then
         # if the procedure is builtin then do what the else clause does
         newName := gen(cat(op(1,funRef),"_"));
         peFunction_StaticFunction(funRef, eval(sfun), argExpSeq, newName, unfold, residualize, symbolic);

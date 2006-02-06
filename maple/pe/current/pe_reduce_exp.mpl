@@ -46,6 +46,7 @@ ReduceExp := module()
             red[h](op(exp));
         else
             #exp;
+            print("exp", exp);
             error "(reduce) Reduction of %1 not supported yet", h;
         end if;        
     end proc;
@@ -341,7 +342,10 @@ ReduceExp := module()
         FromInert(M:-FromM(MAssignedLocalName(args)));
     end proc;
 
-
+    red[MLocalName] := proc()
+        FromInert(M:-FromM(MLocalName(args)));
+    end proc;
+    
     # a closure is created
     red[MProc] := proc()
         p := MProc(args);
@@ -386,7 +390,7 @@ ReduceExp := module()
     
     red[MUneval] := proc(e)
         if member(Header(e), {MName, MAssignedName}) then
-            print("here", FromInert(_Inert_UNEVAL(ToInert(convert(op(1,e), name)))));
+            #print("here", FromInert(_Inert_UNEVAL(ToInert(convert(op(1,e), name)))));
             FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), name))));
         elif member(Header(e), {MGeneratedName, MSingleUse, MLocal}) then
             FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), `local`))));
