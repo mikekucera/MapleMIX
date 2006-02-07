@@ -12,7 +12,7 @@ interface(labelling=false):
 with(PEOptions):
 
 opts := PEOptions();
-opts:-addFunction(PURE, DUP);
+#opts:-addFunction(PURE, DUP);
 opts:-addFunction(PURE, Domains:-RepeatedSquaring);
 
 xx := proc() local C,x,m,m2;

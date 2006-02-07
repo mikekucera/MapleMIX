@@ -11,7 +11,8 @@ ToM := module()
     lamGen := NameGenerator("lambda");
     
     ModuleApply := proc(x::inert)
-        #InertForms:-Print(x);
+        #print("ToM called");
+        #print(x);
     	MapStack := SimpleStack();
     	knownNames := table();
     	res := itom(x);
@@ -20,10 +21,10 @@ ToM := module()
 		MapStack := 'MapStack';
 		#Print(res);
 		res, names;
-		
     end proc;
 
     addName := proc(n)
+        print("addName", n);
         if assigned(knownNames) then
             knownNames[n] := NULL;
         end if;
@@ -34,6 +35,7 @@ ToM := module()
             if var <> inertDollar then
                 properOp := x -> op(`if`(Header(x)=_Inert_DCOLON, [1,1], 1) , x);     
                 tbl[i] := properOp(`if`(Header(var)=_Inert_ASSIGN, op(1,var), var));
+                print("here4");
                 addName(tbl[i]);
             end if
         end proc;
@@ -56,6 +58,7 @@ ToM := module()
         createMap(varSeq,
             proc(tbl, i, var)
                 tbl[i] := Name(var);
+                print("here5");
                 addName(Name(var));
             end proc)
     end proc;
@@ -84,7 +87,7 @@ ToM := module()
              _Inert_AND, _Inert_OR, _Inert_XOR, _Inert_NOT, _Inert_INTPOS,
              _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING, _Inert_COMPLEX,
              _Inert_RATIONAL, _Inert_EXPSEQ, _Inert_LIST, _Inert_SET,
-             _Inert_PARAM, _Inert_LOCAL, _Inert_LEXICAL_LOCAL, _Inert_NAME,
+             _Inert_PARAM, _Inert_LOCAL, _Inert_NAME,
              _Inert_ASSIGNEDNAME, _Inert_TABLEREF,
              _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS, _Inert_UNEVAL, _Inert_TABLE});
     end proc;
@@ -96,9 +99,10 @@ ToM := module()
         examineFunc := proc(f)
             local newvar;
             if member(convert(op(1,f), name), intrinsic) then
-                MFunction(args);
+                MFunction(mapitom(args));
             else
                 newvar := gen();
+                print("here1");
                 addName(newvar);
                 q:-enqueue(MAssignToFunction(MSingleUse(newvar), MFunction(mapitom(args))));
                 MSingleUse(newvar);
@@ -110,16 +114,19 @@ ToM := module()
             if not type(expr, inert) or h = _Inert_PROC then
                 expr;
             elif h = _Inert_FUNCTION then
-                examineFunc(op(map(doIt,expr)))
+                examineFunc(op(map(procname,expr)))
             else
-                map(doIt, expr);
+                map(procname, expr);
             end if;
         end proc;
         # generation of assigns is a side effect of nested proc
         
         #print("before", e);
         
+        
         res := doIt(e);
+        #print("doIt", e);
+        #print("doneIt", res);
         #print("after", res);
         return q:-toList(), itom(res);
     end proc;
@@ -145,8 +152,10 @@ ToM := module()
     m['string'] := () -> args;
     m['Integer'] := () -> args;
     m[MSingleUse] := MSingleUse;
-    m[MarkedLambda] := MarkedLambda;
     m[MProc] := MProc;
+    m[MFunction] := MFunction;
+    # MFunction is introduced prematurely by the expression splitter
+    #m[MFunction] := MFunction @ mapitom;
     
     m[_Inert_NAME]     := MName @ mapitom;
     m[_Inert_LOCAL]    := x -> MLocal(getVar('locals', x));
@@ -306,7 +315,7 @@ ToM := module()
             #print(ss5);
             #print(e5);
             #error "possible side-effecting while condition";
-            print("warning, possible side-effecting while condition");
+            print("warning, possible side-effecting while condition", whileExp);
         end if;
         
         assigns := ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4);
@@ -420,8 +429,7 @@ ToM := module()
         end if;
     end proc;
 
-    # MFunction is introduced prematurely by the expression splitter
-    m[MFunction] := MFunction @ mapitom;
+    
 
 
     # assumes splitter has already been run on tr
@@ -430,11 +438,13 @@ ToM := module()
         if Header(tbl) = MTableref then
             assigns, n := splitTableRef(tbl);
             newName := gen();
+            print("here2");
             addName(newName);
             new := MLocal(newName);
             [op(assigns), MAssign(new, MTableref(n, IndexExp(tr)))], new;
         else
             newName := gen();
+            print("here3");
             addName(newName);
             new := MLocal(newName);
             [MAssign(new, tr)], new;

@@ -32,6 +32,7 @@ M := module()
         # takes one arg
         toForm := proc(code)
             h := op(0, code);
+            #print("toForm", h);
             if assigned(tbl[h]) then
                 return tbl[h](op(code));
             end if;

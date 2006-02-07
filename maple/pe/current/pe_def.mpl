@@ -133,7 +133,6 @@ end proc;
 # partially evaluates an arbitrary M statement
 peM := proc(m::mform)
     h := Header(m);
-    
     if assigned(pe[h]) then
         return pe[h](op(m));
     end if;
@@ -387,8 +386,6 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
 end proc;
 
 pe[MWhile] := proc()
-    print("while loop fould");
-    print(args);
     error "While loops are not supported";
 end proc;
 

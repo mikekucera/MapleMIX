@@ -35,7 +35,7 @@ ReduceExp := module()
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
         #if not res::Static then
-            #print("reduced", res);
+            print("reduced", res);
         #end if;
         res;
     end proc;
@@ -363,7 +363,7 @@ ReduceExp := module()
     replaceClosureLexical := proc(lexMap, n)
         closureEnv := callStack:-topEnv();
         s := op(n);
-        thunk := proc()
+        lookup := proc()
             if closureEnv:-isStatic(s) then
                 # TODO, pass hasDyn to getVal?
                 closureEnv:-getVal(s);
@@ -383,8 +383,11 @@ ReduceExp := module()
                 error "dynamic lexicals in closure is not supported: %1", s; 
             end if;
         end proc;
+        
+        thunk := proc() lookup() end proc;        
         thunk := setattribute(eval(thunk), 'pe_thunk'); # used to identify these thunks later
-        MFunction(MStatic(eval(thunk)), MExpSeq());        
+        
+        MFunction(MStatic(thunk), MExpSeq());        
     end proc;
     
     
