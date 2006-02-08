@@ -292,12 +292,7 @@ ReduceExp := module()
     reduceName := f -> proc(n) local hasDyn;
         if not assigned(genv) or genv:-isDynamic(n) then
             c := convert(n, name);
-            evaled := eval(c);
-            if evaled::Or(`module`, 'procedure', 'table') then
-                c
-            else
-                evaled
-            end if;
+            `if`(type(c, 'last_name_eval'), c, eval(c));
         else
             val := genv:-getVal(n, 'hasDyn');
             `if`(hasDyn and treatAsDynamic, f(n), val);
