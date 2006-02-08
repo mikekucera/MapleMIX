@@ -70,4 +70,25 @@ Try(300, got, expected);
 
 #######################################################################
 
+oddd := proc(x) type(x, odd) end proc;
+
+p := proc(x) local a, i; 
+    a := 1;
+    for i from 1 to 10 while oddd(a) do
+        a := a + x;
+    end do;
+    a;
+end proc;
+
+goal := proc() p(2) end proc;
+
+ped := OnPE(goal);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc () 21 end proc);
+
+Try(400, got, expected);
+
+#######################################################################
+
 #end test

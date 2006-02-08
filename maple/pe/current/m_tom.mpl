@@ -282,49 +282,40 @@ ToM := module()
         ss3, e3 := splitReturn(byExp);
         ss4, e4 := splitReturn(toExp);
         ss5, e5 := splitReturn(whileExp);
-        
-        if nops(ss5) > 0 then
-            #print("error", whileExp);
-            #print(ss5);
-            #print(e5);
-            #error "possible side-effecting while condition";
-            print("warning, possible side-effecting while condition", whileExp);
-        end if;
-        
-        assigns := ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4);
+
         body := RemoveNext(statseq);
+        body := MStatSeq(itom(body), ssop(ss5));
 
         if toExp = _Inert_EXPSEQ() then # its a simple while loop
-            MStatSeq(assigns, MWhile(e1, e2, e3, e5, MStatSeq(itom(body))));
+            loop := MWhile(e1, e2, e3, e5, body);
         elif whileExp = inertTrue then
-            MStatSeq(assigns, MForFrom(e1, e2, e3, e4, MStatSeq(itom(body))));
+            loop := MForFrom(e1, e2, e3, e4, body);
         else
-            MStatSeq(assigns, MWhileForFrom(e1, e2, e3, e4, e5, MStatSeq(itom(body))));
+            loop := MWhileForFrom(e1, e2, e3, e4, e5, body);
         end if;
+        
+        assigns := ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4), ssop(ss5);
+        MStatSeq(assigns, loop);
     end proc;
     
     
     m[_Inert_FORIN] := proc(loopVar, inExp, whileExp, statseq)
         ss1, e1 := splitReturn(loopVar);
         ss2, e2 := splitReturn(inExp);
+        ss3, e3 := splitReturn(whileExp);
         
         body := RemoveNext(statseq);
+        body := MStatSeq(itom(body), ssop(ss3));
         
         if whileExp = inertTrue then
-            MStatSeq(ssop(ss1), ssop(ss2), 
-                MForIn(e1, e2, MStatSeq(itom(body))));
+            loop := MForIn(e1, e2, body);
         else
-            ss3, e3 := splitReturn(whileExp);
-            
-            if nops(ss3) > 0 then
-                error "possible side-effecting while condition";
-            end if;
-            
-            #TODO, if nops(ss3) > 0 then error, maybe sideeffecting while condition (not supported)
-            MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), 
-                MWhileForIn(e1, e2, e3, MStatSeq(itom(body))));
+            loop := MWhileForIn(e1, e2, e3, body);
         end if;
+        
+        MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), loop);
     end proc;    
+    
     
     # removes a common usage of next in loops
     RemoveNext := proc(loopBody::inert(STATSEQ)) local c;
