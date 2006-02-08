@@ -18,7 +18,7 @@ OnENV := module()
 ##########################################################################################
 
             ss := SuperStack(newFrame);
-            tblAddresses := table();    # stores memory addresses of rebuilt tables
+            mapAddressToTable := table();    # stores memory addresses of rebuilt tables
 
 ##########################################################################################
 
@@ -93,12 +93,7 @@ OnENV := module()
                             return rebuildTable(frame:-tbls[key]);
                         end if;
                     elif assigned(frame:-vals[key]) then
-                        # TODO, figure this out!
-                        #if type(frame:-vals[key], 'procedure') then
-                        #    return eval(frame:-vals[key]);
-                        #else
-                            return frame:-vals[key];
-                        #end if;
+                        return frame:-vals[key];
                     end if;
                 end do;
                 error "can't get dynamic value %1", key;
@@ -140,9 +135,9 @@ OnENV := module()
                 if type(x, `table`) then
                     frame:-vals[key] := evaln(frame:-vals[key]);
                     addr := addressof(eval(x));
-                    if assigned(tblAddresses[addr]) then
+                    if assigned(mapAddressToTable[addr]) then
                         frame := ss:-top();
-                        frame:-tbls[key] := tblAddresses[addr]; # make var point to existing table
+                        frame:-tbls[key] := mapAddressToTable[addr]; # make var point to existing table
                     else
                         rec := addTable(key);
                         rec:-elts := copy(x);
@@ -208,7 +203,8 @@ OnENV := module()
                 do
                     for key in keys(rec:-elts) do
                         if not assigned(tbl[key]) then
-                            tbl[key] := eval(rec:-elts[key]);
+                            #tbl[key] := eval(rec:-elts[key]);
+                            tbl[key] := rec:-elts[key];
                             if nargs > 1 and tbl[key] = OnENV:-DYN then
                                 hasDyn := true;
                             end if;
@@ -217,7 +213,7 @@ OnENV := module()
                     if not assigned(rec:-link) then break end if;
                     rec := rec:-link;
                 end do;
-                tblAddresses[addressof(eval(tbl))] := chain;
+                mapAddressToTable[addressof(eval(tbl))] := chain;
                 tbl;
             end proc;
 

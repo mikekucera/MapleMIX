@@ -11,20 +11,16 @@ ToM := module()
     lamGen := NameGenerator("lambda");
     
     ModuleApply := proc(x::inert)
-        #print("ToM called");
-        #print(x);
     	MapStack := SimpleStack();
     	knownNames := table();
     	res := itom(x);
     	names := {op(map(op, [indices(knownNames)]))};
     	knownNames := 'knownNames';
 		MapStack := 'MapStack';
-		#Print(res);
 		res, names;
     end proc;
 
     addName := proc(n)
-        print("addName", n);
         if assigned(knownNames) then
             knownNames[n] := NULL;
         end if;
@@ -35,7 +31,6 @@ ToM := module()
             if var <> inertDollar then
                 properOp := x -> op(`if`(Header(x)=_Inert_DCOLON, [1,1], 1) , x);     
                 tbl[i] := properOp(`if`(Header(var)=_Inert_ASSIGN, op(1,var), var));
-                print("here4");
                 addName(tbl[i]);
             end if
         end proc;
@@ -58,7 +53,6 @@ ToM := module()
         createMap(varSeq,
             proc(tbl, i, var)
                 tbl[i] := Name(var);
-                print("here5");
                 addName(Name(var));
             end proc)
     end proc;
@@ -102,7 +96,6 @@ ToM := module()
                 MFunction(mapitom(args));
             else
                 newvar := gen();
-                print("here1");
                 addName(newvar);
                 q:-enqueue(MAssignToFunction(MSingleUse(newvar), MFunction(mapitom(args))));
                 MSingleUse(newvar);
@@ -121,13 +114,7 @@ ToM := module()
         end proc;
         # generation of assigns is a side effect of nested proc
         
-        #print("before", e);
-        
-        
         res := doIt(e);
-        #print("doIt", e);
-        #print("doneIt", res);
-        #print("after", res);
         return q:-toList(), itom(res);
     end proc;
 
@@ -231,20 +218,7 @@ ToM := module()
             end if;
         end do;
         
-        MParamSeq(qtoseq(paramq)), MKeywords(qtoseq(keywordq));
-        
-        
-        
-        #lastArg := [args][-1];
-        # if there are keyword parameters
-        #print("lastArg", lastArg);
-        #if Header(lastArg) = _Inert_SET then
-        #    MParamSeq(op(map(paramSpec, [args[1..-2]]))),
-        #    MKeywords(op(map(paramSpec, [op(op(lastArg))])))
-        #else
-        #    MParamSeq(op(map(paramSpec, [args]))),
-        #    MKeywords()
-        #end if;                 
+        MParamSeq(qtoseq(paramq)), MKeywords(qtoseq(keywordq));             
     end proc;
     
     paramSpec := proc(x)
@@ -271,7 +245,6 @@ ToM := module()
         end if;
         
         if not type(n, string)  then
-            print(x);
             error "unknown form in parameter sequence: %1", n
         end if;
         
@@ -438,13 +411,11 @@ ToM := module()
         if Header(tbl) = MTableref then
             assigns, n := splitTableRef(tbl);
             newName := gen();
-            print("here2");
             addName(newName);
             new := MLocal(newName);
             [op(assigns), MAssign(new, MTableref(n, IndexExp(tr)))], new;
         else
             newName := gen();
-            print("here3");
             addName(newName);
             new := MLocal(newName);
             [MAssign(new, tr)], new;

@@ -35,7 +35,7 @@ ReduceExp := module()
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
         #if not res::Static then
-            print("reduced", res);
+        #    print("reduced", res);
         #end if;
         res;
     end proc;
@@ -45,8 +45,6 @@ ReduceExp := module()
         if assigned(red[h]) then
             red[h](op(exp));
         else
-            #exp;
-            print("exp", exp);
             error "(reduce) Reduction of %1 not supported yet", h;
         end if;        
     end proc;
@@ -188,8 +186,6 @@ ReduceExp := module()
     
     # TODO, this is not correct, because support for evaln is not there yet
     specFunc["assigned"] := proc(expseq)
-        #print("assigned", expseq);
-        #env :- display();
         if nops(expseq) <> 1 then
             error "assigned expects 1 argument, but received %1", nops(expseq);
         end if;
@@ -393,7 +389,6 @@ ReduceExp := module()
     
     red[MUneval] := proc(e)
         if member(Header(e), {MName, MAssignedName}) then
-            #print("here", FromInert(_Inert_UNEVAL(ToInert(convert(op(1,e), name)))));
             FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), name))));
         elif member(Header(e), {MGeneratedName, MSingleUse, MLocal}) then
             FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), `local`))));
