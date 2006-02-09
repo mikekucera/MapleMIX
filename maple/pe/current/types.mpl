@@ -17,8 +17,8 @@ PETypes := module() option package;
 `type/Dynamic` := And('mform', Not(specfunc(anything, 'MStatic')), Not(Both)):
 `type/Static`  := And(Not(Dynamic), Not(Both));
 
-`type/Global` := 'Or'('identical'(MName), 'identical'(MAssignedName), mform({Name, AssignedName})):
-`type/Local`  := 'Or'('identical'(MLocal), 'identical'(MParam), 'identical'(MGeneratedName), mform({Local, GenertatedName, Param})):
+`type/Global` := 'Or'('identical'(MName), 'identical'(MAssignedName), 'identical'(MCatenate), mform({Name, AssignedName, MCatenate})):
+`type/Local`  := 'Or'('identical'(MLocal), 'identical'(MParam), 'identical'(MGeneratedName), 'identical'(MSingleUse), mform({Local, GenertatedName, Param, SingleUse})):
 
 
 ModuleLoad := proc()

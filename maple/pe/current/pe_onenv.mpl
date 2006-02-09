@@ -140,7 +140,7 @@ OnENV := module()
                         frame:-tbls[key] := mapAddressToTable[addr]; # make var point to existing table
                     else
                         rec := addTable(key);
-                        rec:-elts := copy(x);
+                        rec:-elts := x;
                     end if;
                 else
                     frame:-tbls[key] := evaln(frame:-tbls[key]);

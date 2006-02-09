@@ -228,9 +228,9 @@ end proc;
 pe[MAssign] := proc(n::mform({Local, GeneratedName, Name, AssignedName, Catenate}), expr::mform)
     # MCatenate is always global
     reduced := ReduceExp(expr);
-    # use the appropriate environment based on the scope of the variable
-    env := `if`(member(Header(n), {MLocal, MGeneratedName}), callStack:-topEnv(), genv);
 
+    env := `if`(n::Global, genv, callStack:-topEnv());
+    
     if Header(n) = MCatenate then
         var := ReduceExp(n);
         if var::Dynamic then
@@ -263,7 +263,9 @@ end proc;
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
-    env := `if`(Header(Var(tr))=MLocal, callStack:-topEnv(), genv);
+    
+    env := `if`(Var(tr)::Global, genv, callStack:-topEnv());
+    
     # ToM will ensure that tableref will be a name
     var := Name(Var(tr));
 

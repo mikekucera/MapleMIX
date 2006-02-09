@@ -192,7 +192,7 @@ ToM := module()
 
     m[_Inert_MEMBER]    := MMember    @ mapitom;
     m[_Inert_ATTRIBUTE] := MAttribute @ mapitom;
-
+    #m[_Inert_ATTRIBUTE] := () -> NULL;
     
     m[_Inert_LOCALSEQ]       := MLocalSeq       @ mapitom;
     m[_Inert_OPTIONSEQ]      := MOptionSeq      @ mapitom;

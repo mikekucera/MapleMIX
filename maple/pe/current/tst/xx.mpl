@@ -12,15 +12,14 @@ interface(labelling=false):
 with(PEOptions):
 
 opts := PEOptions();
-#opts:-addFunction(PURE, DUP);
+opts:-addFunction(PURE, Domains:-UnivariatePolynomial:-ModuleApply);
 opts:-addFunction(PURE, Domains:-RepeatedSquaring);
 
 xx := proc() local C,x,m,m2;
     C := DUP(Q,x);
     m := C[Input](x^4-10*x^2+1);
-    return m;
-    #m2 := C[`^`](m,2);
-    #return C[Output](m2);
+    m2 := C[`^`](m,2);
+    return C[Output](m2);
 end proc;
 
 
@@ -36,4 +35,7 @@ interface(verboseproc=3):
 
 printmod(ps);
 
-ps();
+G := ps();
+#gm := G[Input](x^4-10*x^2+1);
+#gm2 := G[`^`](gm,2);
+#G[Output](gm2);

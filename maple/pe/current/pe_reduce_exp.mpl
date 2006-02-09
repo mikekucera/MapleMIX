@@ -211,7 +211,6 @@ ReduceExp := module()
     end proc;
     
     
-    
     specFunc["seq"] := proc(expseq)
         m := MFunction( M:-ProtectedForm("seq"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
         eval(FromInert(M:-FromM(m)));
@@ -221,6 +220,13 @@ ReduceExp := module()
         m := MFunction( M:-ProtectedForm("if"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
         eval(FromInert(M:-FromM(m)));
     end proc;
+    
+   # specFunc_eval := n -> proc(expseq)
+   #     MFunction(M:-ProtectedForm(n), MExpSeq(op(map(embed, [reduce(expseq)]))));
+   # end proc;
+   # specFunc["eval"] := specFunc_eval("eval");
+   # specFunc["evalb"] := specFunc_eval("evalb");
+   # specFunc["evaln"] := specFunc_eval("evaln");
     
     
     red[MFunction] := proc(f, expseq)
