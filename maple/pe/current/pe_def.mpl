@@ -261,6 +261,7 @@ end proc;
 
 
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
+
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
     
@@ -383,6 +384,9 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
         end do;   
         unroller:-result();
     else
+        print("rFromExp", rFromExp);
+        print("rByExp", rByExp);
+        print("rToExp", rToExp);
         error "dynamic loops not supported yet";
     end if;
 end proc;
@@ -673,6 +677,9 @@ peFunction := proc(funRef::Dynamic,
                    symbolic::procedure)
     local sfun;
     PEDebug:-FunctionStart(funRef);
+    
+    #print("funRef", funRef);
+    
     fun := ReduceExp(funRef);
 
     if fun::Dynamic then

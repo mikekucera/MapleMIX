@@ -12,14 +12,23 @@ interface(labelling=false):
 with(PEOptions):
 
 opts := PEOptions();
-opts:-addFunction(PURE, Domains:-UnivariatePolynomial:-ModuleApply);
-opts:-addFunction(PURE, Domains:-RepeatedSquaring);
+#opts:-addFunction(PURE, Domains:-UnivariatePolynomial:-ModuleApply);
+
+opts:-addFunction(PURE, Domains:-EuclideanDomain):
+opts:-addFunction(PURE, Domains:-UniqueFactorizationDomain):
+opts:-addFunction(PURE, Domains:-GcdDomain):
+opts:-addFunction(PURE, Domains:-IntegralDomain):
+opts:-addFunction(PURE, Domains:-CommutativeRing):
+opts:-addFunction(PURE, Domains:-Ring):
+
+opts:-addFunction(PURE, Domains:-RepeatedSquaring):
 
 xx := proc() local C,x,m,m2;
     C := DUP(Q,x);
     m := C[Input](x^4-10*x^2+1);
-    m2 := C[`^`](m,2);
-    return C[Output](m2);
+    return m;
+    #m2 := C[`^`](m,2);
+    #return C[Output](m2);
 end proc;
 
 

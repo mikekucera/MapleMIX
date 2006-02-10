@@ -317,7 +317,19 @@ ReduceExp := module()
     reduceVar := f -> proc(x) local hasDyn;
         if env:-isStatic(x) then
             val := env:-getVal(x, 'hasDyn');
-            `if`(hasDyn and treatAsDynamic, f(x), val);
+            #`if`(hasDyn and treatAsDynamic, f(x), val);
+            if hasDyn and treatAsDynamic then
+                return f(x);
+            end if;
+            if type(val, name) and genv:-isStatic(convert(val, string)) then
+                val := genv:-getVal(convert(val,string), 'hasDyn');
+                if hasDyn and treatAsDynamic then
+                    return f(x);
+                else
+                    return val;
+                end if;
+            end if;
+            val
         else
             f(x);
         end if;
@@ -390,10 +402,17 @@ ReduceExp := module()
     
     red[MUneval] := proc(e)
         if member(Header(e), {MName, MAssignedName}) then
-            FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), name))));
+            if type(convert(Name(e), name), protected) then
+                FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), name))));
+            else
+                `tools/gensym`(Name(e));
+            end if;
         elif member(Header(e), {MGeneratedName, MSingleUse, MLocal}) then
             FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), `local`))));
+            #MUneval(embed(e));
+            #error "local uneval not supported yet";
         else
+            error "dynamic uneval not supported";
             MUneval(embed(e));
         end if;
     end proc;
