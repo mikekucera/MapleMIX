@@ -17,8 +17,9 @@ MiniMapleInterpreter := module() option package;
         if h = mmAssign then
             env[op(1,s)] := evalExpr(op(2,s), env, defs);
         elif h = mmTableAssign then
-            i := evalExpr(op(2,s), env);
-            env[op(1,s)][i] := evalExpr(op(3,s), env, defs);
+            i := evalExpr(op(2,s), env, defs);
+            t := env[op(1,s)];
+            t[i] := evalExpr(op(3,s), env, defs);
         elif h = mmIfElse then
             c := evalExpr(op(1,s), env, defs);
             if c then
@@ -40,6 +41,8 @@ MiniMapleInterpreter := module() option package;
             end do;
         elif h = mmExpr then
             evalExpr(op(1,s), env, defs);
+        elif h = mmError then
+            error op(1,s);
         else
             error "unknown statement form: %1", h;
         end if;
@@ -48,7 +51,7 @@ MiniMapleInterpreter := module() option package;
     
     evalExpr := proc(e, env, defs)
         h := op(0, e);
-        if h = mmInt or h = mmString then
+        if h = mmInt or h = mmString or h = mmName then
             op(1,e);
         elif h = mmTable then
             table();
@@ -92,13 +95,17 @@ MiniMapleInterpreter := module() option package;
     
     evalBin := proc(mm, e1, e2)
         if mm = mmEq then 
-            e1 = e2
+            evalb(e1 = e2)
         elif mm = mmPlus then 
             e1 + e2
         elif mm = mmMinus then
             e1 - e2
         elif mm = mmTimes then
             e1 * e2
+        elif mm = mmAnd then
+            e1 and e2
+        elif mm = mmOr then
+            e1 or e2
         else
             error "unknown binary operator: %1", mm;
         end if;
