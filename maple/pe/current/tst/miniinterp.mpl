@@ -196,7 +196,9 @@ goal := proc(x) local m, t;
 end proc:
 
 
-opts := PEOptions():-setConsiderExpseq(false);
+opts := PEOptions();
+opts:-setConsiderExpseq(false);
+opts:-setIgnoreCommands(true);
 ps := OnPE(goal, opts);
 
 printmod(ps);

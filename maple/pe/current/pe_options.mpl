@@ -30,6 +30,14 @@ PEOptions := module()
             getConsiderExpseq := () -> considerExpseq;
             
             
+            ignoreCommands := false;
+            setIgnoreCommands := proc(x::boolean)
+                ignoreCommands := x;
+                thismodule;
+            end proc;
+            getIgnoreCommands := () -> ignoreCommands;
+            
+            
             functions := table();
             
             addFunction := proc(typ :: {identical(PEOptions:-PURE),

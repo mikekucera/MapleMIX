@@ -74,11 +74,11 @@ MiniMapleInterpreter := module() option package;
             table();
         elif h = mmVar then
             &onpe("lprint", "evalExpr", "mmVar");
-            if assigned(env[op(1,e)]) then
+            #if assigned(env[op(1,e)]) then
                 env[op(1,e)]
-            else
-                error "variable has no value: %1", e;
-            end if;
+            #else
+            #    error "variable has no value: %1", e;
+            #end if;
         elif h = mmLookup then
             &onpe("lprint", "evalExpr", "mmLookup");
             e1 := evalExpr(op(1,e), env, defs);

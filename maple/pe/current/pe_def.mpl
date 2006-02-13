@@ -189,6 +189,10 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
 end proc;
 
 pe[MCommand] := proc(command)
+    if gopts:-getIgnoreCommands() then
+        return NULL;
+    end if;
+
     #count := PEDebug:-GetStatementCount();
     #lprint("command", command, "at statement", count);
     if command = "display" then

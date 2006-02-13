@@ -140,22 +140,16 @@ OnENV := module()
                 frame:-dyn := frame:-dyn minus {key};
 
                 if type(x, `table`) then
-                    print("table");
                     frame:-vals[key] := evaln(frame:-vals[key]);
                     addr := addressof(eval(x));
                     
-                    print(assigned(prevEnvLink));
-                    
                     if assigned(mapAddressToTable[addr]) then
-                        print("here1");
                         frame := ss:-top();
                         frame:-tbls[key] := mapAddressToTable[addr]; # make var point to existing table
                     elif assigned(prevEnvLink) and assigned(prevEnvLink:-mapAddressToTable[addr]) then
-                        print("here2");
                         frame := ss:-top();
                         frame:-tbls[key] := prevEnvLink:-mapAddressToTable[addr];
                     else
-                        print("here3");
                         rec := addTable(key);
                         rec:-elts := x;
                     end if;
