@@ -35,6 +35,7 @@ ReduceExp := module()
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
         #if not res::Static then
+        #    print("reducing", exp);
         #    print("reduced", res);
         #end if;
         res;

@@ -144,6 +144,9 @@ FromM := module()
     inrt[MWhileForIn]   := _Inert_FORIN   @ mapmtoi;
     inrt[MWhileForFrom] := _Inert_FORFROM @ mapmtoi;
     
+    inrt[MCommand] := proc(n)
+        _Inert_FUNCTION(_Inert_NAME("&onpe"), _Inert_EXPSEQ(_Inert_STRING(n)));
+    end proc;
     
     inrt[MParamSpec] := proc(n, t, d) # name, type, default
         param := _Inert_NAME(n);

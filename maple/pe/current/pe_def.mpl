@@ -50,6 +50,10 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
         lprint("debug session exited");
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated");
         return;
+    catch "hard stop":
+        lprint("hard stop caused by stop command");
+        lprint(PEDebug:-GetStatementCount(), "statements partially evaluated");
+        return;
     catch:
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
         print(lastexception);
@@ -159,7 +163,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         h := Header(stmt);
 
         PEDebug:-StatementStart(stmt);
-
+        
         if h = MIfThenElse then
             q:-enqueue(peIF(stmt, MStatSeq(args[i+1..nargs])));
             PEDebug:-StatementEnd();
@@ -182,6 +186,25 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
     #`if`(q:-empty(), NULL, MStatSeq(qtoseq(q)))
     # TODO, removing usless exprs now is a bit of a hack, a postprocess would be better
     M:-RemoveUselessStandaloneExprs(MStatSeq(qtoseq(q)));
+end proc;
+
+pe[MCommand] := proc(command)
+    #count := PEDebug:-GetStatementCount();
+    #lprint("command", command, "at statement", count);
+    if command = "display" then
+        callStack:-topEnv():-display();
+    elif command = "displaynames" then
+        callStack:-topEnv():-displayNames();
+    elif command = "print" then
+        print(op(2..-1, [args]));
+    elif command = "lprint" then
+        lprint(op(2..-1, [args]));
+    elif command = "stop" then
+        error "hard stop";
+    else
+        error "unknown command: %1", command;
+    end if;
+    NULL;
 end proc;
 
 
@@ -384,9 +407,6 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
         end do;   
         unroller:-result();
     else
-        print("rFromExp", rFromExp);
-        print("rByExp", rByExp);
-        print("rToExp", rToExp);
         error "dynamic loops not supported yet";
     end if;
 end proc;
@@ -677,8 +697,6 @@ peFunction := proc(funRef::Dynamic,
                    symbolic::procedure)
     local sfun;
     PEDebug:-FunctionStart(funRef);
-    
-    #print("funRef", funRef);
     
     fun := ReduceExp(funRef);
 

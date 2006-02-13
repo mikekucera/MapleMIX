@@ -379,7 +379,12 @@ ToM := module()
     end proc;
 
     m[_Inert_FUNCTION] := proc(n, expseq)
-        if member(convert(op(1,n), name), intrinsic) then
+        if op(1,n) = "&onpe" then
+            if nops(expseq) = 0 then
+                error "not enought arguments to command";
+            end if;
+            MCommand(op(map(Name, expseq)));
+        elif member(convert(op(1,n), name), intrinsic) then
             split(expseq, x -> MStandaloneExpr(MFunction(itom(n), x)));
         else
             ss1, r1 := splitReturn(n);

@@ -4,7 +4,7 @@ mminterp := mmProgram(
     mmDef("evalProg", mmParams("prog", "input"),
         mmBlock(
             mmAssign("defs", mmTable()),
-            mmForeach("d", mmVar("prog"),
+            mmForeach(mmVar("d"), mmVar("prog"),
                 mmTableAssign("defs", mmOp(mmInt(1), mmVar("d")), mmVar("d"))
             ),
             mmExpr(mmCall("evalStat", mmArgs(mmOp(mmInt(3), mmOp(mmInt(1), mmVar("prog"))), mmVar("input"), mmVar("defs"))))
@@ -38,7 +38,7 @@ mminterp := mmProgram(
                 ),
                 
             mmIfElse(mmBin(mmEq, mmVar("h"), mmName('mmIfElse')),
-                mmForeach("i", mmVar("s"),
+                mmForeach(mmVar("i"), mmVar("s"),
                     mmExpr(mmCall("evalStat", mmArgs(mmVar("i"), mmVar("env"), mmVar("defs"))))
                 ),
             
@@ -46,7 +46,7 @@ mminterp := mmProgram(
                 mmBlock(
                     mmAssign("var", mmOp(mmInt(1), mmVar("s"))),
                     mmAssign("e1", mmCall("evalExpr", mmArgs(mmOp(mmInt(2), mmVar("s")), mmVar("env"), mmVar("defs")))),
-                    mmForeach("i", mmVar("e1"),
+                    mmForeach(mmVar("i"), mmVar("e1"),
                         mmBlock(
                             mmTableAssign("env", mmVar("var"), mmVar("i")),
                             mmExpr(mmCall("evalStat", mmArgs(mmOp(mmInt(3), mmVar("s")), mmVar("env"), mmVar("defs"))))
@@ -114,7 +114,7 @@ mminterp := mmProgram(
                     mmAssign("ags", mmOp(mmInt(2), mmVar("e"))),
                     mmAssign("i", mmInt(1)),
                     mmAssign("newEnv", mmTable()),
-                    mmForeach("param", mmOp(mmInt(2), mmVar("def")),
+                    mmForeach(mmVar("param"), mmOp(mmInt(2), mmVar("def")),
                         mmBlock(
                             mmTableAssign("newEnv", mmVar("param"),
                                 mmCall("evalExpr", mmArgs(mmOp(mmVar("i"), mmVar("ags")), mmVar("env"), mmVar("defs")))),
@@ -174,26 +174,30 @@ simple := mmProgram(
 ):
 
 
-input := table():
-input["prog"] := simple;
-input["input"] := table(["x" = 10, "y" = 9]);
+runit := proc() local m, t;
+    m["x"] := 10;
+    m["y"] := 9;
+    t["prog"] := simple;
+    t["input"] := m;
+    
+    MiniMapleInterpreter(mminterp, t);
+end proc:
 
-MiniMapleInterpreter(mminterp, input);
-
-
-#goal := proc(x) local m, t;
-#    m["y"] := 9;
-#    m["x"] := 10;
-#    
-#    t["prog"] := simple;
-#    t["input"] := m;
-#    
-#    MiniMapleInterpreter(mminterp, t);
-#end proc:
+runit();
 
 
-#opts := PEOptions();
-#opts:-setConsiderExpseq(false);
-#ps := OnPE(goal, opts);
+goal := proc(x) local m, t;
+    m["x"] := 10;
+    m["y"] := 9;
+    t["prog"] := simple;
+    t["input"] := m;
+    
+    MiniMapleInterpreter(mminterp, t);
+end proc:
 
-#printmod(ps);
+
+opts := PEOptions():-setConsiderExpseq(false);
+ps := OnPE(goal, opts);
+
+printmod(ps);
+

@@ -32,8 +32,9 @@ end proc;
 
 goal(3);
 
-opts := PEOptions();
-opts:-setConsiderExpseq(false);
+opts := PEOptions():
+opts:-setConsiderExpseq(false):
+
 ps := OnPE(goal, opts);
 printmod(ps);
 

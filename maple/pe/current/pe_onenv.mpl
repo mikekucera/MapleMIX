@@ -380,7 +380,8 @@ OnENV := module()
                     print("vals", indices(frame:-vals));
                     print("dyn", frame:-dyn);
                     for tblName in keys(frame:-tbls) do
-                        print("rec", tblName)
+                        rec := frame:-tbls[tblName];
+                        print("rec", tblName, indices(rec:-elts));
                     end do;
                 end do;
             end proc;

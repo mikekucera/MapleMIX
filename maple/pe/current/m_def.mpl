@@ -190,7 +190,7 @@ M := module()
 
         if header = MStatSeq then
             MStatSeq(front, procname(last));
-        elif member(header, {MAssign, MAssignToFunction}) then
+        elif member(header, {MAssign, MAssignToFunction, MTableAssign}) then
             MStatSeq(front, last, MStandaloneExpr(op(1,last)));
         elif header = MIfThenElse then
             MStatSeq(front, MIfThenElse(Cond(last),
