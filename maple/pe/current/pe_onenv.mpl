@@ -10,18 +10,25 @@ OnENV := module()
 
     NewOnENV := proc()
         newEnv := module()
-            local ss, newFrame, lex, argsVal, nargsVal, rebuildTable;
+            local ss, newFrame, lex, argsVal, nargsVal, rebuildTable, prevEnvLink;
             export putVal, getVal, grow, shrink, shrinkGrow, display, markTop,
                    isDynamic, isStatic, isStaticVal, isTblValStatic, isAssigned, 
-                   setValDynamic, equalsTop;
+                   setValDynamic, equalsTop, 
+                   mapAddressToTable; #TODO, should not be exported
 
 ##########################################################################################
 
             ss := SuperStack(newFrame);
             mapAddressToTable := table();    # stores memory addresses of rebuilt tables
+            prevEnvLink := 'prevEnvLink'; # reference to previous OnENV in the stack
 
 ##########################################################################################
 
+            setLink := proc(x)
+                prevEnvLink := x;
+                NULL;
+            end proc;
+            
             newFrame := proc()
                 Record('vals'=table(), 'dyn'={}, 'readonly'={}, 'tbls'=table())
             end proc;
@@ -133,12 +140,22 @@ OnENV := module()
                 frame:-dyn := frame:-dyn minus {key};
 
                 if type(x, `table`) then
+                    print("table");
                     frame:-vals[key] := evaln(frame:-vals[key]);
                     addr := addressof(eval(x));
+                    
+                    print(assigned(prevEnvLink));
+                    
                     if assigned(mapAddressToTable[addr]) then
+                        print("here1");
                         frame := ss:-top();
                         frame:-tbls[key] := mapAddressToTable[addr]; # make var point to existing table
+                    elif assigned(prevEnvLink) and assigned(prevEnvLink:-mapAddressToTable[addr]) then
+                        print("here2");
+                        frame := ss:-top();
+                        frame:-tbls[key] := prevEnvLink:-mapAddressToTable[addr];
                     else
+                        print("here3");
                         rec := addTable(key);
                         rec:-elts := x;
                     end if;

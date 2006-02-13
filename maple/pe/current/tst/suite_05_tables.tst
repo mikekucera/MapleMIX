@@ -141,4 +141,26 @@ Test(601, got, expected);
 
 ####################################################################
 
+
+p := proc() local t;
+    t["a"] := 1;
+    t["b"] := 2;
+    g(t);
+    t["a"], t["b"], t["c"];
+end proc;
+
+g := proc(t)
+    t["c"] := 3;
+end proc;
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 1,2,3 end proc);
+
+Test(701, got, expected);
+
+####################################################################
+
+
 #end test

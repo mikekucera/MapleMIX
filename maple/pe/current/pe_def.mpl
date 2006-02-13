@@ -554,6 +554,9 @@ end proc;
 # as well as the static calls that will be residualized if the function is not unfolded
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
     env := OnENV(); # new env for function call
+    #callStack:-push(env
+    env:-setLink(callStack:-topEnv());
+    
    	fullCall := SimpleQueue(); # residual function call including statics
    	redCall  := SimpleQueue(); # residual function call without statics
    	argsTbl := table(); # mappings for args
