@@ -40,7 +40,7 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     m := getMCode(eval(p));
 
     newEnv := OnENV();
-    newEnv:-setArgs(table());
+    #newEnv:-setArgs(table());
     callStack:-push(newEnv);
     
     try
@@ -558,12 +558,11 @@ end proc;
 # as well as the static calls that will be residualized if the function is not unfolded
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
     env := OnENV(); # new env for function call
-    #callStack:-push(env
     env:-setLink(callStack:-topEnv());
     
    	fullCall := SimpleQueue(); # residual function call including statics
    	redCall  := SimpleQueue(); # residual function call without statics
-   	argsTbl := table(); # mappings for args
+   	#argsTbl := table(); # mappings for args
    	
    	numParams := nops(paramSeq);
    	possibleExpSeqSeen := false;
@@ -574,6 +573,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
     
    	# loop over expressions in function call
    	for arg in argExpSeq do
+   	    print("reducing", arg);
    	    reduced := ReduceExp(arg);
    	    if reduced::Both and nops(StaticPart(reduced)) <> 1 then
    	        error "cannot reliably match up parameters";
@@ -585,6 +585,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
             staticPart := `if`(reduced::Both, StaticPart(reduced), reduced);
             
    	        for value in staticPart do
+   	            print("value", op(value));
    	            toEnqueue := `if`(reduced::Both, DynamicPart(reduced), embed(value));
    	            fullCall:-enqueue(toEnqueue);
    	            if possibleExpSeqSeen or reduced::Both then
@@ -600,7 +601,8 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
        	                env:-putVal(Name(paramSpec), value);
        	                toRemove := toRemove union `if`(reduced::Both, {}, {Name(paramSpec)});
        	            end if;
-       	            argsTbl[i] := value; 
+       	            #argsTbl[i] := value;
+       	            env:-putArgsVal(i, value);
        	            i := i + 1;
        	        end if;
        	    end do;
@@ -657,7 +659,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
         end do
     end if;   
     
-    env:-setArgs(argsTbl);
+    #env:-setArgs(argsTbl);
     f := MExpSeq @ qtoseq;
     
     # return results as a record just so its more organized

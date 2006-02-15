@@ -10,7 +10,7 @@ OnENV := module()
 
     NewOnENV := proc()
         newEnv := module()
-            local ss, newFrame, lex, argsVal, nargsVal, rebuildTable, prevEnvLink;
+            local ss, newFrame, lex, nargsVal, rebuildTable, prevEnvLink;
             export putVal, getVal, grow, shrink, shrinkGrow, display, markTop,
                    isDynamic, isStatic, isStaticVal, isTblValStatic, isAssigned, 
                    setValDynamic, equalsTop, 
@@ -106,16 +106,6 @@ OnENV := module()
                 error "can't get dynamic value %1", key;
             end proc;
 
-            setValDynamic := proc(key::Not(mform))
-                frame := ss:-top();
-                if member(key, frame:-readonly) then
-                    error "variable %1 is read only (assignement to for loop index not allowed)", key;
-                end if;
-                frame:-vals[key] := evaln(frame:-vals[key]);
-                frame:-tbls[key] := evaln(frame:-tbls[key]);
-                frame:-dyn := frame:-dyn union {key};
-                NULL;
-            end proc;            
             
             putVal := proc(key::Not(mform), x, readonly)
                 iter := ss:-topDownIterator();
@@ -162,7 +152,42 @@ OnENV := module()
                 end if;
                 NULL;
             end proc;
+            
+            
+            
+            getArgsVal := proc(index::posint)
+                getVal(ArgKey(index));
+            end proc;
+            
+            getArgs := proc()
+                if not hasNargs() then
+                    error "nargs must be static";
+                end if;
+                seq(getVal(ArgKey(i)), i = 1..nargsVal)
+            end proc;
+            
+            hasArgsVal := proc(index::posint)
+                isAssigned(ArgKey(index));
+            end proc;
+            
+            putArgsVal := proc(index::posint, x)
+                print("put args val", index);
+                putVal(ArgKey(index), x);
+            end proc;
+            
+            
+            setValDynamic := proc(key::Not(mform))
+                frame := ss:-top();
+                if member(key, frame:-readonly) then
+                    error "variable %1 is read only (assignement to for loop index not allowed)", key;
+                end if;
+                frame:-vals[key] := evaln(frame:-vals[key]);
+                frame:-tbls[key] := evaln(frame:-tbls[key]);
+                frame:-dyn := frame:-dyn union {key};
+                NULL;
+            end proc;  
 
+            
             isStatic := proc(key::Not(mform))
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
@@ -351,20 +376,14 @@ OnENV := module()
             removeLex := proc()
                 lex := 'lex';
             end proc;
-
+            
             hasLex := () -> evalb(assigned(lex));
-
-            setArgs := proc(tbl)
-                argsVal := tbl;
-            end proc;
 
             setNargs := proc(num)
                 nargsVal := num;
             end proc;
 
-            getArgs  := () -> argsVal;
             getNargs := () -> nargsVal;
-
             hasNargs := () -> assigned(nargsVal);
 
 ##########################################################################################

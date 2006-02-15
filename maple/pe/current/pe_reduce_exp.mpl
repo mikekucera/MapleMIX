@@ -117,16 +117,7 @@ ReduceExp := module()
     end proc;
     
     red[MArgs] := proc() 
-        if env:-hasNargs() then
-            q := SimpleQueue();
-            argsTbl := env:-getArgs();
-            for i from 1 to env:-getNargs() do
-                q:-enqueue(argsTbl[i]);
-            end do;
-            op(q:-toList());
-        else
-            MArgs();
-        end if;    
+        `if`(env:-hasNargs(), env:-getArgs(), MArgs()); 
     end proc;
     
     
@@ -253,9 +244,8 @@ ReduceExp := module()
     red[MTableref] := proc(tbl, eseq) # know that both args are static
         re := reduce(eseq);
         if Header(tbl) = MArgs then
-            argsTbl := env:-getArgs();
-            if assigned(argsTbl[re]) then
-                return argsTbl[re]
+            if env:-hasArgsVal(re) then
+                return env:-getArgsVal(re)
             else
                 return MTableref(MArgs(), embed(re))
             end if;

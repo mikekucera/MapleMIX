@@ -162,5 +162,26 @@ Test(701, got, expected);
 
 ####################################################################
 
+p := proc() local t;
+    t := table();
+    t["a"] := 66;
+    g(t);
+    t["a"], t["b"]
+end proc;
+
+g := proc() h(args); end proc;
+
+h := proc(t) t["b"] := 77; end proc;
+
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 66,77 end proc);
+
+Test(801, got, expected);
+
+
+####################################################################
 
 #end test
