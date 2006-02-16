@@ -130,21 +130,23 @@ OnENV := module()
                 
                 frame:-dyn := frame:-dyn minus {key};
 
-                if type(x, `table`) then
+                if type(x, 'table') then
                     frame:-vals[key] := evaln(frame:-vals[key]);
                     addr := addressof(eval(x));
                     
                     if assigned(mapAddressToTable[addr]) then
                         frame := ss:-top();
+                        ASSERT( type(mapAddressToTable[addr]:-elts, 'table') );
                         frame:-tbls[key] := mapAddressToTable[addr]; # make var point to existing table
                     elif assigned(prevEnvLink) and assigned(prevEnvLink:-mapAddressToTable[addr]) then
                         frame := ss:-top();
+                        ASSERT( type(prevEnvLink:-mapAddressToTable[addr]:-elts, 'table') );
                         frame:-tbls[key] := prevEnvLink:-mapAddressToTable[addr];
                     else
                         rec := addTable(key);
-                        print("rec:-elts :=", key, x);
+                        #print("rec:-elts :=", key, x);
                         rec:-elts := x;
-                        print("rec:-elts new", rec:-elts);
+                        #print("rec:-elts new", rec:-elts);
                     end if;
                 else
                     frame:-tbls[key] := evaln(frame:-tbls[key]);
@@ -257,10 +259,12 @@ OnENV := module()
 
 
             addTable := proc(tblName)
+                local t;
                 frame := ss:-top();
-                frame:-tbls[tblName] := 
-                    Record('link',           # downward link, initially unassigned
-                           'elts'=table())   # elements, stores values
+                t := Record('link',           # downward link, initially unassigned
+                           'elts'=table());   # elements, stores values
+                frame:-tbls[tblName] := eval(t,1);
+                eval(t,1);
             end proc;
 
 
@@ -418,7 +422,7 @@ OnENV := module()
                     print("dyn", frame:-dyn);
                     for tblName in keys(frame:-tbls) do
                         rec := frame:-tbls[tblName];
-                        print("rec", tblName, op(rec:-elts), `if`(assigned(rec:-link), "linked", "null"));
+                        print("rec", tblName, eval(rec:-elts,2), `if`(assigned(rec:-link), "linked", "null"));
                     end do;
                 end do;
             end proc;
