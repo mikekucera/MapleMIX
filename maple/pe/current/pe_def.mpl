@@ -525,8 +525,7 @@ end proc;
 # used to statically evaluate a type assertion on a parameter
 checkParameterTypeAssertion := proc(value, paramSpec::mform(ParamSpec))
     ta := TypeAssertion(paramSpec);
-    pass := `if`(nops(ta) > 0, type(value, op(ta)), true);
-    `if`(pass, value, getParameterDefault(paramSpec));
+    `if`(nops(ta) > 0, type(value, op(ta)), true);
 end proc;
 
 # returns a parameter's default value
@@ -573,7 +572,6 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
     
    	# loop over expressions in function call
    	for arg in argExpSeq do
-   	    print("reducing", arg);
    	    reduced := ReduceExp(arg);
    	    if reduced::Both and nops(StaticPart(reduced)) <> 1 then
    	        error "cannot reliably match up parameters";
@@ -585,7 +583,6 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
             staticPart := `if`(reduced::Both, StaticPart(reduced), reduced);
             
    	        for value in staticPart do
-   	            print("value", op(value));
    	            toEnqueue := `if`(reduced::Both, DynamicPart(reduced), embed(value));
    	            fullCall:-enqueue(toEnqueue);
    	            if possibleExpSeqSeen or reduced::Both then
@@ -597,7 +594,16 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	                equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
        	            if i <= numParams then
        	                paramSpec := op(i, paramSeq);
-       	                value := checkParameterTypeAssertion(value, paramSpec);       
+       	                #if Name(paramSpec) = "D" then
+       	                #    print("we got something");
+       	                #    print("paramSpec", paramSpec);
+       	                #    print("about to put val into env", paramSpec);
+       	                #    print("val before", value);
+       	                #end if;
+       	                
+       	                if not checkParameterTypeAssertion(value, paramSpec) then
+       	                    value := getParameterDefault(paramSpec);
+       	                end if;
        	                env:-putVal(Name(paramSpec), value);
        	                toRemove := toRemove union `if`(reduced::Both, {}, {Name(paramSpec)});
        	            end if;
@@ -776,6 +782,10 @@ end proc;
 peFunction_SpecializeThenDecideToUnfold := proc(fun::procedure, argExpSeq::mform(ExpSeq), newName, unfold, residualize, symbolic)
 	m := getMCode(eval(fun));
 
+	#if ormap(x -> Name(x) = "D", Params(m)) then
+	#    print("fun", fun)
+	#end if;
+	
     argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
 
     callStack:-push(argListInfo:-newEnv);

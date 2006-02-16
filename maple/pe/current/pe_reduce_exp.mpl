@@ -32,12 +32,21 @@ ReduceExp := module()
             end if;
         end if;
         
+        if type(res, 'MStatic(anyindex(identical(Domains:-CoefficientRing)))') then
+            print("found tit", exp);
+            env:-display();
+            print("D", env:-getVal("D"));
+        end if;
+        
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
+        
         #if not res::Static then
         #    print("reducing", exp);
         #    print("reduced", res);
         #end if;
+        
+        
         res;
     end proc;
 

@@ -108,6 +108,7 @@ OnENV := module()
 
             
             putVal := proc(key::Not(mform), x, readonly)
+           
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
@@ -141,7 +142,9 @@ OnENV := module()
                         frame:-tbls[key] := prevEnvLink:-mapAddressToTable[addr];
                     else
                         rec := addTable(key);
+                        print("rec:-elts :=", key, x);
                         rec:-elts := x;
+                        print("rec:-elts new", rec:-elts);
                     end if;
                 else
                     frame:-tbls[key] := evaln(frame:-tbls[key]);
@@ -171,7 +174,6 @@ OnENV := module()
             end proc;
             
             putArgsVal := proc(index::posint, x)
-                print("put args val", index);
                 putVal(ArgKey(index), x);
             end proc;
             
@@ -312,6 +314,9 @@ OnENV := module()
                         rec := addTable(tableName);
                     end try;
                 end if;
+                if not type(rec:-elts, 'table') then
+                    error "we have a problem"
+                end if;
                 rec:-elts[index] := x;
                 NULL;
             end proc;
@@ -320,23 +325,39 @@ OnENV := module()
             getTblVal := proc(tableName::Not(mform), index)
                 err := "table value is dynamic %1[%2]", tableName, index;
                 try
+                    print("here1");
                     frame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
+                    print("here2");
                 catch:
                     error err;
                 end try;
 
+                print("here3");
                 rec := frame:-tbls[tableName];
+                print("here4");
                 do
+                    print("yo1");
+                    print(rec);
+                    print("yo2");
+                    print(index);
+                    print("yo3");
+                    print(rec:-elts);
+                    print("lookup", args);
+                    display();
                     if assigned(rec:-elts[index]) then
+                        print("here5");
                         val := rec:-elts[index];
+                        print("here6");
                         if val = OnENV:-DYN then
                             error err;
                         else
                             return val;
                         end if;
                     elif assigned(rec:-link) then
+                        print("here7");
                         rec := rec:-link;
                     else
+                        print("here8");
                         error err;
                     end if;
                 end do;

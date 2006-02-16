@@ -14,12 +14,12 @@ with(PEOptions):
 opts := PEOptions();
 #opts:-addFunction(PURE, Domains:-UnivariatePolynomial:-ModuleApply);
 
-opts:-addFunction(PURE, Domains:-EuclideanDomain):
-opts:-addFunction(PURE, Domains:-UniqueFactorizationDomain):
-opts:-addFunction(PURE, Domains:-GcdDomain):
-opts:-addFunction(PURE, Domains:-IntegralDomain):
-opts:-addFunction(PURE, Domains:-CommutativeRing):
-opts:-addFunction(PURE, Domains:-Ring):
+#opts:-addFunction(PURE, Domains:-EuclideanDomain):
+#opts:-addFunction(PURE, Domains:-UniqueFactorizationDomain):
+#opts:-addFunction(PURE, Domains:-GcdDomain):
+#opts:-addFunction(PURE, Domains:-IntegralDomain):
+#opts:-addFunction(PURE, Domains:-CommutativeRing):
+#opts:-addFunction(PURE, Domains:-Ring):
 
 opts:-addFunction(PURE, Domains:-RepeatedSquaring):
 
