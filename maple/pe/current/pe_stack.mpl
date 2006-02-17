@@ -12,9 +12,6 @@ CallStack := module()
             stack := SimpleStack();
 
             push := proc(env := OnENV())
-                if not stack:-empty() then
-                    env:-setLink(stack:-top()["env"]);
-                end if;
                 tbl := table();
                 tbl["env"] := env;
                 tbl["conditional"] := false;

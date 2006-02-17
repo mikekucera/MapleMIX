@@ -1,6 +1,7 @@
 with(Domains):
 interface(verboseproc=3):
 interface(labelling=false):
+kernelopts(ASSERT=true):
 
 #xx := proc() local C,x,m,m2;
 #   C := DUP(Q,x);
@@ -39,12 +40,12 @@ ps := OnPE(xx, opts):
 
 
 
-interface(verboseproc=3):
+#interface(verboseproc=3):
 #print(eval(ps:-ModuleApply));
 
 printmod(ps);
 
-G := ps();
+#G := ps();
 #gm := G[Input](x^4-10*x^2+1);
 #gm2 := G[`^`](gm,2);
 #G[Output](gm2);

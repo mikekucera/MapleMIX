@@ -318,17 +318,18 @@ end proc;
 
 # returns an object that can be used to unroll the body of a loop
 StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
+    env := callStack:-topEnv();
     if loopVar <> MExpSeq() then
         loopVarName := Name(loopVar);
+        env:-setLoopVar(loopVarName);
     end if;
-    env := callStack:-topEnv();
-    q := SimpleQueue();
     
+    q := SimpleQueue();
     
     return module() export unrollOnce, result;
         setVal := proc(x)
             if assigned(loopVarName) then
-                env:-putVal(loopVarName, x, 'readonly');
+                env:-putLoopVarVal(loopVarName, x);
             end if;
         end proc;
         unrollOnce := proc() # pass in the loop index

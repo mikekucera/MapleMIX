@@ -4,39 +4,38 @@
 
 OnENV := module()
     export NewOnENV, ModuleApply, DYN;
-    local newFrame, OldEnv;
 
     ModuleApply := NewOnENV;
 
     NewOnENV := proc()
         newEnv := module()
-            local ss, newFrame, lex, nargsVal, rebuildTable, prevEnvLink;
-            export putVal, getVal, grow, shrink, shrinkGrow, display, markTop,
+            local ss, newFrame, lex, nargsVal, rebuildTable, prevEnvLink, mapAddressToTable;
+            export putVal, putLoopVarVal, getVal, grow, shrink, shrinkGrow, display, markTop,
                    isDynamic, isStatic, isStaticVal, isTblValStatic, isAssigned, 
-                   setValDynamic, equalsTop, 
-                   mapAddressToTable; #TODO, should not be exported
-
+                   setValDynamic, equalsTop, setLoopVar;
+                   
 ##########################################################################################
 
             ss := SuperStack(newFrame);
-            mapAddressToTable := table();    # stores memory addresses of rebuilt tables
-            prevEnvLink := 'prevEnvLink'; # reference to previous OnENV in the stack
+            mapAddressToTable := table();  # stores memory addresses of rebuilt tables
+            prevEnvLink := 'prevEnvLink';  # reference to previous OnENV in the stack
 
 ##########################################################################################
 
             setLink := proc(x)
+                ASSERT( not assigned(prevEnvLink), "prevEnvLink is already assigned" );
                 prevEnvLink := x;
                 NULL;
             end proc;
             
             newFrame := proc()
-                Record('vals'=table(), 'dyn'={}, 'readonly'={}, 'tbls'=table())
+                Record('vals'=table(), 'dyn'={}, 'loopvars'={}, 'tbls'=table())
             end proc;
 
             grow := proc()
                 frame := newFrame();
                 if not ss:-empty() then
-                    frame:-readonly := ss:-top():-readonly();
+                    frame:-loopvars := ss:-top():-loopvars;
                 end if;
                 ss:-push(frame);
                 NULL;
@@ -53,10 +52,11 @@ OnENV := module()
             end proc;
 
             markTop := proc()
+                ASSERT( not ss:-empty(), "empty stack in environment" );
                 r := newFrame();
                 top := ss:-top();
                 r:-vals := copy(top:-vals);
-                r:-dyn := copy(top:-dyn);
+                r:-dyn  := copy(top:-dyn);
                 r:-tbls := copy(top:-tbls);
                 r;
             end proc;
@@ -88,76 +88,86 @@ OnENV := module()
                 if nargs > 1 then
                     hasDyn := false;
                 end if;
+                
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
-                    frame := iter:-getNext();
+                    frame := iter:-getNext();                    
                     if member(key, frame:-dyn) then
                         error "can't get dynamic value %1", key;
                     elif assigned(frame:-tbls[key]) then
                         if nargs > 1 then
-                            return rebuildTable(frame:-tbls[key], hasDyn);
+                            t := rebuildTable(frame:-tbls[key], hasDyn);
+                            ASSERT( type(t, 'table'), "rebuildTable did not return a table (1)");
+                            return t;
                         else
-                            return rebuildTable(frame:-tbls[key]);
+                            t := rebuildTable(frame:-tbls[key]);
+                            ASSERT( type(t, 'table'), "rebuildTable did not return a table (2)");
+                            return t;
                         end if;
                     elif assigned(frame:-vals[key]) then
-                        return frame:-vals[key];
+                        v := frame:-vals[key];
+                        ASSERT( not type(v, 'table'), "found table where it should not be" );
+                        return v;
                     end if;
                 end do;
                 error "can't get dynamic value %1", key;
             end proc;
 
             
-            putVal := proc(key::Not(mform), x, readonly)
-           
-                iter := ss:-topDownIterator();
-                while iter:-hasNext() do
-                    frame := iter:-getNext();
-                    if member(key, frame:-dyn) then
-                        break
-                    elif assigned(frame:-vals[key]) then
-                        if frame:-vals[key] = x then
-                            return NULL;
-                        else
-                            break;
-                        end if;
-                    end if;
-                end do;
-
+            
+            putVal := proc(key::Not(mform), x)
+                # TODO, make type of x MStatic, get rid of SVal calls all over pe_def
+                ASSERT( nargs = 2 , "wrong number of args to putVal");
                 frame := ss:-top();
-                if nargs <= 2 and member(key, frame:-readonly) then
-                    error "variable %1 is read only (assignement to for loop index not allowed)", key;
+                if member(key, frame:-loopvars) then
+                    error "variable %1 is a loop variable (assignement to for loop index not allowed)", key;
                 end if;
+                doPutVal(args);
+            end proc;
+                        
+            
+            
+            putLoopVarVal := proc(key::Not(mform), x)
+                ASSERT( nargs = 2, "wrong number of args to putLoopVarVal" );
+                doPutVal(args);
+            end proc;
+            
                 
+            
+            doPutVal := proc(key, x)
+                frame:=ss:-top();
                 frame:-dyn := frame:-dyn minus {key};
 
                 if type(x, 'table') then
                     frame:-vals[key] := evaln(frame:-vals[key]);
                     addr := addressof(eval(x));
-                    
                     if assigned(mapAddressToTable[addr]) then
-                        frame := ss:-top();
                         ASSERT( type(mapAddressToTable[addr]:-elts, 'table') );
+                        frame := ss:-top();
                         frame:-tbls[key] := mapAddressToTable[addr]; # make var point to existing table
                     elif assigned(prevEnvLink) and assigned(prevEnvLink:-mapAddressToTable[addr]) then
-                        frame := ss:-top();
                         ASSERT( type(prevEnvLink:-mapAddressToTable[addr]:-elts, 'table') );
+                        frame := ss:-top();
                         frame:-tbls[key] := prevEnvLink:-mapAddressToTable[addr];
                     else
                         rec := addTable(key);
-                        #print("rec:-elts :=", key, x);
-                        rec:-elts := x;
-                        #print("rec:-elts new", rec:-elts);
+                        ASSERT(type(rec:-elts, 'table'));
+                        rec:-elts :: 'table' := x;
                     end if;
                 else
+                    ASSERT( type(x, Not('table')) and type(eval(x), Not('table')), "table where it should not be" );
                     frame:-tbls[key] := evaln(frame:-tbls[key]);
                     frame:-vals[key] := x;
-                end if;
-                if nargs > 2 then
-                    frame:-readonly := frame:-readonly union {key};
                 end if;
                 NULL;
             end proc;
             
+            
+            
+            setLoopVar := proc(key::Not(mform))
+                frame := ss:-top();
+                frame:-loopvars := frame:-loopvars union {key};
+            end proc;
             
             
             getArgsVal := proc(index::posint)
@@ -176,17 +186,20 @@ OnENV := module()
             end proc;
             
             putArgsVal := proc(index::posint, x)
+                ASSERT( nargs = 2 );
                 putVal(ArgKey(index), x);
             end proc;
             
             
             setValDynamic := proc(key::Not(mform))
                 frame := ss:-top();
-                if member(key, frame:-readonly) then
-                    error "variable %1 is read only (assignement to for loop index not allowed)", key;
+                if member(key, frame:-loopvars) then
+                    error "variable %1 is a loop variable (assignement to for loop index not allowed)", key;
                 end if;
+                #unassign value of key if it is in the env
                 frame:-vals[key] := evaln(frame:-vals[key]);
                 frame:-tbls[key] := evaln(frame:-tbls[key]);
+                
                 frame:-dyn := frame:-dyn union {key};
                 NULL;
             end proc;  
@@ -221,6 +234,8 @@ OnENV := module()
             
             isDynamic := `not` @ isStatic;
             
+            # even though the value if a variable is dynamic we can know
+            # statically if it is assigned or not
             isAssigned := proc(key::Not(mform))
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
@@ -233,6 +248,7 @@ OnENV := module()
                 end do;
                 false;
             end proc;
+            
 
 ##########################################################################################
 
@@ -307,6 +323,7 @@ OnENV := module()
             end proc;
 
             putTblVal := proc(tableName::Not(mform), index, x)
+                ASSERT( nargs = 3, cat("putTblVal expecting 3 args but received ", nargs) );
                 if assigned(ss:-top():-tbls[tableName]) then # its at the top
                     rec := ss:-top():-tbls[tableName];
                 else
@@ -318,50 +335,41 @@ OnENV := module()
                         rec := addTable(tableName);
                     end try;
                 end if;
-                if not type(rec:-elts, 'table') then
-                    error "we have a problem"
-                end if;
+                ASSERT( type(rec:-elts, 'table') );
                 rec:-elts[index] := x;
                 NULL;
             end proc;
 
 
             getTblVal := proc(tableName::Not(mform), index)
+                ASSERT( nargs = 2, "getTblVal expected 2 args" );
                 err := "table value is dynamic %1[%2]", tableName, index;
                 try
-                    print("here1");
                     frame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
-                    print("here2");
                 catch:
                     error err;
                 end try;
 
-                print("here3");
                 rec := frame:-tbls[tableName];
-                print("here4");
                 do
-                    print("yo1");
-                    print(rec);
-                    print("yo2");
-                    print(index);
-                    print("yo3");
-                    print(rec:-elts);
-                    print("lookup", args);
-                    display();
+                    if not type(rec:-elts, 'table') then
+                        print("rec", rec);
+                        print("rec:-link", rec:-link);
+                        print("rec:-elts", rec:-elts);
+                    end if;
+                    ASSERT( type(rec:-elts, 'table'), "rec:-elts is not a table!", rec:-elts );
                     if assigned(rec:-elts[index]) then
-                        print("here5");
                         val := rec:-elts[index];
-                        print("here6");
                         if val = OnENV:-DYN then
                             error err;
                         else
                             return val;
                         end if;
                     elif assigned(rec:-link) then
-                        print("here7");
+                        #print("here7");
                         rec := rec:-link;
                     else
-                        print("here8");
+                        #print("here8");
                         error err;
                     end if;
                 end do;
@@ -444,7 +452,7 @@ OnENV := module()
         end module;
 
         newEnv:-grow();
-        return newEnv;
+        return eval(newEnv);
     end proc;
 
 end module:
