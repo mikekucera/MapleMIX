@@ -1,6 +1,6 @@
 
 printmod := proc(m)
-    local oper, printit;
+    local printit, before, oper;
     before := kernelopts(opaquemodules=false);
 
     printit := proc(x)

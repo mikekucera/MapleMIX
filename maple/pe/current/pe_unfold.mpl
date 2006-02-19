@@ -3,7 +3,7 @@ Unfold := module()
     export UnfoldStandalone, UnfoldIntoAssign;
     local addAssigns, removeReturns, renameAllLocals;
 
-    renameAllLocals := proc(m::mform(StatSeq), genVarName)
+    renameAllLocals := proc(m::mform(StatSeq), genVarName) local names, rename, body;
         names := table();
 
         rename := proc(f)
@@ -37,6 +37,8 @@ Unfold := module()
     # the static ones should have been removed.
     UnfoldStandalone := proc(specProc::mform(Proc), specCall::mform(ExpSeq),
                              fullCall::mform(ExpSeq), genVarName) :: mform(StatSeq);
+        local body, params, let, lets, i, header, paramName, letArgs, newNames, 
+              letNargs, argsName, nargsName, argExpr;
         body := M:-TransformIfNormalForm(ProcBody(specProc));
         params := Params(specProc);
         body, newNames := renameAllLocals(body, genVarName);
@@ -95,6 +97,7 @@ Unfold := module()
 
     UnfoldIntoAssign := proc(specProc::mform(Proc), specCall::mform(ExpSeq), fullCall::mform(ExpSeq),
                              genVarName, assignTo::mform({Local, SingleUse})) ::mform(StatSeq);
+        local newbody, last;
         newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
         newbody := M:-FlattenStatSeq(newbody);
 
@@ -108,9 +111,9 @@ Unfold := module()
 
 
     # assumes returns have been removed and code is in if normal form
-    addAssigns := proc(code::mform, var)
+    addAssigns := proc(code::mform, var) local doAdd;
         # TODO need to add support for loops and other structures
-        doAdd := proc(c) local t, cs, f;
+        doAdd := proc(c) local t, cs, f, h, flat;
 	        h := Header(c);
 	        if h = MStatSeq then
 	            flat := M:-FlattenStatSeq(c);

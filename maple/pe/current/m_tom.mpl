@@ -1,8 +1,12 @@
 ToM := module()
     export ModuleApply;
-    local MapStack, isInertTrue,
-    	  itom, itom2, mapitom,  m, gen, lamGen, getVar, knownNames;
-
+    local 
+        m, itom, itom2, mapitom, gen, lamGen, mapStack, knownNames,
+        addName, createParamMap, createLocalMap, createLexIndexMap,
+        getVar, getLexVar, isStandalone,
+        splitAssigns, split, splitReturn, splitTableRef, 
+        paramSpec, removeNext;
+    
     m := table();
 
     itom, itom2, mapitom := createTableProcs("ToM", m);
@@ -10,24 +14,28 @@ ToM := module()
     gen := NameGenerator("m");
     lamGen := NameGenerator("lambda");
     
-    ModuleApply := proc(x::inert)
-    	MapStack := SimpleStack();
+    
+    ModuleApply := proc(x::inert) local res, names;
+    	mapStack := SimpleStack();
     	knownNames := table();
     	res := itom(x);
     	names := {op(map(op, [indices(knownNames)]))};
     	knownNames := 'knownNames';
-		MapStack := 'MapStack';
+		mapStack := 'mapStack';
 		res, names;
     end proc;
 
+    
     addName := proc(n)
         if assigned(knownNames) then
             knownNames[n] := NULL;
         end if;
+        NULL;
     end proc;
     
-    createParamMap := proc(varSeq)
-        mapParam := proc(tbl,i,var)
+    
+    createParamMap := proc(varSeq) local mapParam;
+        mapParam := proc(tbl,i,var) local properOp;
             if var <> inertDollar then
                 properOp := x -> op(`if`(Header(x)=_Inert_DCOLON, [1,1], 1) , x);     
                 tbl[i] := properOp(`if`(Header(var)=_Inert_ASSIGN, op(1,var), var));
@@ -36,7 +44,7 @@ ToM := module()
         end proc;
     
         createMap(varSeq,
-            proc(tbl, i, var)
+            proc(tbl, i, var) local index, x;
                 if Header(var) = _Inert_SET then
                     index := i;
                     for x in op(var) do
@@ -48,6 +56,7 @@ ToM := module()
                 end if;
             end proc)       
     end proc;
+    
     
     createLocalMap := proc(varSeq)
         createMap(varSeq,
@@ -68,7 +77,7 @@ ToM := module()
 
 
     getVar := proc(mapname, x) 
-        MapStack:-top()[mapname][x];
+        mapStack:-top()[mapname][x];
     end proc;
     
     getLexVar := x -> getVar('lex', x);
@@ -86,13 +95,13 @@ ToM := module()
              _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS, _Inert_UNEVAL, _Inert_TABLE});
     end proc;
 
+    
     # takes an inert expression and splits it
-    splitAssigns := proc(e::inert)
+    splitAssigns := proc(e::inert) local q, examineFunc, doIt, res;
         q := SimpleQueue();
         
-        examineFunc := proc(f)
-            local newvar;
-            if member(convert(op(1,f), name), intrinsic) then
+        examineFunc := proc(f) local newvar;
+            if isIntrinsic(Name(f)) then
                 MFunction(mapitom(args));
             else
                 newvar := gen();
@@ -102,7 +111,7 @@ ToM := module()
             end if;
         end proc;
     
-        doIt := proc(expr)
+        doIt := proc(expr) local h;
             h := Header(expr);
             if not type(expr, inert) or h = _Inert_PROC then
                 expr;
@@ -120,7 +129,7 @@ ToM := module()
 
 
     # splits the given expression, then applies the continuation k to the stripped expression
-    split := proc(expr, k)
+    split := proc(expr, k) local assigns, reduced;
         assigns, reduced := splitAssigns(expr);
         if nops(assigns) = 0 then
         	k(reduced);
@@ -129,8 +138,10 @@ ToM := module()
         end if;
     end proc;
 
+    
     # version of split that returns the results instead of applying a continuation
-    splitReturn := proc(expr)
+    splitReturn := proc(expr) local assigns, reduced;
+        #split(expr, () -> args);
         assigns, reduced := splitAssigns(expr);
         return MStatSeq(op(assigns)), reduced;
     end proc;
@@ -141,8 +152,6 @@ ToM := module()
     m[MSingleUse] := MSingleUse;
     m[MProc] := MProc;
     m[MFunction] := MFunction;
-    # MFunction is introduced prematurely by the expression splitter
-    #m[MFunction] := MFunction @ mapitom;
     
     m[_Inert_NAME]     := MName @ mapitom;
     m[_Inert_LOCAL]    := x -> MLocal(getVar('locals', x));
@@ -192,16 +201,15 @@ ToM := module()
 
     m[_Inert_MEMBER]    := MMember    @ mapitom;
     m[_Inert_ATTRIBUTE] := MAttribute @ mapitom;
-    #m[_Inert_ATTRIBUTE] := () -> NULL;
     
     m[_Inert_LOCALSEQ]       := MLocalSeq       @ mapitom;
     m[_Inert_OPTIONSEQ]      := MOptionSeq      @ mapitom;
     m[_Inert_DESCRIPTIONSEQ] := MDescriptionSeq @ mapitom;
     m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;
     m[_Inert_EOP]            := MEop            @ mapitom;    
-    #m[_Inert_PARAMSEQ]       := MParamSeq       @ mapitom;
+
     
-    m[_Inert_PARAMSEQ]  := proc()       
+    m[_Inert_PARAMSEQ]  := proc() local arg, paramq, keywordq;       
         if nargs = 0 then
             return MParamSeq(), MKeywords();
         end if;
@@ -221,7 +229,8 @@ ToM := module()
         MParamSeq(qtoseq(paramq)), MKeywords(qtoseq(keywordq));             
     end proc;
     
-    paramSpec := proc(x)
+    
+    paramSpec := proc(x) local param, d, n, t;
         if hasfun(x, _Inert_PARAM) then
             error "referencing one parameter from another is not supported: %1", x;
         elif hasfun(x, _Inert_FUNCTION) then
@@ -251,18 +260,17 @@ ToM := module()
         MParamSpec(n, t, d)
     end proc;
     
-    
-    m[_Inert_DCOLON] := proc(n, t)
-        # TODO, the op(1,n) will strip off protected attributes, not sure if this is best
-        MTypedName(op(1,n), MType(FromInert(t)));
-    end proc;
+    #
+    #m[_Inert_DCOLON] := proc(n, t)
+    #    # TODO, the op(1,n) will strip off protected attributes, not sure if this is best
+    #    MTypedName(op(1,n), MType(FromInert(t)));
+    #end proc;
     
     # remember tables are not considered
     m[_Inert_HASHTAB] := () -> MExpSeq();
-    
-    
+   
 
-    m[_Inert_TABLE] := proc(indexFcn, hashTab)
+    m[_Inert_TABLE] := proc(indexFcn, hashTab) local processHashPair, lst;
         if indexFcn <> _Inert_EXPSEQ() then
             error "custom indexing functions are not supported"
         end if;
@@ -277,13 +285,14 @@ ToM := module()
     
     
     m[_Inert_FORFROM] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
+        local ss1, ss2, ss3, ss4, ss5, e1, e2, e3, e4, e5, body, loop, assigns;
         ss1, e1 := splitReturn(loopVar);
         ss2, e2 := splitReturn(fromExp);
         ss3, e3 := splitReturn(byExp);
         ss4, e4 := splitReturn(toExp);
         ss5, e5 := splitReturn(whileExp);
 
-        body := RemoveNext(statseq);
+        body := removeNext(statseq);
         body := MStatSeq(itom(body), ssop(ss5));
 
         if toExp = _Inert_EXPSEQ() then # its a simple while loop
@@ -300,11 +309,12 @@ ToM := module()
     
     
     m[_Inert_FORIN] := proc(loopVar, inExp, whileExp, statseq)
+        local ss1, ss2, ss3, e1, e2, e3, body, loop;
         ss1, e1 := splitReturn(loopVar);
         ss2, e2 := splitReturn(inExp);
         ss3, e3 := splitReturn(whileExp);
         
-        body := RemoveNext(statseq);
+        body := removeNext(statseq);
         body := MStatSeq(itom(body), ssop(ss3));
         
         if whileExp = inertTrue then
@@ -318,7 +328,7 @@ ToM := module()
     
     
     # removes a common usage of next in loops
-    RemoveNext := proc(loopBody::inert(STATSEQ)) local c;
+    removeNext := proc(loopBody::inert(STATSEQ)) local num, i, stmt, newIf, c;
         num := nops(loopBody);
         for i from 1 to num do
             stmt := op(i, loopBody);
@@ -330,14 +340,13 @@ ToM := module()
         return loopBody;
     end proc;
     
+    
     m[_Inert_NEXT] := proc()
         error "only very limited usage of next is supported";
     end proc;
     
     
-    m[_Inert_PROC] := proc() local keys;
-        maps := table();
-        
+    m[_Inert_PROC] := proc() local maps, ps, front, pars, keys, others, flags;
         # $ in the parameter sequence throws the index of keywords off        
         ps := [args][1];
         if member(inertDollar, ps) and hasfun(ps, _Inert_SET) then
@@ -345,10 +354,11 @@ ToM := module()
             ps := _Inert_PARAMSEQ(Front(front), inertDollar, Last(front));            
         end if;
         
+        maps := table();
         maps['params'] := createParamMap(ps);        
         maps['locals'] := createLocalMap([args][2]);
         maps['lex']    := createLexIndexMap([args][8]);
-        MapStack:-push(maps);
+        mapStack:-push(maps);
         
         pars, keys := m[_Inert_PARAMSEQ](op([args][1]));
         others := mapitom(args[2..-1]);
@@ -361,11 +371,11 @@ ToM := module()
     # here. Actually its needed because the locals and params in the lexical
     # pairs refer to the outer environment.
     m[_Inert_LEXICALSEQ] := proc()
-         MapStack:-pop();
-         res := MLexicalSeq(mapitom(args));
+         mapStack:-pop();
+         MLexicalSeq(mapitom(args));
     end proc;
 
-    m[_Inert_STATSEQ] := proc() local standaloneExpr;
+    m[_Inert_STATSEQ] := proc() local processInert;
         processInert := proc(x)
             if Header(x) = _Inert_PROC then
                 MStandaloneExpr(itom(x))
@@ -378,13 +388,15 @@ ToM := module()
         MStatSeq(op(map(processInert, [args])));
     end proc;
 
+    
     m[_Inert_FUNCTION] := proc(n, expseq)
-        if op(1,n) = "&onpe" then
+        local ss1, ss2, r1, r2;
+        if Name(n) = "&onpe" then
             if nops(expseq) = 0 then
                 error "not enought arguments to command";
             end if;
             MCommand(op(map(Name, expseq)));
-        elif member(convert(op(1,n), name), intrinsic) then
+        elif isIntrinsic(Name(n)) then
             split(expseq, x -> MStandaloneExpr(MFunction(itom(n), x)));
         else
             ss1, r1 := splitReturn(n);
@@ -398,11 +410,9 @@ ToM := module()
         end if;
     end proc;
 
-    
-
 
     # assumes splitter has already been run on tr
-    splitTableRef := proc(tr::mform(Tableref))
+    splitTableRef := proc(tr::mform(Tableref)) local tbl, assigns, n, newName, new;
         tbl := Tbl(tr);
         if Header(tbl) = MTableref then
             assigns, n := splitTableRef(tbl);
@@ -419,7 +429,7 @@ ToM := module()
     end proc;
     
 
-    m[_Inert_ASSIGN] := proc(target, expr)
+    m[_Inert_ASSIGN] := proc(target, expr) local assigns, splitTarget, moreAssigns, newName;
         #in this case the assignment has multiple table refs on the left side that
         # must be split outp
         if Header(target) = _Inert_TABLEREF then
@@ -439,7 +449,7 @@ ToM := module()
 
     m[_Inert_RETURN] := e -> split(e, MReturn);
 
-    m[_Inert_IF] := proc()
+    m[_Inert_IF] := proc() local condpair, rest, c, s, el;
         if typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything)]) then
             split(c, red -> MIfThenElse(red, MStatSeq(ssop(itom(s))), MStatSeq(MStandaloneExpr(MExpSeq()))));
         elif typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything), 'el'::inert(STATSEQ)]) then
@@ -452,12 +462,9 @@ ToM := module()
         end if;
     end proc;
 
-    # converts a type assertion into a 'typed name'
-    
-    
 
-    m[_Inert_TRY] := proc()
-        catches := proc()
+    m[_Inert_TRY] := proc() local catches, fin;
+        catches := proc() local bodies, strings, f;
             bodies, strings := selectremove(type, [args], inert(STATSEQ));
             #strings, bodies := selectremove(type, [args], inert(STRING));
             f := (x,y) -> MCatch(itom(x), itom(y));

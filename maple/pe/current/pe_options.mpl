@@ -12,7 +12,11 @@ PEOptions := module()
     
     ModuleApply := proc()
         module()            
-            local level, considerExpseq;
+            local 
+                level, setLevel, getLevel,
+                considerExpseq, setConsiderExpseq, getConsiderExpseq,
+                ignoreCommands, setIgnoreCommands, getIgnoreCommands,
+                functions, addFunction, funcOpt, hasFuncOpt;
             
             # mutator functions return thismodule so that they may be chained
             level := infinity;

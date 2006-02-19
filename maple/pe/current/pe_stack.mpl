@@ -1,10 +1,8 @@
 
 CallStack := module()
-    export New, ModuleApply;
+    export ModuleApply;
 
-    ModuleApply := New;
-
-    New := proc()
+    ModuleApply := proc()
         module()
             local stack, get;
             export push, pop, topEnv, inConditional, setConditional;
@@ -12,6 +10,7 @@ CallStack := module()
             stack := SimpleStack();
 
             push := proc(env := OnENV())
+                local tbl;
                 tbl := table();
                 tbl["env"] := env;
                 tbl["conditional"] := false;
@@ -26,12 +25,12 @@ CallStack := module()
             topEnv := () -> get("env");
             inConditional := () -> get("conditional");
 
-            pop := proc()
+            pop := proc() local tbl;
                 tbl := stack:-pop();
                 tbl["env"];
             end proc;
 
-            setConditional := proc(b := true)
+            setConditional := proc(b::boolean := true) local tbl;
                 tbl := stack:-top();
                 tbl["conditional"] := b;
                 NULL;

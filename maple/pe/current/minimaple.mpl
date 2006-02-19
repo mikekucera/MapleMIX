@@ -1,10 +1,13 @@
 
 MiniMapleInterpreter := module() option package;
-    export ModuleApply, evalExpr;
+    export 
+        ModuleApply;
+    local
+        evalProg, evalStat, evalExpr, evalBin, evalUn;
     
     ModuleApply := evalProg;
 
-    evalProg := proc(prog, input)
+    evalProg := proc(prog, input) local defs, d;
         defs := table();
         for d in prog do
             defs[op(1,d)] := d;
@@ -12,7 +15,7 @@ MiniMapleInterpreter := module() option package;
         evalStat(op(3,op(1,prog)), input, defs);
     end proc;
     
-    evalStat := proc(s, env, defs)
+    evalStat := proc(s, env, defs) local h, i, t, c, var, e1;
         h := op(0, s);
         if h = mmAssign then
             &onpe("lprint", "evalStat", "mmAssign");
@@ -64,7 +67,7 @@ MiniMapleInterpreter := module() option package;
     end proc;
     
     
-    evalExpr := proc(e, env, defs)
+    evalExpr := proc(e, env, defs) local h, e1, e2, o, def, ags, newEnv, param, i;
         h := op(0, e);
         if h = mmInt or h = mmString or h = mmName then
             &onpe("lprint", "evalExpr", "mmInt");
@@ -99,7 +102,7 @@ MiniMapleInterpreter := module() option package;
             &onpe("lprint", "evalExpr", "mmUn");
             o := op(1,e);
             e1 := evalExpr(op(2,e), env, defs);
-            getUn(o, e1);
+            evalUn(o, e1);
         elif h = mmCall then
             &onpe("lprint", "evalExpr", "mmCall");
             def := defs[op(1,e)];
@@ -137,7 +140,7 @@ MiniMapleInterpreter := module() option package;
         end if;
     end proc;
     
-    getUn := proc(mm, e1)
+    evalUn := proc(mm, e1)
         if mm = mmNot then
             not e1
         elif mm = mmNeg then

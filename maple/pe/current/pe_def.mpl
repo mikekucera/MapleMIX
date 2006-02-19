@@ -2,10 +2,24 @@
 
 OnPE := module() option package;
 
-    description "online partial evaluator for a subset of Maple";
-    local callStack, code, gen, genv, gopts,
-          CallStack, Unfold;
-    export Debug, ModuleApply, PartiallyEvaluate, OnENV, ReduceExp, Lifter, isPossibleExpSeq;
+description 
+    "online partial evaluator for a subset of Maple";
+export 
+    ModuleApply, PartiallyEvaluate, Debug;
+local 
+$include "access_header.mpl"
+    CallStack, PEDebug, Lifter, BuildModule, OnENV, 
+    ReduceExp, Unfold,
+    callStack, specializedProcs, gen, genv, gopts,
+    getMCode, embed,
+    pe, peM, peResidualizeStatement, peIF,
+    StaticLoopUnroller,
+    checkParameterTypeAssertion, getParameterDefault, 
+    isPossibleExpSeq, peArgList, isUnfoldable,
+    peFunction, peFunction_StaticFunction, 
+    peFunction_SpecializeThenDecideToUnfold, 
+    peFunction_GenerateNewSpecializedProc;
+
 
 ModuleApply := PartiallyEvaluate;
 
@@ -27,25 +41,23 @@ $include "pe_unfold.mpl"
 
 # sets up the partial evaluation
 PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
+    local before, m, inertModule, res;
     # need access to module locals
     before := kernelopts(opaquemodules=false);
-    gopts := opts;
     
     # set up module locals
+    gopts := opts;
     gen := NameGenerator();
     callStack := CallStack();
-    code := table();
+    specializedProcs := table();
     genv := OnENV(); # the global environment
 
     m := getMCode(eval(p));
-
-    newEnv := OnENV();
-    #newEnv:-setArgs(table());
-    callStack:-push(newEnv);
+    callStack:-push();
     
     try
         peFunction_GenerateNewSpecializedProc(m, "ModuleApply");
-        Lifter:-LiftPostProcess(code);
+        Lifter:-LiftPostProcess(specializedProcs);
     catch "debug":
         lprint("debug session exited");
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated");
@@ -58,26 +70,26 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
         print(lastexception);
         error;
-        #return copy(code);
+        #return copy(specializedProcs);
     end try;
 
     try
-        inertModule := BuildModule("ModuleApply");
+        inertModule := BuildModule("ModuleApply", specializedProcs);
     catch:
         lprint("conversion to inert module failed", lastexception);
-        return copy(code);
+        return copy(specializedProcs);
     end try;
     
     try
         res := eval(FromInert(inertModule));
     catch:
         lprint("FromInert on inertModule failed", lastexception);
-        return copy(code);
+        return copy(specializedProcs);
     end try;
 
     # unassign module locals
     gen := 'gen';
-    code := 'code';
+    specializedProcs := 'specializedProcs';
     genv := 'genv';
     callStack := 'callStack';
     gopts := 'gopts';
@@ -108,6 +120,7 @@ end proc;
 
 # caches M code of procedures so don't need to call ToM unneccesarily
 getMCode := proc(fun) option cache;
+    local code, uniqueNames;
     code, uniqueNames := M:-ToM(ToInert(fun));
     gen:-addNames(uniqueNames);
     code;
@@ -135,7 +148,7 @@ end proc;
 
 
 # partially evaluates an arbitrary M statement
-peM := proc(m::mform)
+peM := proc(m::mform) local h;
     h := Header(m);
     if assigned(pe[h]) then
         return pe[h](op(m));
@@ -156,6 +169,8 @@ pe[MError]  := curry(peResidualizeStatement, MError);
 
 
 pe[MStatSeq] := proc() :: mform(StatSeq);
+    local q, i, h, stmt, residual;
+    
     q := SimpleQueue();
     
     for i from 1 to nargs do
@@ -183,18 +198,15 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
             end if;
         end if;
     end do;
-    #`if`(q:-empty(), NULL, MStatSeq(qtoseq(q)))
-    # TODO, removing usless exprs now is a bit of a hack, a postprocess would be better
     M:-RemoveUselessStandaloneExprs(MStatSeq(qtoseq(q)));
 end proc;
+
 
 pe[MCommand] := proc(command)
     if gopts:-getIgnoreCommands() then
         return NULL;
     end if;
 
-    #count := PEDebug:-GetStatementCount();
-    #lprint("command", command, "at statement", count);
     if command = "display" then
         callStack:-topEnv():-display();
     elif command = "displaynames" then
@@ -213,6 +225,8 @@ end proc;
 
 
 peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
+    local rcond, stmts, env, C1, C2, S1, S2, prevTopLocal, prevTopGlobal;
+    
     rcond := ReduceExp(Cond(ifstat));
     if rcond::Static then
         PEDebug:-Message(evalb(SVal(rcond)));
@@ -253,9 +267,8 @@ end proc;
 
 
 pe[MAssign] := proc(n::mform({Local, GeneratedName, Name, AssignedName, Catenate}), expr::mform)
-    # MCatenate is always global
+    local reduced, env, var;
     reduced := ReduceExp(expr);
-
     env := `if`(n::Global, genv, callStack:-topEnv());
     
     if Header(n) = MCatenate then
@@ -288,7 +301,7 @@ end proc;
 
 
 pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
-
+    local rindex, rexpr, env, var;
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
     
@@ -318,6 +331,7 @@ end proc;
 
 # returns an object that can be used to unroll the body of a loop
 StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
+    local env, loopVarName, q;
     env := callStack:-topEnv();
     if loopVar <> MExpSeq() then
         loopVarName := Name(loopVar);
@@ -326,13 +340,13 @@ StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
     
     q := SimpleQueue();
     
-    return module() export unrollOnce, result;
+    return module() export setVal, unrollOnce, result;
         setVal := proc(x)
             if assigned(loopVarName) then
                 env:-putLoopVarVal(loopVarName, x);
             end if;
         end proc;
-        unrollOnce := proc() # pass in the loop index
+        unrollOnce := proc() local res; # pass in the loop index
             res := peM(statseq);
             if res <> NULL then
                 q:-enqueue(res);
@@ -343,33 +357,13 @@ StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
 end proc;
 
 
-#pe[MForFrom] := proc(loopVar::mform({Local, ExpSeq}), fromExp, byExp, toExp, statseq)
-#    rFromExp := ReduceExp(fromExp);
-#    rByExp   := ReduceExp(byExp);
-#    rToExp   := ReduceExp(toExp);
-#    
-#    if [rFromExp,rByExp,rToExp]::[Static,Static,Static] then #unroll loop        
-#        rFromExp := SVal(rFromExp);
-#        rByExp := SVal(rByExp);
-#        rToExp := SVal(rToExp);
-#        
-#        unroller := StaticLoopUnroller(loopVar, statseq);
-#        for i from rFromExp by rByExp to rToExp do
-#            unroller:-unrollOnce(i);
-#        end do;        
-#        unroller:-result();
-#    else
-#        error "dynamic loops not supported yet";
-#    end if;
-#end proc;
-
-# TODO: rewrinte
 pe[MForIn] := proc(loopVar, inExp, statseq)
     pe[MWhileForIn](loopVar, inExp, true, statseq);
 end proc;
 
 
 pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
+    local rInExp, unroller, i, rWhileExp;
     rInExp := ReduceExp(inExp);
     if [rInExp]::list(Static) then
         unroller := StaticLoopUnroller(loopVar, statseq);
@@ -394,6 +388,7 @@ pe[MForFrom] := proc(loopVar, fromExp, byExp, toExp, statseq)
 end proc;
 
 pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
+    local rFromExp, rByExp, rToExp, unroller, i, rWhileExp;
     rFromExp  := ReduceExp(fromExp);
     rByExp    := ReduceExp(byExp);
     rToExp    := ReduceExp(toExp);    
@@ -421,6 +416,7 @@ pe[MWhile] := proc()
 end proc;
 
 pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
+    local rtry, stat, q, c, rcat, rfin;
     rtry := peM(tryBlock);
 
     if rtry = NULL then
@@ -454,7 +450,6 @@ pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
         callStack:-pop();
     end if;
 
-    #callStack:-push(top);
     MTry(rtry, MCatchSeq(qtoseq(q)), rfin);
 end proc;
 
@@ -464,30 +459,19 @@ end proc;
 ##########################################################################################
 
 
-pe[MStandaloneFunction] := proc(var)
+pe[MStandaloneFunction] := proc(var) local unfold;
     unfold := proc(residualProcedure, redCall, fullCall)
         Unfold:-UnfoldStandalone(residualProcedure, redCall, fullCall, gen);
-        #flattened := M:-FlattenStatSeq(res);
-        #if nops(flattened) = 1 and op([1,0], flattened) = MStandaloneExpr then
-        #    NULL
-        #else
-        #    flattened;
-        #end if;
     end proc;
-    residualize := proc()
-        MStandaloneFunction(args);
-    end proc;
-    symbolic := proc()
-        MStandaloneExpr(args);
-    end proc;
-    
-    peFunction(args, unfold, residualize, symbolic);
+    peFunction(args, unfold, () -> MStandaloneFunction(args), () -> MStandaloneExpr(args));
 end proc;
 
 
 
 pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Function))
+    local unfold, residualize, symbolic;
     unfold := proc(residualProcedure, redCall, fullCall)
+        local res, flattened, assign, expr;
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         #flattened := M:-FlattenStatSeq(res);
         flattened := M:-RemoveUselessStandaloneExprs(res);
@@ -524,13 +508,13 @@ end proc;
 
 
 # used to statically evaluate a type assertion on a parameter
-checkParameterTypeAssertion := proc(value, paramSpec::mform(ParamSpec))
+checkParameterTypeAssertion := proc(value, paramSpec::mform(ParamSpec)) local ta;
     ta := TypeAssertion(paramSpec);
     `if`(nops(ta) > 0, type(value, op(ta)), true);
 end proc;
 
 # returns a parameter's default value
-getParameterDefault := proc(paramSpec::mform(ParamSpec))
+getParameterDefault := proc(paramSpec::mform(ParamSpec)) local default, value;
     default := Default(paramSpec);
     if nops(default) > 0 then
         value := ReduceExp(op(default));
@@ -557,6 +541,10 @@ end proc;
 # returns an environment where static parameters are mapped to their static values
 # as well as the static calls that will be residualized if the function is not unfolded
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
+    local env, fullCall, redCall, numParams, possibleExpSeqSeen, equationArgs, toRemove, i, t, f,
+          reduced, staticPart, value, toEnqueue, paramName, paramVal, paramSpec, reducedArgs, eqn,
+          reducedArg, arg;
+          
     env := OnENV(); # new env for function call
     env:-setLink(callStack:-topEnv());
     
@@ -680,7 +668,7 @@ end proc;
 
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 # probably won't be needed if I go with the sp-function approach
-isUnfoldable := proc(inertProcedure::mform(Proc), argListInfo)
+isUnfoldable := proc(inertProcedure::mform(Proc), argListInfo) local flattened;
     # it dosen't matter if an argument is an expression sequence if there are no defined parameters
     if argListInfo:-possibleExpSeq and nops(Params(inertProcedure)) > 0 then
         return false;
@@ -711,7 +699,7 @@ peFunction := proc(funRef::Dynamic,
                    unfold::procedure, 
                    residualize::procedure, 
                    symbolic::procedure)
-    local sfun;
+    local fun, sfun, newName, ma, redargs, res;
     PEDebug:-FunctionStart(funRef);
     
     fun := ReduceExp(funRef);
@@ -756,6 +744,7 @@ peFunction_StaticFunction := proc(funRef::Dynamic,
                                   fun::procedure, 
                                   argExpSeq::mform(ExpSeq), 
                                   newName, unfold, residualize, symbolic)
+    local funOption, rcall, s, r;
     if gopts:-hasFuncOpt(fun) then
         funOption := gopts:-funcOpt(fun);
         rcall := ReduceExp(argExpSeq);
@@ -781,6 +770,7 @@ end proc;
 
 # specialize the function
 peFunction_SpecializeThenDecideToUnfold := proc(fun::procedure, argExpSeq::mform(ExpSeq), newName, unfold, residualize, symbolic)
+    local m, argListInfo, newProc;
 	m := getMCode(eval(fun));
 
 	#if ormap(x -> Name(x) = "D", Params(m)) then
@@ -794,7 +784,7 @@ peFunction_SpecializeThenDecideToUnfold := proc(fun::procedure, argExpSeq::mform
     callStack:-pop();
 
     if isUnfoldable(newProc, argListInfo) then
-        code[newName] := evaln(code[newName]); # remove mapping from code
+        specializedProcs[newName] := evaln(specializedProcs[newName]); # remove mapping from specializedProcs
         unfold(newProc, argListInfo:-reducedCall, argListInfo:-allCall);
     elif M:-UsesArgsOrNargs(newProc) then
         residualize(MString(newName), argListInfo:-allCall)
@@ -804,9 +794,10 @@ peFunction_SpecializeThenDecideToUnfold := proc(fun::procedure, argExpSeq::mform
 end proc;
 
 
-# takes inert code and assumes static variables are on top of callStack
+# takes inert specializedProcs and assumes static variables are on top of callStack
 # called before unfold
-peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argListInfo) :: mform(Proc);    
+peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argListInfo) :: mform(Proc);
+    local env, lexMap, loc, varName, body, newProc, p, newParams, newKeywords;
     # attach lexical environment
     env := callStack:-topEnv();
     if not env:-hasLex() then
@@ -836,7 +827,7 @@ peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argList
         newProc := subsop(1=newParams, 11=newKeywords, newProc);
     end if;
 
-    code[n] := newProc;
+    specializedProcs[n] := newProc;
     newProc;
 end proc;
 

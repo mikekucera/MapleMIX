@@ -2,9 +2,14 @@ PEDebug := module()
     export Begin, RunThenStop, Statement, FunctionCall,
            DisplayReduceStart, DisplayReduceEnd, 
            DisplayStatmentStart, DisplayStatmentEnd,
-           StepUntil, GetStatementCount, Message;
-    local runningMode, quitIt, SetRunningMode, Quit, 
+           StepUntil, GetStatementCount, Message,
+           RememberVals, DisplayEnv,
+           StatementStart, StatementEnd,
+           FunctionStart, FunctionEnd;
+    local DisplayDebugCommand,
+          runningMode, quitIt, SetRunningMode, Quit, 
           x, y, displayStats, displayReductions,
+          stackSize, statementCount, runThenStop, stepUntil,
           STEP, # run to next statment, or run given number of statments
           FUNCTION_CALL, # run to next function call
           FUNCTION_RETURN, # skip over a function
@@ -140,7 +145,7 @@ PEDebug := module()
     
     # displays the debug mini-gui
     
-    DisplayDebugCommand := proc(message := "", skippable := false)
+    DisplayDebugCommand := proc(message := "", skippable := false) local maplet;
         if runThenStop or (assigned(stepUntil) and stepUntil > statementCount) then 
             return 
         end if;

@@ -4,10 +4,12 @@ NameGenerator := module()
     
     ModuleApply := proc(default::string := "x")
     	module()
-    	    export ModuleApply, addSymbols;
-    	    local vals, getVal, knownSymbols;   	    
+    	    export ModuleApply, addNames;
+    	    local vals, knownSymbols,
+    	          getVal, genName;   	    
     	    
     	    knownSymbols := {};
+    	    vals := table();
     	    
     	    addNames := proc(newSymbols::set(string))
     	        knownSymbols := knownSymbols union newSymbols;
@@ -26,7 +28,8 @@ NameGenerator := module()
     	        cat(prefix, getVal(prefix));
     	    end proc;
     	    
-    	    ModuleApply := proc(prefix::string := default)
+    	    ModuleApply := proc(prefix::string := default) # default is parameter to outer ModuleApply
+    	        local newName;
     	        newName := genName(prefix);
     	        while member(newName, knownSymbols) do
     	            newName := genName(prefix);

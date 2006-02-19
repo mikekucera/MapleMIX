@@ -2,7 +2,8 @@
 BuildModule := module()
     export ModuleApply;
 
-    ModuleApply := proc(n::string)::inert;
+    ModuleApply := proc(n::string, code::table)::inert;
+        local locals, exports, procLocalIndex, processProc, moduleStatseq, inertModDef;
         # get a list of names of module locals
         # n will be the export so remove it from this list
         locals := remove(`=`, keys(code), n);
@@ -12,6 +13,7 @@ BuildModule := module()
     
         # will be mapped over each residualized procedure
         processProc := proc(eqn)
+            local procName, p, lexicalLocals, body, lseq, f, processFuncCall;
             procName := lhs(eqn);
             
             p := M:-FromM(rhs(eqn));
@@ -22,6 +24,7 @@ BuildModule := module()
             # used to evaluate each name reference
     
             processFuncCall := proc(n)
+                local localName, localIndex;
                 if Header(n) = _Inert_ASSIGNEDNAME then
                     return _Inert_FUNCTION(args);
                 end if;

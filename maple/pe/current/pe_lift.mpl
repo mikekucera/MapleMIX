@@ -1,9 +1,9 @@
 
 Lifter := module()
     local gen;
-    export LiftExp, LiftPostProcess, liftStat, liftExp, liftTable;
+    export LiftExp, LiftPostProcess, liftStat, liftExp, liftTable, liftStatic;
 
-    liftStat := proc(stat) local t, e, c, n, f, s, b, stmts;
+    liftStat := proc(stat) local t, e, c, n, f, s, b, stmts, lift, h, q, k, result;
         h := Header(stat);
 
         # first consider the cases that don't result in a call to liftExp
@@ -51,7 +51,7 @@ Lifter := module()
 
     # Recurses through expressions and lifts where neccesary.
     # Also makes sure that expressions are embedded in MExpSeq where neccessary.
-    liftExp := proc(stmts::`table`, exp) local t, i, s, e, n;
+    liftExp := proc(stmts::`table`, exp) local t, i, s, e, n, lift, h;
         lift := curry(procname, stmts);
         h := Header(exp);
         
@@ -93,7 +93,7 @@ Lifter := module()
     end proc;
 
     
-    liftTable := proc(stmts::`table`, tblName, tbl::`table`)
+    liftTable := proc(stmts::`table`, tblName, tbl::`table`) local key, q, s;
         q := SimpleQueue();
 
         for key in keys(tbl) do
@@ -108,7 +108,7 @@ Lifter := module()
 
     # Lifts all static values that are embedded in the residual code.
     # Meant to be used as a post-process.
-    LiftPostProcess := proc(code::table)
+    LiftPostProcess := proc(code::table) local pn, body;
         for pn in keys(code) do
             body := ProcBody(code[pn]);
             code[pn] := subsop(5 = liftStat(body), code[pn]);

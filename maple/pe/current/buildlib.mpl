@@ -1,4 +1,4 @@
-interface(warnlevel = 1):
+interface(warnlevel = 3):
 with(LibraryTools):
 
 try

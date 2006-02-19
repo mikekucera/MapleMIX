@@ -1,52 +1,62 @@
 
 M := module()
-    export Print, ToM, FromM, ReduceExp, TransformIfNormalForm,
-           EndsWithErrorOrReturn, FlattenStatSeq, AddImplicitReturns,
-           SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs, ProtectedForm,
-           CreateLexMap, RemoveUselessStandaloneExprs,
-           Params, Locals, ProcBody, Header, Last, Front,
-           Cond, Then, Else,
-           Try, CatchSeq, Finally,
-           Var, IndexExp,
-           ssop, remseq, IsNoOp,
-           intrinsic, variables, HasVariable;
-    local createTableProcs, usesFlag, setFlag, createMap, inertTrue;
+    export Print,
+           HasVariable, CreateLexNameMap, 
+           SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs,
+           ProtectedForm, EndsWithErrorOrReturn, FlattenStatSeq,
+           IsNoOp, RemoveUselessStandaloneExprs, AddImplicitReturns,
+           ToM, FromM, TransformIfNormalForm;
+    local 
+$include "access_header.mpl"       
+          intrinsic, isIntrinsic, variables, inertTrue, inertDollar,
+          createTableProcs, createMap, usesFlag;
+    
+$include "access.mpl"
 
-
+          
     # set of builtin function names
     intrinsic := {anames(builtin), 'curry', 'table'};
-    
+    isIntrinsic := x -> member(convert(x, name), intrinsic);
+        
+    # constants for easy access to common inert forms
     inertTrue := _Inert_NAME("true", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected")))));
     inertDollar := _Inert_ASSIGNEDNAME("$","PROC",_Inert_ATTRIBUTE(_Inert_NAME("protected",_Inert_ATTRIBUTE(_Inert_NAME("protected")))));
 
-    # mforms for variables
-    variables := {MParam, MLocal, MGeneratedName, MSingleUse};
-
+    
+    # returns true iff the given mform contains the mform of a variable
     HasVariable := proc(m::mform)
-        hasfun(m, variables);
+        hasfun(m, {MName, MAssignedName, MCatenate, MLocal, MGenertatedName, MParam, MSingleUse});
     end proc;
 
-    # returns three procs that apply their args to the given table of procs
+    
+    
+    # Returns three procs that are used for the table displatch pattern in ToM and FromM
     createTableProcs := proc(n::string, tbl)
         local toForm, toForm2, toFormMap;
+        
         # takes one arg
-        toForm := proc(code)
+        toForm := proc(code) local h;
             h := op(0, code);
-            #print("toForm", h);
             if assigned(tbl[h]) then
                 return tbl[h](op(code));
             end if;
             error cat(n, ", %1 not supported"), h;
         end proc;
+        
         # takes two args
         toForm2 := (y, z) -> (toForm(y), toForm(z));
+        
         # takes any number of args
         toFormMap := () -> op(map(toForm, [args]));
+        
         return eval(toForm), eval(toForm2), eval(toFormMap);
     end proc;
 
-    # used by ToM and FromM to create mapping tables
-    createMap := proc(seq, yield::procedure)
+    
+    
+    # Used to map a procedure over a sequence in order to create a table from it
+    # the given procedure must modify the table tbl
+    createMap := proc(seq, yield::procedure) local tbl, i, x;
         tbl := table();
         i := 1;
         for x in seq do
@@ -56,27 +66,23 @@ M := module()
         tbl;
     end proc;
 
+    
+    # Takes a lexical sequence and create a table mapping the name of
+    # each lexical to f(lexpair)
     CreateLexNameMap := proc(lexicalseq::mform(LexicalSeq), f := (()->args))
         createMap(lexicalseq,
-        proc(tbl, i, lexpair)
-            tbl[op([1,1],lexpair)] := f(lexpair);
-        end proc)
+            proc(tbl, i, lexpair)
+                tbl[op([1,1],lexpair)] := f(lexpair);
+            end proc)
     end proc;
 
-     # maps lexical indicies to their names
-    createLexIndexMap := proc(lexicalseq)
-        createMap(lexicalseq,
-        proc(tbl, i, lexpair)
-            tbl[i] := op([1,1], lexpair)
-        end proc)
-    end proc;
-
-
+    
     # used to print out M forms in a (slightly more) readable way
-    Print := proc(m::mform)
+    Print := proc(m::mform) local printspaces, doPrint;
         printspaces := proc(num)
             from 1 to num*2 do printf(" ") end do
         end proc;
+        # recursive function that prints out the mform
         doPrint := proc(indent, f)
             if type(f, function) then
                 printspaces(indent);
@@ -88,25 +94,30 @@ M := module()
             end if;
         end proc;
         doPrint(0, m);
+        NULL;
     end proc;
 
-
+    
+    # Sets two flags in the mform of a proc that indicates if the
+    # proc uses the args or nargs keywords. This is done because 
+    # checking for the use of MArgs or MNargs is otherwise costly.
     SetArgsFlags := proc(p::mform(Proc)) :: mform(Proc);
+        local setFlag;
+        setFlag := proc(m, flag, fun) local val;
+            val := hasfun(m, fun);
+            subsop([10,flag,1] = val, m);
+        end proc;
         setFlag(setFlag(p, 1, MArgs), 2, MNargs);
     end proc;
 
-    setFlag := proc(m, flag, fun)
-        val := hasfun(m, fun);
-        subsop([10,flag,1] = val, m);
-    end proc;
-
-
-    # returns true if the given procedure body contains a use of MArgs or MNargs
+    
+    # returns true iff the given procedure body contains a use of MArgs or MNargs
     UsesArgsOrNargs := proc(m::mform(Proc)) :: boolean;
         UsesArgs(m) or UsesNargs(m);
     end proc;
 
-    # throws an exception
+    
+    # returns true iff the given procedure body contains the use of MArgs
     UsesArgs := proc(m::mform(Proc)) :: boolean;
         evalb(usesFlag(m, 1));
     end proc;
@@ -115,22 +126,23 @@ M := module()
         evalb(usesFlag(m, 2));
     end proc;
 
-    usesFlag := proc(m, flag)
+    # returns true iff the given procedure body contains the use of MNargs
+    usesFlag := proc(m, flag) local val;
         val := op([10,flag,1], m);
         if val = UNKNOWN then
-            error "query for " || flag || " set to UNKNOWN";
+            error "query for %1 set to UNKNOWN", flag;
         end if;
         val;
     end proc;
 
-
-    ProtectedForm := proc(n) option inline;
+    # returns the protected form of the given name
+    ProtectedForm := proc(n::string)
         MAssignedName(n, "PROC", MAttribute(MName("protected", MAttribute(MName("protected")))))
     end proc;
     
     
     # returns true iff the given statment is a return or is a statseq that ends with a return
-    EndsWithErrorOrReturn := proc(m::mform)
+    EndsWithErrorOrReturn := proc(m::mform) local flat;
         if m = MStatSeq() then
             false;
         elif Header(m) = MStatSeq then
@@ -158,8 +170,9 @@ M := module()
         m = MStatSeq() or m = MStatSeq(MStandaloneExpr(MExpSeq()));
     end proc;
     
-    
+    # removes standalone exprs that are not at the end of a statment sequence
     RemoveUselessStandaloneExprs := proc(statseq::mform(StatSeq))
+        local ss, q, size, i, stat;
         ss := FlattenStatSeq(statseq);
         q := SimpleQueue();
         size := nops(ss);
@@ -176,6 +189,8 @@ M := module()
 
     # If a statseq ends with an assignment, then an implicit return is added
     AddImplicitReturns := proc(stat::mform({StatSeq, IfThenElse}))
+        local front, last, header;
+        
         if stat = MStatSeq() then
             return MStatSeq();
         end if;
@@ -202,7 +217,7 @@ M := module()
     end proc;
 
 
-$include "access.mpl"
+
 $include "m_tom.mpl"
 $include "m_fromm.mpl"
 $include "m_if_transform.mpl"

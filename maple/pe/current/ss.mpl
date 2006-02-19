@@ -25,7 +25,7 @@ SuperStack := module()
                 data[topIndex] := x;
             end proc;
 
-            pop := proc()
+            pop := proc() local temp;
                 if topIndex = 0 then
                     error "empty stack"
                 end if;
@@ -43,9 +43,10 @@ SuperStack := module()
             end proc;
 
             topDownIterator := proc()
+                local i;
                 i := topIndex;
                 module() export getNext, hasNext;
-                    getNext := proc()
+                    getNext := proc() local temp;
                         temp := data[i];
                         i := i - 1;
                         temp;
@@ -55,6 +56,7 @@ SuperStack := module()
             end proc;
 
             find := proc(p::procedure)
+                local i, frame;
                 for i from topIndex to 1 by -1 do
                     frame := data[i];
                     if p(frame) then
