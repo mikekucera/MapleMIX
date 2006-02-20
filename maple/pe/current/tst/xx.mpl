@@ -2,6 +2,7 @@ with(Domains):
 interface(verboseproc=3):
 interface(labelling=false):
 kernelopts(ASSERT=true):
+infolevel[PE] := 10:
 
 #xx := proc() local C,x,m,m2;
 #   C := DUP(Q,x);
@@ -13,7 +14,7 @@ kernelopts(ASSERT=true):
 with(PEOptions):
 
 opts := PEOptions();
-#opts:-addFunction(PURE, Domains:-UnivariatePolynomial:-ModuleApply);
+opts:-addFunction(PURE, Domains:-UnivariatePolynomial:-ModuleApply);
 
 #opts:-addFunction(PURE, Domains:-EuclideanDomain):
 #opts:-addFunction(PURE, Domains:-UniqueFactorizationDomain):
@@ -35,7 +36,7 @@ end proc;
 
 #xx();
 
-ps := OnPE(xx, opts);
+ps := OnPE(xx, opts):
 
 #interface(verboseproc=3):
 #print(eval(ps:-ModuleApply));

@@ -52,11 +52,14 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     specializedProcs := table();
     genv := OnENV(); # the global environment
 
+    userinfo(1, PE, "PE on ", eval(p));
     m := getMCode(eval(p));
+    userinfo(3, PE, "Successfully got MCode for", p);
     callStack:-push();
     
     try
         peFunction_GenerateNewSpecializedProc(m, "ModuleApply");
+        userinfo(3, PE, "Successful PE, now Lifting", p);
         Lifter:-LiftPostProcess(specializedProcs);
     catch "debug":
         lprint("debug session exited");
@@ -66,10 +69,11 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
         lprint("hard stop caused by stop command");
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated");
         return;
-    catch:
-        lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
-        print(lastexception);
-        error;
+# let the error go to the top as it makes debugging easier!
+#    catch:
+#        lprint(PEDebug:-GetStatementCount(), "statements partially evaluated before error");
+#        print(lastexception);
+#        error;
         #return copy(specializedProcs);
     end try;
 
@@ -150,6 +154,7 @@ end proc;
 # partially evaluates an arbitrary M statement
 peM := proc(m::mform) local h;
     h := Header(m);
+    userinfo(10, PE, "PE on an", h);
     if assigned(pe[h]) then
         return pe[h](op(m));
     end if;
@@ -701,6 +706,7 @@ peFunction := proc(funRef::Dynamic,
                    symbolic::procedure)
     local fun, sfun, newName, ma, redargs, res;
     PEDebug:-FunctionStart(funRef);
+    userinfo(10, PE, "Reducing function call", funRef);
     
     fun := ReduceExp(funRef);
 
