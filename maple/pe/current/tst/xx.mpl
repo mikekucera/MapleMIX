@@ -1,7 +1,9 @@
 with(Domains):
 interface(verboseproc=3):
 interface(labelling=false):
+kernelopts(opaquemodules=false):
 kernelopts(ASSERT=true):
+
 infolevel[PE] := 10:
 
 #xx := proc() local C,x,m,m2;
@@ -14,7 +16,7 @@ infolevel[PE] := 10:
 with(PEOptions):
 
 opts := PEOptions();
-opts:-addFunction(PURE, Domains:-UnivariatePolynomial:-ModuleApply);
+# opts:-addFunction(PURE, Domains:-UnivariatePolynomial:-ModuleApply);
 
 #opts:-addFunction(PURE, Domains:-EuclideanDomain):
 #opts:-addFunction(PURE, Domains:-UniqueFactorizationDomain):
@@ -41,7 +43,7 @@ ps := OnPE(xx, opts):
 #interface(verboseproc=3):
 #print(eval(ps:-ModuleApply));
 
-# printmod(ps);
+printmod(ps);
 
 #G := ps();
 #gm := G[Input](x^4-10*x^2+1);

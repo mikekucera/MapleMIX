@@ -262,14 +262,22 @@ OnENV := module()
 
             # precondition, isStatic(table) = true
             rebuildTable := proc(chain::`record`(elts,link), hasDyn)
-                local tbl, rec;
+                local tbl, rec, tmp;
                 tbl := table();
                 rec := chain;
                 do
                     for key in keys(rec:-elts) do
                         if not assigned(tbl[key]) then
                             #tbl[key] := eval(rec:-elts[key]);
-                            tbl[key] := eval(rec:-elts[key],2);
+                            if key=Domains:-Signatures then
+                                tmp := rec:-elts;
+                                userinfo(5, PE, "rec:-elts[key] is", tmp[key]);
+                            end if;
+                            if type(rec:-elts[key],'table') then
+                                tbl[key] := eval(rec:-elts[key],2);
+                            else
+                                tbl[key] := rec:-elts[key];
+                            end if;
                             if nargs > 1 and tbl[key] = OnENV:-DYN then
                                 hasDyn := true;
                             end if;
@@ -279,7 +287,7 @@ OnENV := module()
                     rec := rec:-link;
                 end do;
                 mapAddressToTable[addressof(eval(tbl))] := chain;
-                tbl;
+                eval(tbl,2);
             end proc;
 
 

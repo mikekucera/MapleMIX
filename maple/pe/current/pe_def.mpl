@@ -316,10 +316,12 @@ pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
     var := Name(Var(tr));
 
     if [rindex,rexpr]::[Static,Static] then
+userinfo(5, PE, "Static -- putting into env", SVal(rexpr));
         env:-putTblVal(var, SVal(rindex), SVal(rexpr));
         NULL;
         
     elif [rindex,rexpr]::[Static,Both] then
+userinfo(5, PE, "Both -- putting into env", SVal(StaticPart(rexpr)));
         env:-putTblVal(var, SVal(rindex), SVal(StaticPart(rexpr)));
         MTableAssign(subsop(2=rindex, tr), SVal(StaticPart(rexpr)));
         
@@ -484,10 +486,12 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
             assign := op(flattened);
             expr := op(2, assign);
             if expr::Static then
-                callStack:-topEnv():-putVal(op(var), SVal(expr));
+userinfo(5, PE, "Static -- var := expr", Name(var), SVal(expr));
+                callStack:-topEnv():-putVal(Name(var), SVal(expr));
                 return NULL;
             elif expr::Both then
-                callStack:-topEnv():-putVal(op(var), SVal(StaticPart(expr)));
+userinfo(5, PE, "Both -- var := expr", Name(var), SVal(StaticPart(expr)));
+                callStack:-topEnv():-putVal(Name(var), SVal(StaticPart(expr)));
             end if;
         end if;
         flattened;
@@ -547,8 +551,8 @@ end proc;
 # as well as the static calls that will be residualized if the function is not unfolded
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
     local env, fullCall, redCall, numParams, possibleExpSeqSeen, equationArgs, toRemove, i, t, f,
-          reduced, staticPart, value, toEnqueue, paramName, paramVal, paramSpec, reducedArgs, eqn,
-          reducedArg, arg;
+          reduced, staticPart, val, toEnqueue, paramName, paramVal, paramSpec, reducedArgs, eqn,
+          reducedArg, arg, tmp;
           
     env := OnENV(); # new env for function call
     env:-setLink(callStack:-topEnv());
@@ -576,8 +580,8 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	        # flatten the way that Maple does
             staticPart := `if`(reduced::Both, StaticPart(reduced), reduced);
             
-   	        for value in staticPart do
-   	            toEnqueue := `if`(reduced::Both, DynamicPart(reduced), embed(value));
+   	        for val in staticPart do
+   	            toEnqueue := `if`(reduced::Both, DynamicPart(reduced), embed(val));
    	            fullCall:-enqueue(toEnqueue);
    	            if possibleExpSeqSeen or reduced::Both then
    	                redCall:-enqueue(toEnqueue);
@@ -592,17 +596,17 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
        	                #    print("we got something");
        	                #    print("paramSpec", paramSpec);
        	                #    print("about to put val into env", paramSpec);
-       	                #    print("val before", value);
+       	                #    print("val before", val);
        	                #end if;
        	                
-       	                if not checkParameterTypeAssertion(value, paramSpec) then
-       	                    value := getParameterDefault(paramSpec);
+       	                if not checkParameterTypeAssertion(val, paramSpec) then
+       	                    val := getParameterDefault(paramSpec);
        	                end if;
-       	                env:-putVal(Name(paramSpec), value);
+       	                env:-putVal(Name(paramSpec), val);
        	                toRemove := toRemove union `if`(reduced::Both, {}, {Name(paramSpec)});
        	            end if;
-       	            #argsTbl[i] := value;
-       	            env:-putArgsVal(i, value);
+       	            #argsTbl[i] := val;
+       	            env:-putArgsVal(i, val);
        	            i := i + 1;
        	        end if;
        	    end do;
@@ -654,7 +658,9 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
         # TODO, dynamic keyword equation arguments are not supported yet
         for paramSpec in keywords do
             if env:-isDynamic(Name(paramSpec)) then
-                env:-putVal(Name(paramSpec), SVal(ReduceExp(op(Default(paramSpec)))));
+                tmp := SVal(ReduceExp(op(Default(paramSpec))));
+                userinfo(5, PE, "doing putVal with", tmp, "which was", paramSpec);
+                env:-putVal(Name(paramSpec), tmp);
             end if;
         end do
     end if;   
@@ -750,10 +756,13 @@ peFunction_StaticFunction := proc(funRef::Dynamic,
                                   fun::procedure, 
                                   argExpSeq::mform(ExpSeq), 
                                   newName, unfold, residualize, symbolic)
-    local funOption, rcall, s, r;
+    local funOption, rcall, s, r, tmp;
     if gopts:-hasFuncOpt(fun) then
         funOption := gopts:-funcOpt(fun);
+        userinfo(5, PE, "StaticFunction: About to reduce", argExpSeq);
         rcall := ReduceExp(argExpSeq);
+        tmp := op(rcall);
+        userinfo(5, PE, "StaticFunction: Arguments for call is", eval(tmp,2));
         
         s := () -> (symbolic @ embed @ fun @ SVal)(rcall);
         r := () -> residualize(funRef, rcall);
@@ -791,6 +800,10 @@ peFunction_SpecializeThenDecideToUnfold := proc(fun::procedure, argExpSeq::mform
 
     if isUnfoldable(newProc, argListInfo) then
         specializedProcs[newName] := evaln(specializedProcs[newName]); # remove mapping from specializedProcs
+userinfo(5, PE, "raw proc", fun);
+# userinfo(5, PE, "after specialization proc", newProc);
+userinfo(5, PE, "actual arguments", argListInfo:-allCall);
+
         unfold(newProc, argListInfo:-reducedCall, argListInfo:-allCall);
     elif M:-UsesArgsOrNargs(newProc) then
         residualize(MString(newName), argListInfo:-allCall)
@@ -814,7 +827,7 @@ peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argList
     # create static locals
     for loc in Locals(m) do
         varName := Var(loc);
-        env:-putVal(varName, convert(varName, `local`));
+        env:-putVal(varName, convert(varName, '`local`'));
     end do;
 
     body := M:-AddImplicitReturns(ProcBody(m)); # if a block ends with an assignment
