@@ -35,15 +35,12 @@ end proc;
 
 #xx();
 
-
 ps := OnPE(xx, opts):
-
-
 
 #interface(verboseproc=3):
 #print(eval(ps:-ModuleApply));
 
-printmod(ps);
+# printmod(ps);
 
 #G := ps();
 #gm := G[Input](x^4-10*x^2+1);
