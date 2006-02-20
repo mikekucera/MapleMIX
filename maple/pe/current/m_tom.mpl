@@ -3,6 +3,7 @@ ToM := module()
     local 
         m, itom, itom2, mapitom, gen, lamGen, mapStack, knownNames,
         addName, createParamMap, createLocalMap, createLexIndexMap,
+        createExportMap,
         getVar, getLexVar, isStandalone,
         splitAssigns, split, splitReturn, splitTableRef, 
         paramSpec, removeNext;
@@ -75,6 +76,16 @@ ToM := module()
             end proc)
     end proc;
 
+
+    # completely copied on createLocalMap
+    createExportMap := proc(varSeq)
+        createMap(varSeq,
+            proc(tbl, i, var)
+                tbl[i] := Name(var);
+                addName(Name(var));
+            end proc)
+    end proc;
+    
 
     getVar := proc(mapname, x) 
         mapStack:-top()[mapname][x];
@@ -477,6 +488,33 @@ ToM := module()
         end if;
 
         MTry(itom(args[1]), catches(args[2..nargs]), fin);
+    end proc;
+
+    # placeholder for now, to see what's needed
+    m[_Inert_MODULE] := proc() 
+        MModule(mapitom(args));
+    end proc;
+
+    m[_Inert_MODDEF] := proc() local maps, ps, front, pars, keys, others, flags;
+        # $ in the parameter sequence throws the index of keywords off        
+        ps := [args][1];
+        if member(inertDollar, ps) and hasfun(ps, _Inert_SET) then
+            front := [Front(ps)]; # the $ will be in the last position
+            ps := _Inert_PARAMSEQ(Front(front), inertDollar, Last(front));            
+        end if;
+        
+        maps := table();
+        maps['params'] := createParamMap(ps);        
+        maps['locals'] := createLocalMap([args][2]);
+        maps['lex']    := createLexIndexMap([args][8]);
+        maps['exprt']  := createExportMap([args][4]);
+        mapStack:-push(maps);
+        
+        pars, keys := m[_Inert_PARAMSEQ](op([args][1]));
+        others := mapitom(args[2..-1]);
+        flags := MFlags( MArgsFlag(UNKNOWN), MNargsFlag(UNKNOWN) );
+        
+        MModDef(pars, others, flags, keys);
     end proc;
 
 end module:
