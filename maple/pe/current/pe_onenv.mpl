@@ -102,6 +102,7 @@ OnENV := module()
                     if member(key, frame:-dyn) then
                         error "can't get dynamic value %1", key;
                     elif assigned(frame:-tbls[key]) then
+                        print("calling rebuildTable", key);
                         if nargs > 1 then
                             t := rebuildTable(frame:-tbls[key], hasDyn);
                             ASSERT( type(t, 'table'), "rebuildTable did not return a table (1)");
@@ -120,6 +121,36 @@ OnENV := module()
                 error "can't get dynamic value %1", key;
             end proc;
 
+            
+            getTblVal := proc(tableName::Not(mform), index)
+                local err, frame, rec, val;
+                ASSERT( nargs = 2, "getTblVal expected 2 args" );
+                err := "table value is dynamic %1[%2]", tableName, index;
+                try
+                    frame := ss:-find( fr -> assigned((fr:-tbls)[tableName]) );
+                catch:
+                    error err;
+                end try;
+
+                rec := (frame:-tbls)[tableName];
+                do
+                    ASSERT( type(rec:-elts, 'table'), "rec:-elts is not a table!", rec:-elts );
+                    if assigned(rec:-elts[index]) then
+                        val := rec:-elts[index];
+                        if val = OnENV:-DYN then
+                            error err;
+                        elif type(val, 'record(link,elts)') then
+                            return rebuildTable(val);
+                        else
+                            return val;
+                        end if;
+                    elif assigned(rec:-link) then
+                        rec := rec:-link;
+                    else
+                        error err;
+                    end if;
+                end do;
+            end proc;
             
             
             putVal := proc(key::Not(mform), x) local frame;
@@ -142,6 +173,7 @@ OnENV := module()
                 
             
             doPutVal := proc(key, x) local frame, addr, rec;
+                print("doPutVal", key);
                 frame:=ss:-top();
                 frame:-dyn := frame:-dyn minus {key};
 
@@ -166,6 +198,43 @@ OnENV := module()
                     frame:-tbls[key] := evaln(frame:-tbls[key]);
                     frame:-vals[key] := x;
                 end if;
+                NULL;
+            end proc;
+            
+            
+            putTblVal := proc(tableName::Not(mform), index, x) local foundFrame, rec, newRec, addr;
+                print("putTblVal", tableName, index);
+                
+                ASSERT( nargs = 3, cat("putTblVal expecting 3 args but received ", nargs) );
+                if assigned(ss:-top():-tbls[tableName]) then # its at the top
+                    rec := ss:-top():-tbls[tableName];
+                else
+                    try
+                        foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
+                        rec := addTable(tableName);
+                        rec:-link := foundFrame:-tbls[tableName];
+                    catch "not found" :
+                        rec := addTable(tableName);
+                    end try;
+                end if;
+                ASSERT( type(rec:-elts, 'table') );
+                
+                if type(x, 'table') then
+                    addr := addressof(eval(x));
+                    if assigned(mapAddressToTable[addr]) then
+                        rec:-elts[index] := mapAddressToTable[addr]; # make var point to existing table
+                    elif assigned(prevEnvLink) and assigned(prevEnvLink:-mapAddressToTable[addr]) then
+                        rec:-elts[index] := prevEnvLink:-mapAddressToTable[addr];
+                    else
+                        error "not implemented yet";
+                        #newRec := addTable();
+                        #newRec:-elts := eval(x,2);
+                        #rec:-elts[index] := newRec;
+                    end if;
+                else
+                    rec:-elts[index] := x;
+                end if;
+                
                 NULL;
             end proc;
             
@@ -265,16 +334,15 @@ OnENV := module()
                 local tbl, rec, tmp;
                 tbl := table();
                 rec := chain;
+                
                 do
                     for key in keys(rec:-elts) do
                         if not assigned(tbl[key]) then
-                            #tbl[key] := eval(rec:-elts[key]);
-                            if key=Domains:-Signatures then
-                                tmp := rec:-elts;
-                                userinfo(5, PE, "rec:-elts[key] is", tmp[key]);
-                            end if;
-                            if type(rec:-elts[key],'table') then
-                                tbl[key] := eval(rec:-elts[key],2);
+                            ASSERT( not type(rec:-elts[key], 'table'), "found table not being managed by env");
+                            
+                            if type(rec:-elts[key], 'record(elts,link)') then
+                                tbl[key] := rebuildTable(rec:-elts[key]);
+                                #tbl[key] := eval(rec:-elts[key],2);
                             else
                                 tbl[key] := rec:-elts[key];
                             end if;
@@ -290,14 +358,16 @@ OnENV := module()
                 eval(tbl,2);
             end proc;
 
-
-            addTable := proc(tblName) local frame, t;
+            # TODO, bad name for this function, it returns an empty record
+            addTable := proc(tblName) local frame, rec;
                 frame := ss:-top();
-                t := Record(:-link,           # downward link, initially unassigned
-                           (:-elts) );# elts, stores values
-                t:-elts := table();
-                frame:-tbls[tblName] := eval(t,2);
-                eval(t,2);
+                rec := Record(:-link,    # downward link, initially unassigned
+                             (:-elts) ); # elts, stores values
+                rec:-elts := table();
+                if nargs > 0 then
+                    frame:-tbls[tblName] := eval(rec,2);
+                end if;
+                eval(rec,2);
             end proc;
 
 
@@ -342,58 +412,10 @@ OnENV := module()
             end proc;
 
             
-            putTblVal := proc(tableName::Not(mform), index, x)
-                local foundFrame, rec;
-                ASSERT( nargs = 3, cat("putTblVal expecting 3 args but received ", nargs) );
-                if assigned(ss:-top():-tbls[tableName]) then # its at the top
-                    rec := ss:-top():-tbls[tableName];
-                else
-                    try
-                        foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
-                        rec := addTable(tableName);
-                        rec:-link := foundFrame:-tbls[tableName];
-                    catch "not found" :
-                        rec := addTable(tableName);
-                    end try;
-                end if;
-                ASSERT( type(rec:-elts, 'table') );
-                rec:-elts[index] := x;
-                NULL;
-            end proc;
+            
 
 
-            getTblVal := proc(tableName::Not(mform), index)
-                local err, frame, rec, val;
-                ASSERT( nargs = 2, "getTblVal expected 2 args" );
-                err := "table value is dynamic %1[%2]", tableName, index;
-                try
-                    frame := ss:-find( fr -> assigned((fr:-tbls)[tableName]) );
-                catch:
-                    error err;
-                end try;
-
-                rec := (frame:-tbls)[tableName];
-                do
-                    if not type(rec:-elts, 'table') then
-                        print("rec is wrong", rec);
-                        print("rec:-link", rec:-link);
-                        print("rec:-elts", rec:-elts);
-                    end if;
-                    ASSERT( type(rec:-elts, 'table'), "rec:-elts is not a table!", rec:-elts );
-                    if assigned(rec:-elts[index]) then
-                        val := rec:-elts[index];
-                        if val = OnENV:-DYN then
-                            error err;
-                        else
-                            return val;
-                        end if;
-                    elif assigned(rec:-link) then
-                        rec := rec:-link;
-                    else
-                        error err;
-                    end if;
-                end do;
-            end proc;
+            
 
 
             setTblValDynamic := proc(tableName::Not(mform), index)
