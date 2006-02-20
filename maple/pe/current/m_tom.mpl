@@ -217,6 +217,7 @@ ToM := module()
     m[_Inert_OPTIONSEQ]      := MOptionSeq      @ mapitom;
     m[_Inert_DESCRIPTIONSEQ] := MDescriptionSeq @ mapitom;
     m[_Inert_GLOBALSEQ]      := MGlobalSeq      @ mapitom;
+    m[_Inert_EXPORTSEQ]      := MExportSeq      @ mapitom;
     m[_Inert_EOP]            := MEop            @ mapitom;    
 
     
