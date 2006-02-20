@@ -7,6 +7,7 @@ OnENV := module()
 
     ModuleApply := proc() local newEnv;
         newEnv := module()
+                   setValDynamic, equalsTop, setLoopVar;
             local 
                 ss, mapAddressToTable, prevEnvLink,
                 newFrame, doPutVal, rebuildTable, addTable,
@@ -129,19 +130,20 @@ OnENV := module()
                 if member(key, frame:-loopvars) then
                     error "variable %1 is a loop variable (assignement to for loop index not allowed)", key;
                 end if;
-                doPutVal(args);
+                doPutVal(key,x);
             end proc;
                         
             
             
             putLoopVarVal := proc(key::Not(mform), x)
                 ASSERT( nargs = 2, "wrong number of args to putLoopVarVal" );
-                doPutVal(args);
+                doPutVal(key,x);
             end proc;
             
                 
             
             doPutVal := proc(key, x) local frame, addr, rec;
+                local rec;
                 frame:=ss:-top();
                 frame:-dyn := frame:-dyn minus {key};
 
@@ -158,8 +160,8 @@ OnENV := module()
                         frame:-tbls[key] := prevEnvLink:-mapAddressToTable[addr];
                     else
                         rec := addTable(key);
-                        ASSERT(type(rec:-elts, 'table'));
-                        rec:-elts :: 'table' := x;
+                        ASSERT(type(eval(rec:-elts,1), 'table'));
+                        rec:-elts :: 'table' := eval(x,2);
                     end if;
                 else
                     ASSERT( type(x, Not('table')) and type(eval(x), Not('table')), "table where it should not be" );
@@ -204,8 +206,8 @@ OnENV := module()
                     error "variable %1 is a loop variable (assignement to for loop index not allowed)", key;
                 end if;
                 #unassign value of key if it is in the env
-                frame:-vals[key] := evaln(frame:-vals[key]);
-                frame:-tbls[key] := evaln(frame:-tbls[key]);
+                frame:-vals[key] := 'frame:-vals[key]';
+                frame:-tbls[key] := 'frame:-tbls[key]';
                 
                 frame:-dyn := frame:-dyn union {key};
                 NULL;
@@ -261,7 +263,8 @@ OnENV := module()
 ##########################################################################################
 
             # precondition, isStatic(table) = true
-            rebuildTable := proc(chain::`record`, hasDyn) local tbl, rec, key;
+            rebuildTable := proc(chain::`record`(elts,link), hasDyn)
+                local tbl, rec;
                 tbl := table();
                 rec := chain;
                 do
@@ -284,8 +287,9 @@ OnENV := module()
 
             addTable := proc(tblName) local frame, t;
                 frame := ss:-top();
-                t := Record('link',           # downward link, initially unassigned
-                           'elts'=table());   # elements, stores values
+                t := Record(:-link,           # downward link, initially unassigned
+                           (:-elts) );# elts, stores values
+                t:-elts := table();
                 frame:-tbls[tblName] := eval(t,1);
                 eval(t,1);
             end proc;
@@ -298,8 +302,8 @@ OnENV := module()
                     foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
                     rec := foundFrame:-tbls[tableName];
                     do
-                        if assigned(rec:-elts[index]) then
-                            return not rec:-elts[index] = OnENV:-DYN;
+                        if assigned((rec:-elts)[index]) then
+                            return `if`((rec:-elts)[index] = OnENV:-DYN, false, true);
                         elif assigned(rec:-link) then
                             rec := rec:-link;
                         else
@@ -318,7 +322,7 @@ OnENV := module()
                     foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
                     rec := foundFrame:-tbls[tableName];
                     do
-                        if assigned(rec:-elts[index]) then
+                        if assigned((rec:-elts)[index]) then
                             return true;
                         elif assigned(rec:-link) then
                             rec := rec:-link;
@@ -357,15 +361,15 @@ OnENV := module()
                 ASSERT( nargs = 2, "getTblVal expected 2 args" );
                 err := "table value is dynamic %1[%2]", tableName, index;
                 try
-                    frame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
+                    frame := ss:-find( fr -> assigned((fr:-tbls)[tableName]) );
                 catch:
                     error err;
                 end try;
 
-                rec := frame:-tbls[tableName];
+                rec := (frame:-tbls)[tableName];
                 do
                     if not type(rec:-elts, 'table') then
-                        print("rec", rec);
+                        print("rec is wrong", rec);
                         print("rec:-link", rec:-link);
                         print("rec:-elts", rec:-elts);
                     end if;
@@ -433,6 +437,7 @@ OnENV := module()
 ##########################################################################################
 
             display := proc() local iter, frame, rec, tblName;
+                local rec;
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
@@ -441,12 +446,13 @@ OnENV := module()
                     print("dyn", frame:-dyn);
                     for tblName in keys(frame:-tbls) do
                         rec := frame:-tbls[tblName];
-                        print("rec", tblName, eval(rec:-elts,2), `if`(assigned(rec:-link), "linked", "null"));
+                        print("display: rec", tblName, eval(rec:-elts,2), `if`(assigned(rec:-link), "linked", "null"));
                     end do;
                 end do;
             end proc;
             
             displayNames := proc() local iter, frame, rec, tblName;
+                local rec;
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
@@ -455,7 +461,7 @@ OnENV := module()
                     print("dyn", frame:-dyn);
                     for tblName in keys(frame:-tbls) do
                         rec := frame:-tbls[tblName];
-                        print("rec", tblName, indices(rec:-elts));
+                        print("displayNames: rec", tblName, indices(eval(rec:-elts,2)));
                     end do;
                 end do;
             end proc;
