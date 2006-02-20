@@ -35,7 +35,7 @@ end proc;
 
 #xx();
 
-ps := OnPE(xx, opts):
+ps := OnPE(xx, opts);
 
 #interface(verboseproc=3):
 #print(eval(ps:-ModuleApply));

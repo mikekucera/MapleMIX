@@ -7,7 +7,6 @@ OnENV := module()
 
     ModuleApply := proc() local newEnv;
         newEnv := module()
-                   setValDynamic, equalsTop, setLoopVar;
             local 
                 ss, mapAddressToTable, prevEnvLink,
                 newFrame, doPutVal, rebuildTable, addTable,
@@ -143,12 +142,11 @@ OnENV := module()
                 
             
             doPutVal := proc(key, x) local frame, addr, rec;
-                local rec;
                 frame:=ss:-top();
                 frame:-dyn := frame:-dyn minus {key};
 
                 if type(x, 'table') then
-                    frame:-vals[key] := evaln(frame:-vals[key]);
+                    frame:-vals[key] := 'frame:-vals[key]';
                     addr := addressof(eval(x));
                     if assigned(mapAddressToTable[addr]) then
                         ASSERT( type(mapAddressToTable[addr]:-elts, 'table') );
@@ -160,7 +158,7 @@ OnENV := module()
                         frame:-tbls[key] := prevEnvLink:-mapAddressToTable[addr];
                     else
                         rec := addTable(key);
-                        ASSERT(type(eval(rec:-elts,1), 'table'));
+                        ASSERT(type(rec:-elts, 'table'));
                         rec:-elts :: 'table' := eval(x,2);
                     end if;
                 else
@@ -271,7 +269,7 @@ OnENV := module()
                     for key in keys(rec:-elts) do
                         if not assigned(tbl[key]) then
                             #tbl[key] := eval(rec:-elts[key]);
-                            tbl[key] := rec:-elts[key];
+                            tbl[key] := eval(rec:-elts[key],2);
                             if nargs > 1 and tbl[key] = OnENV:-DYN then
                                 hasDyn := true;
                             end if;
@@ -290,8 +288,8 @@ OnENV := module()
                 t := Record(:-link,           # downward link, initially unassigned
                            (:-elts) );# elts, stores values
                 t:-elts := table();
-                frame:-tbls[tblName] := eval(t,1);
-                eval(t,1);
+                frame:-tbls[tblName] := eval(t,2);
+                eval(t,2);
             end proc;
 
 
@@ -437,7 +435,6 @@ OnENV := module()
 ##########################################################################################
 
             display := proc() local iter, frame, rec, tblName;
-                local rec;
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
@@ -452,7 +449,6 @@ OnENV := module()
             end proc;
             
             displayNames := proc() local iter, frame, rec, tblName;
-                local rec;
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     frame := iter:-getNext();
