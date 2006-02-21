@@ -4,7 +4,7 @@ interface(labelling=false):
 kernelopts(opaquemodules=false):
 kernelopts(ASSERT=true):
 
-infolevel[PE] := 10:
+infolevel[PE] := 0:
 
 #xx := proc() local C,x,m,m2;
 #   C := DUP(Q,x);

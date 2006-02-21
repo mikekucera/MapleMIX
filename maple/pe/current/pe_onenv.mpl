@@ -102,7 +102,6 @@ OnENV := module()
                     if member(key, frame:-dyn) then
                         error "can't get dynamic value %1", key;
                     elif assigned(frame:-tbls[key]) then
-                        print("calling rebuildTable", key);
                         if nargs > 1 then
                             t := rebuildTable(frame:-tbls[key], hasDyn);
                             ASSERT( type(t, 'table'), "rebuildTable did not return a table (1)");
@@ -173,7 +172,6 @@ OnENV := module()
                 
             
             doPutVal := proc(key, x) local frame, addr, rec;
-                print("doPutVal", key);
                 frame:=ss:-top();
                 frame:-dyn := frame:-dyn minus {key};
 
@@ -203,7 +201,6 @@ OnENV := module()
             
             
             putTblVal := proc(tableName::Not(mform), index, x) local foundFrame, rec, newRec, addr;
-                print("putTblVal", tableName, index);
                 
                 ASSERT( nargs = 3, cat("putTblVal expecting 3 args but received ", nargs) );
                 if assigned(ss:-top():-tbls[tableName]) then # its at the top
@@ -331,14 +328,14 @@ OnENV := module()
 
             # precondition, isStatic(table) = true
             rebuildTable := proc(chain::`record`(elts,link), hasDyn)
-                local tbl, rec, tmp;
+                local tbl, rec, tmp, key;
                 tbl := table();
                 rec := chain;
                 
                 do
                     for key in keys(rec:-elts) do
                         if not assigned(tbl[key]) then
-                            ASSERT( not type(rec:-elts[key], 'table'), "found table not being managed by env");
+                            #ASSERT( not type(rec:-elts[key], 'table'), "found table not being managed by env");
                             
                             if type(rec:-elts[key], 'record(elts,link)') then
                                 tbl[key] := rebuildTable(rec:-elts[key]);

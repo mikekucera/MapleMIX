@@ -184,4 +184,24 @@ Test(801, got, expected);
 
 ####################################################################
 
+p := proc()
+    t := table();
+    s := table();
+    s[1] := 100;
+    t["s"] := s;
+    b := t["s"];
+    b[2] := 200;
+    op(s);
+end proc;
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 100, 200 end proc);
+
+Test(901, got, expected);
+
+
+####################################################################
+
 #end test

@@ -38,11 +38,11 @@ ReduceExp := module()
             end if;
         end if;
         
-        if type(res, 'MStatic(anyindex(identical(Domains:-CoefficientRing)))') then
-            print("found tit", exp);
-            env:-display();
-            print("D", env:-getVal("D"));
-        end if;
+        #if type(res, 'MStatic(anyindex(identical(Domains:-CoefficientRing)))') then
+        #    print("found tit", exp);
+        #    env:-display();
+        #    print("D", env:-getVal("D"));
+        #end if;
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
         res;
@@ -180,7 +180,7 @@ ReduceExp := module()
     end proc;
     
     # TODO, this is not correct, because support for evaln is not there yet
-    specFunc["assigned"] := proc(expseq) local val, rindex, var;
+    specFunc["assigned"] := proc(expseq) local val, rindex, var, index;
         if nops(expseq) <> 1 then
             error "assigned expects 1 argument, but received %1", nops(expseq);
         end if;
@@ -191,9 +191,9 @@ ReduceExp := module()
             return genv:-isAssigned(Name(val));
         elif val::Local then
             return env:-isAssigned(Name(val));
-        elif Header(val) = MTableref then
-            rindex := reduce(IndexExp(val));
-            var := Var(val);
+        elif typematch(val, MTableref('var'::mform, 'index'::mform)) then
+            rindex := reduce(index);
+            #var := Var(val);
             if [rindex]::list(Static) then
                 if var::Global then
                     return genv:-isTblValAssigned(Name(var), rindex);
