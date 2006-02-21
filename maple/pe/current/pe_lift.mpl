@@ -25,8 +25,8 @@ Lifter := module()
             result := MAssign(lift(t), lift(e));
         elif typematch(stat, MSingleAssign('t'::anything, 'e'::anything)) then
             result := MSingleAssign(lift(t), lift(e));
-        elif typematch(stat, MTableAssign('t'::anything, 'e'::anything)) then
-            result := MTableAssign(lift(t), lift(e));
+        elif typematch(stat, MAssignTableIndex('t'::anything, 'e'::anything)) then
+            result := MAssignTableIndex(lift(t), lift(e));
         elif typematch(stat, MAssignToFunction('s'::anything, 'e'::anything)) then
             result := MAssignToFunction(lift(s), lift(e));
         elif typematch(stat, MIfThenElse('c'::anything, 't'::anything, 'e'::anything)) then
@@ -97,7 +97,7 @@ Lifter := module()
         q := SimpleQueue();
 
         for key in keys(tbl) do
-            s := MTableAssign(MTableref(tblName, MExpSeq(embed(key))), embed(tbl[key]));
+            s := MAssignTableIndex(MTableref(tblName, MExpSeq(embed(key))), embed(tbl[key]));
             q:-enqueue(s);
         end do;
 

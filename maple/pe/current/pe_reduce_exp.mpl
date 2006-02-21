@@ -192,8 +192,16 @@ ReduceExp := module()
         elif val::Local then
             return env:-isAssigned(Name(val));
         elif typematch(val, MTableref('var'::mform, 'index'::mform)) then
+            
             rindex := reduce(index);
-            #var := Var(val);
+            
+            if val = MTableref(MParam("D"), MExpSeq(MParam("operation"))) then
+                print("found it man!");
+                print("result: ", env:-isTblValAssigned(Name(var), rindex));
+                print("rindex", [rindex]);
+                print();
+            end if;    
+            
             if [rindex]::list(Static) then
                 if var::Global then
                     return genv:-isTblValAssigned(Name(var), rindex);

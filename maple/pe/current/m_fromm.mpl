@@ -139,7 +139,8 @@ FromM := module()
     inrt[MStatSeq]            := _Inert_STATSEQ  @ mapmtoi;
     inrt[MAssign]             := _Inert_ASSIGN   @ mapmtoi;
     inrt[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
-    inrt[MTableAssign]        := _Inert_ASSIGN   @ mapmtoi;
+    inrt[MAssignTableIndex]   := _Inert_ASSIGN   @ mapmtoi;
+    inrt[MAssignToTable]      := _Inert_ASSIGN   @ mapmtoi;
         
     inrt[MWhileForIn]   := _Inert_FORIN   @ mapmtoi;
     inrt[MWhileForFrom] := _Inert_FORFROM @ mapmtoi;

@@ -205,7 +205,7 @@ $include "access.mpl"
 
         if header = MStatSeq then
             MStatSeq(front, procname(last));
-        elif member(header, {MAssign, MAssignToFunction, MTableAssign}) then
+        elif member(header, {MAssign, MAssignToFunction, MAssignTableIndex, MAssignToTable}) then
             MStatSeq(front, last, MStandaloneExpr(op(1,last)));
         elif header = MIfThenElse then
             MStatSeq(front, MIfThenElse(Cond(last),

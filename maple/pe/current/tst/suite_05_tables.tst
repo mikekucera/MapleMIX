@@ -202,6 +202,29 @@ expected := ToInert(proc() 100, 200 end proc);
 Test(901, got, expected);
 
 
+
+g := proc(S, operation, x)
+    S[operation] := x;
+    S[Const][operation] := x*x;
+end proc;
+
+p := proc() local s;
+    s := table();
+    g(s, Plus, 5);
+    g(s, Minus, 10);
+    op(s);
+end proc:
+
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc()
+    table([(Plus)=5,(Minus)=10,(Const)=(table([(Plus)=25,(Minus)=100]))])
+end proc);
+
+Test(902, got, expected);
+
 ####################################################################
 
 #end test

@@ -304,8 +304,25 @@ pe[MAssign] := proc(n::mform({Local, GeneratedName, Name, AssignedName, Catenate
 end proc;
 
 
+ 
+pe[MAssignToTable] := proc(n::mform({Local, GeneratedName, Name, AssignedName, Catenate}), expr::mform(Tableref))
+    local tblVar, rindex, env;
+    print("m assign to table");
+    tblVar := Var(expr);    
+    rindex := ReduceExp(IndexExp(expr));
+    
+    env := `if`(tblVar::Global, genv, callStack:-topEnv());
+    
+    if not env:-isTblValAssigned(Name(tblVar), SVal(rindex)) then
+        env:-putTblVal(Name(tblVar), SVal(rindex), table());
+        print("it got done!");
+    end if;
+    
+    pe[MAssign](n, expr); # TODO, this would have to change if PE was run as a fixed point
+end proc;
 
-pe[MTableAssign] := proc(tr::mform(Tableref), expr::mform)
+
+pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
     local rindex, rexpr, env, var;
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
@@ -323,15 +340,15 @@ userinfo(5, PE, "Static -- putting into env", SVal(rexpr));
     elif [rindex,rexpr]::[Static,Both] then
 userinfo(5, PE, "Both -- putting into env", SVal(StaticPart(rexpr)));
         env:-putTblVal(var, SVal(rindex), SVal(StaticPart(rexpr)));
-        MTableAssign(subsop(2=rindex, tr), SVal(StaticPart(rexpr)));
+        MAssignTableIndex(subsop(2=rindex, tr), SVal(StaticPart(rexpr)));
         
     elif [rindex,rexpr]::[Static,Dynamic] then
         env:-setTblValDynamic(var, SVal(rindex));
-        MTableAssign(subsop(2=rindex, tr), rexpr);
+        MAssignTableIndex(subsop(2=rindex, tr), rexpr);
         
     else
         env:-setValDynamic(var);
-        MTableAssign(subsop(2=rindex, tr), rexpr);
+        MAssignTableIndex(subsop(2=rindex, tr), rexpr);
     end if;
 end proc;
 

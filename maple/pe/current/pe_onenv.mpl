@@ -121,7 +121,7 @@ OnENV := module()
             end proc;
 
             
-            getTblVal := proc(tableName::Not(mform), index)
+            getTblVal := proc(tableName::Not(mform), index::Not(mform))
                 local err, frame, rec, val;
                 ASSERT( nargs = 2, "getTblVal expected 2 args" );
                 err := "table value is dynamic %1[%2]", tableName, index;
@@ -200,7 +200,7 @@ OnENV := module()
             end proc;
             
             
-            putTblVal := proc(tableName::Not(mform), index, x) local foundFrame, rec, newRec, addr;
+            putTblVal := proc(tableName::Not(mform), index::Not(mform), x) local foundFrame, rec, newRec, addr;
                 
                 ASSERT( nargs = 3, cat("putTblVal expecting 3 args but received ", nargs) );
                 if assigned(ss:-top():-tbls[tableName]) then # its at the top
@@ -223,10 +223,10 @@ OnENV := module()
                     elif assigned(prevEnvLink) and assigned(prevEnvLink:-mapAddressToTable[addr]) then
                         rec:-elts[index] := prevEnvLink:-mapAddressToTable[addr];
                     else
-                        error "not implemented yet";
-                        #newRec := addTable();
-                        #newRec:-elts := eval(x,2);
-                        #rec:-elts[index] := newRec;
+                        #error "not implemented yet";
+                        newRec := addTable();
+                        newRec:-elts := eval(x,2);
+                        rec:-elts[index] := newRec;
                     end if;
                 else
                     rec:-elts[index] := x;
@@ -369,7 +369,7 @@ OnENV := module()
 
 
             
-            isTblValStatic := proc(tableName::Not(mform), index)
+            isTblValStatic := proc(tableName::Not(mform), index::Not(mform))
                 local foundFrame, rec;
                 try
                     foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
@@ -389,7 +389,7 @@ OnENV := module()
             end proc;
             
             
-            isTblValAssigned := proc(tableName::Not(mform), index)
+            isTblValAssigned := proc(tableName::Not(mform), index::Not(mform))
                 local foundFrame, rec;
                 try
                     foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );

@@ -431,12 +431,12 @@ ToM := module()
             newName := gen();
             addName(newName);
             new := MLocal(newName);
-            [op(assigns), MAssign(new, MTableref(n, IndexExp(tr)))], new;
+            [op(assigns), MAssignToTable(new, MTableref(n, IndexExp(tr)))], new;
         else
             newName := gen();
             addName(newName);
             new := MLocal(newName);
-            [MAssign(new, tr)], new;
+            [MAssignToTable(new, tr)], new;
         end if;
     end proc;
     
@@ -449,9 +449,9 @@ ToM := module()
             if Header(Tbl(splitTarget)) = MTableref then
                 moreAssigns, newName := splitTableRef(Tbl(splitTarget));
                 MStatSeq(op(assigns), op(moreAssigns), 
-                         split(expr, curry(MTableAssign, MTableref(newName, IndexExp(splitTarget)))));
+                         split(expr, curry(MAssignTableIndex, MTableref(newName, IndexExp(splitTarget)))));
             else
-                MStatSeq(op(assigns), split(expr, curry(MTableAssign, splitTarget)));
+                MStatSeq(op(assigns), split(expr, curry(MAssignTableIndex, splitTarget)));
             end if;
         else
             split(expr, curry(MAssign, itom(target)))
