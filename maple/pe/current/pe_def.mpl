@@ -174,18 +174,22 @@ pe[MError]  := curry(peResidualizeStatement, MError);
 
 
 pe[MStatSeq] := proc() :: mform(StatSeq);
-    local q, i, h, stmt, residual;
+    local q, i, h, stmt, residual, statseq, size, stmtsAfterIf;
+    
+    statseq := M:-FlattenStatSeq(MStatSeq(args));
+    size := nops(statseq);
     
     q := SimpleQueue();
     
-    for i from 1 to nargs do
-        stmt := args[i];
+    for i from 1 to size do
+        stmt := op(i, statseq);
         h := Header(stmt);
 
         PEDebug:-StatementStart(stmt);
         
         if h = MIfThenElse then
-            q:-enqueue(peIF(stmt, MStatSeq(args[i+1..nargs])));
+            stmtsAfterIf := MStatSeq(op(i+1..size, statseq));
+            q:-enqueue(peIF(stmt, stmtsAfterIf));
             PEDebug:-StatementEnd();
             break;
         end if;
@@ -194,7 +198,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         PEDebug:-StatementEnd(residual);
 
         if residual <> NULL then
-            if Header(residual) = MTry and i < nargs then
+            if Header(residual) = MTry and i < size then
                 error "code after a try/catch is not supported";
             end if;
             q:-enqueue(residual);
@@ -230,42 +234,47 @@ end proc;
 
 
 peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
-    local rcond, stmts, env, C1, C2, S1, S2, prevTopLocal, prevTopGlobal;
-    
+    local rcond, env, C1, C2, S1, S2, prevTopLocal, prevTopGlobal, stopAfterC1, stopAfterC2, result;
     rcond := ReduceExp(Cond(ifstat));
     if rcond::Static then
-        PEDebug:-Message(evalb(SVal(rcond)));
-        stmts := `if`(SVal(rcond), Then(ifstat), Else(ifstat));
-        peM(MStatSeq(ssop(stmts), ssop(S)));
+        peM(MStatSeq(ssop(`if`(SVal(rcond), Then, Else)(ifstat)), ssop(S)));
     else
+        print("peIF", args);
         callStack:-setConditional();
         env := callStack:-topEnv();
-        PEDebug:-Message("grow");
         env:-grow();
         genv:-grow();
 
         C1 := peM(Then(ifstat));
 
-        prevTopLocal  := env:-markTop();
-        prevTopGlobal := genv:-markTop();
+        prevTopLocal, prevTopGlobal  := env:-markTop(), genv:-markTop();
 
-        S1 := peM(S);
-
+        stopAfterC1 := M:-EndsWithErrorOrReturn(C1);
+        print("stopAfterC1", C1, stopAfterC1);
+        if not stopAfterC1 then
+            S1 := peM(S);
+        end if;
+        
         env:-shrinkGrow();
         genv:-shrinkGrow();
 
         C2 := peM(Else(ifstat));
-
-        if env:-equalsTop(prevTopLocal) and genv:-equalsTop(prevTopGlobal) then
-            env:-shrink();
-            genv:-shrink(); # TODO, not needed
-            MStatSeq(MIfThenElse(rcond, C1, C2), ssop(S1));
+        stopAfterC2 := M:-EndsWithErrorOrReturn(C2);
+        
+        if stopAfterC1 and stopAfterC2 then
+            result := MIfThenElse(rcond, C1, C2);
+        elif env:-equalsTop(prevTopLocal) and genv:-equalsTop(prevTopGlobal) then
+            S1 := `if`(stopAfterC1, peM(S), S1);
+            result := MStatSeq(MIfThenElse(rcond, C1, C2), ssop(S1));
         else
-            S2 := peM(S);
-            env:-shrink();
-            genv:-shrink(); # TODO, not needed
-            MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1)), MStatSeq(ssop(C2), ssop(S2)));
+            S1 := `if`(stopAfterC1, MStatSeq(), S1);
+            S2 := `if`(stopAfterC2, MStatSeq(), peM(S));
+            result := MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1)), MStatSeq(ssop(C2), ssop(S2)));
         end if;
+        
+        env:-shrink();
+        genv:-shrink();
+        result;
     end if
 end proc;
 
@@ -307,7 +316,6 @@ end proc;
  
 pe[MAssignToTable] := proc(n::mform({Local, GeneratedName, Name, AssignedName, Catenate}), expr::mform(Tableref))
     local tblVar, rindex, env;
-    print("m assign to table");
     tblVar := Var(expr);    
     rindex := ReduceExp(IndexExp(expr));
     
@@ -315,7 +323,6 @@ pe[MAssignToTable] := proc(n::mform({Local, GeneratedName, Name, AssignedName, C
     
     if not env:-isTblValAssigned(Name(tblVar), SVal(rindex)) then
         env:-putTblVal(Name(tblVar), SVal(rindex), table());
-        print("it got done!");
     end if;
     
     pe[MAssign](n, expr); # TODO, this would have to change if PE was run as a fixed point

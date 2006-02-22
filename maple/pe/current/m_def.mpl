@@ -152,7 +152,7 @@ $include "access.mpl"
             end if;
             procname(op(-1, flat));
         else
-            evalb(member(Header(m), {MStatSeq, MError}));
+            evalb(member(Header(m), {MReturn, MError}));
         end if;
     end proc;
 

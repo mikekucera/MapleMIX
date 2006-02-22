@@ -304,6 +304,10 @@ ToM := module()
         ss4, e4 := splitReturn(toExp);
         ss5, e5 := splitReturn(whileExp);
 
+        # TODO, too restrictive
+        #if hasfun(statseq, _Inert_RETURN) then
+        #    error "return inside a loop is not supported"
+        #end if;
         body := removeNext(statseq);
         body := MStatSeq(itom(body), ssop(ss5));
 
@@ -326,6 +330,10 @@ ToM := module()
         ss2, e2 := splitReturn(inExp);
         ss3, e3 := splitReturn(whileExp);
         
+        # TODO, too restrictive
+        #if hasfun(statseq, _Inert_RETURN) then
+        #    error "return inside a loop is not supported"
+        #end if;
         body := removeNext(statseq);
         body := MStatSeq(itom(body), ssop(ss3));
         
@@ -355,6 +363,10 @@ ToM := module()
     
     m[_Inert_NEXT] := proc()
         error "only very limited usage of next is supported";
+    end proc;
+    
+    m[_Inert_BREAK] := proc()
+        error "the break keyword is not supported";
     end proc;
     
     
