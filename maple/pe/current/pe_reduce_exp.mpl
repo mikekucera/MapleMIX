@@ -157,6 +157,7 @@ ReduceExp := module()
     end proc;
 
     red[MMember] := proc(x1, x2) local rx1, rx2;
+        userinfo(7, PE, "reducing", x1, x2);
         rx1 := [reduce(x1)];
         rx2 := reduce(x2); # TODO, this is strange semantics, the right side of a member is not evaluated like this
         `if`(rx1::list(Static), op(rx1)[rx2], MMember(embed(op(rx1)), embed(rx2)))
@@ -247,12 +248,17 @@ ReduceExp := module()
 
     # evaluates table references as expressions
     # know that both args are static
-    red[MTableref] := proc(tbl, eseq) local re, rt, val;
+    red[MTableref] := proc(tbl, eseq) local re, rt, val, h;
+        userinfo(7, PE, "reducing", tbl, eseq);
         re := [reduce(eseq)];
         if Header(tbl) = MArgs then
-            return `if`(env:-hasArgsVal(op(re)), 
-                            env:-getArgsVal(op(re)), 
-                            MTableref(MArgs(), embed(op(re))) )
+            if env:-hasArgsVal(re) then
+                h := [env:-getArgsVal(op(re))];
+                userinfo(8, PE, "getArgsVal []", h);
+                return op(h);
+            else
+                return MTableref(MArgs(), embed(op(re)))
+            end if;
         end if;
     
         # aviod evaluating the entire table if possible
@@ -287,23 +293,41 @@ ReduceExp := module()
     end proc;
 
     
+<<<<<<< .mine
+    reduceName := proc(n) local hasDyn, cc;
+=======
     red[MName] := reduceName(MName);
     red[MAssignedName] := reduceName(MAssignedName);
 
     # reduction of a global name
     reduceName := f -> proc(n) local hasDyn, c;
+>>>>>>> .r268
         if not assigned(genv) or genv:-isDynamic(n) then
+<<<<<<< .mine
+            userinfo(7,PE,"Pure name", convert(n,'name'));
+            (c-> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
+=======
             (c -> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
+>>>>>>> .r268
         else
-            `if`(hasDyn and treatAsDynamic, f(n), 
+            userinfo(7,PE,"Valued name", genv:-getVal(n,'cc'));
+            `if`(hasDyn and treatAsDynamic, __F(n), 
                 genv:-getVal(n, 'hasDyn') );
         end if
     end proc;
     
+<<<<<<< .mine
+    red[MName] := subs(__F=MName, eval(reduceName));
+    red[MAssignedName] := subs(__F=MAssignedName, eval(reduceName));
+
+=======
     
+>>>>>>> .r268
     reduceVar := proc(x) local hasDyn, val;
+        userinfo(7, PE, __F);
         if env:-isStatic(x) then
             val := [env:-getVal(x, 'hasDyn')];
+            userinfo(7, PE, "value", val, eval(val,1));
             #`if`(hasDyn and treatAsDynamic, f(x), val);
             if hasDyn and treatAsDynamic then
                 return __F(x);
@@ -313,7 +337,11 @@ ReduceExp := module()
                 if hasDyn and treatAsDynamic then
                     return __F(x);
                 else
+<<<<<<< .mine
+                    return eval(val,1);
+=======
                     return op(val);
+>>>>>>> .r268
                 end if;
             end if;
             op(val);
@@ -324,15 +352,13 @@ ReduceExp := module()
 
     # these evals are needed to get at the actual proc generated
     # they make debugging easier
-    red[MParam]     := subs(__F=MParam, eval(reduceVar));
     red[MLocal]     := subs(__F=MLocal, eval(reduceVar));
     red[MSingleUse] := subs(__F=MSingleUse, eval(reduceVar));
     red[MGeneratedName] := subs(__F=MGeneratedName, eval(reduceVar));
 
-    red[MLexicalLocal] := reduceLex(MLexicalLocal);
-    red[MLexicalParam] := reduceLex(MLexicalParam);
+    red[MParam]     := subs(__F=MParam, eval(reduceVar));
 
-    reduceLex := f -> proc(x) local lex;
+    reduceLex := proc(x) local lex;
         if not env:-hasLex() then
             error "no lexical environment available";
         end if;
@@ -344,6 +370,19 @@ ReduceExp := module()
         end if
     end proc;
     
+<<<<<<< .mine
+    red[MLexicalLocal] := eval(reduceLex);
+    red[MLexicalParam] := eval(reduceLex);
+
+    red[MAssignedLocalName] := proc()
+        FromInert(M:-FromM(MAssignedLocalName(args)));
+    end proc;
+
+    red[MLocalName] := proc()
+        FromInert(M:-FromM(MLocalName(args)));
+    end proc;
+=======
+>>>>>>> .r268
     
     red[MAssignedLocalName] := () -> FromInert(M:-FromM(MAssignedLocalName(args)));
     red[MLocalName] := () -> FromInert(M:-FromM(MLocalName(args)));

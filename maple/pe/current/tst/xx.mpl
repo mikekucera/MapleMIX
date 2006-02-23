@@ -35,19 +35,19 @@ xx := proc() local C23,x56,mmm, nnn;
     #return C[Output](m2);
 end proc;
 
-yy := proc()
-    Domains:-hasCategory(Domains:-Set, Domains:-Set);
-end proc;
+# yy := proc()
+#     Domains:-hasCategory(Domains:-Set, Domains:-Set);
+# end proc;
 
-printlevel := 10000;
-xx();
+# printlevel := 10000;
+# xx();
 
-# ps := OnPE(xx, opts):
+ps := OnPE(xx, opts):
 
 #interface(verboseproc=3):
 #print(eval(ps:-ModuleApply));
 
-# printmod(ps);
+printmod(ps);
 
 # G := ps();
 #gm := G[Input](x^4-10*x^2+1);

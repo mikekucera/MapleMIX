@@ -282,6 +282,7 @@ end proc;
 
 pe[MAssign] := proc(n::mform({Local, GeneratedName, Name, AssignedName, Catenate}), expr::mform)
     local reduced, env, var;
+    userinfo(8, PE, "MAssign:", expr);
     reduced := ReduceExp(expr);
     env := `if`(n::Global, genv, callStack:-topEnv());
     
