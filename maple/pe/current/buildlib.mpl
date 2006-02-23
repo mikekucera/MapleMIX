@@ -39,6 +39,7 @@ Save('`type/Both`');
 Save('`type/Dynamic`');
 Save('`type/Global`');
 Save('`type/Local`');
+Save('`type/mname`');
 
 
 
