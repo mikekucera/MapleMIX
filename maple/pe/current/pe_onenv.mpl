@@ -103,18 +103,15 @@ OnENV := module()
                         error "can't get dynamic value %1", key;
                     elif assigned(frame:-tbls[key]) then
                         if nargs > 1 then
-                            t := rebuildTable(frame:-tbls[key], hasDyn);
-                            ASSERT( type(t, 'table'), "rebuildTable did not return a table (1)");
-                            return t;
+                            return rebuildTable(frame:-tbls[key], hasDyn);
+                            # ASSERT( type(t, 'table'), "rebuildTable did not return a table (1)");
                         else
-                            t := rebuildTable(frame:-tbls[key]);
-                            ASSERT( type(t, 'table'), "rebuildTable did not return a table (2)");
-                            return t;
+                            return rebuildTable(frame:-tbls[key]);
+                            # ASSERT( type(t, 'table'), "rebuildTable did not return a table (2)");
                         end if;
                     elif assigned(frame:-vals[key]) then
-                        v := frame:-vals[key];
-                        ASSERT( not type(v, 'table'), "found table where it should not be" );
-                        return v;
+                        return frame:-vals[key];
+                        # ASSERT( not type(v, 'table'), "found table where it should not be" );
                     end if;
                 end do;
                 error "can't get dynamic value %1", key;
@@ -189,7 +186,9 @@ OnENV := module()
                     else
                         rec := addTable(key);
                         ASSERT(type(rec:-elts, 'table'));
-                        rec:-elts :: 'table' := eval(x,2);
+                        # needed, because it is unclear how many levels down
+                        # the table is!
+                        rec:-elts :: 'table' := eval(x);
                     end if;
                 else
                     ASSERT( type(x, Not('table')) and type(eval(x), Not('table')), "table where it should not be" );
@@ -201,6 +200,7 @@ OnENV := module()
             
             
             putTblVal := proc(tableName::Not(mform), index::Not(mform), x) local foundFrame, rec, newRec, addr;
+print("putTblVal input", tableName, index, x);
                 
                 ASSERT( nargs = 3, cat("putTblVal expecting 3 args but received ", nargs) );
                 if assigned(ss:-top():-tbls[tableName]) then # its at the top
@@ -214,7 +214,8 @@ OnENV := module()
                         rec := addTable(tableName);
                     end try;
                 end if;
-                ASSERT( type(rec:-elts, 'table') );
+print("found rec:", rec:-elts, eval(rec:-elts));
+                ASSERT( type(eval(rec:-elts), 'table') );
                 
                 if type(x, 'table') then
                     addr := addressof(eval(x));
@@ -225,7 +226,9 @@ OnENV := module()
                     else
                         #error "not implemented yet";
                         newRec := addTable();
-                        newRec:-elts := eval(x,2);
+                        # don't know how far down the table is
+                        # assume that x is the proper name
+                        newRec:-elts := x;
                         rec:-elts[index] := newRec;
                     end if;
                 else
@@ -341,7 +344,8 @@ OnENV := module()
                                 tbl[key] := rebuildTable(rec:-elts[key]);
                                 #tbl[key] := eval(rec:-elts[key],2);
                             else
-                                tbl[key] := rec:-elts[key];
+                                tmp := rec:-elts[key]; # force some eval
+                                tbl[key] := eval(tmp,1); # get value
                             end if;
                             if nargs > 1 and tbl[key] = OnENV:-DYN then
                                 hasDyn := true;
@@ -352,7 +356,7 @@ OnENV := module()
                     rec := rec:-link;
                 end do;
                 mapAddressToTable[addressof(eval(tbl))] := chain;
-                eval(tbl,2);
+                eval(tbl,1);
             end proc;
 
             # TODO, bad name for this function, it returns an empty record
@@ -362,9 +366,9 @@ OnENV := module()
                              (:-elts) ); # elts, stores values
                 rec:-elts := table();
                 if nargs > 0 then
-                    frame:-tbls[tblName] := eval(rec,2);
+                    frame:-tbls[tblName] := eval(rec,1);
                 end if;
-                eval(rec,2);
+                eval(rec,1);
             end proc;
 
 
@@ -408,13 +412,6 @@ OnENV := module()
                 end try;
             end proc;
 
-            
-            
-
-
-            
-
-
             setTblValDynamic := proc(tableName::Not(mform), index)
                 local frame, rec;
                 frame := ss:-top();
@@ -426,8 +423,6 @@ OnENV := module()
                 rec:-elts[index] := OnENV:-DYN;
                 NULL;
             end proc;
-
-
 
 
 ##########################################################################################

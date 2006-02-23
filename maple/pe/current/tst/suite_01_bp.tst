@@ -5,9 +5,7 @@
 with(TestTools):
 kernelopts(opaquemodules=false):
 
-#libname := libname, "/home/mike/thesis/trunk/maple/pe/current/lib":
-libname := libname, "E:\\School\\svn\\thesis\\maple\\pe\\current\\lib":
-
+libname := libname, "../lib":
 
 pow := proc(x, n)
     if n = 0 then

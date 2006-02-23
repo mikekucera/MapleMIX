@@ -58,28 +58,30 @@ ReduceExp := module()
     end proc;
 
 
-    binOp := (f, op) -> proc(x, y) local rx, ry;
-        rx := reduce(x);
-        ry := reduce(y);
-        if [rx]::list(Static) and [ry]::list(Static) then
-            op(eval(rx),eval(ry));
+    binOp := (f, oper) -> proc(x, y) local rx, ry;
+        rx := [reduce(x)];
+        ry := [reduce(y)];
+        ASSERT(nops(rx)=1 and nops(ry)=1);
+        if rx::list(Static) and ry::list(Static) then
+            oper(op(rx),op(ry));
         else
-            f(embed(rx), embed(ry));
+            f(embed(op(rx)), embed(op(ry)));
         end if;
     end proc;
 
-    unOp := (f, op) -> proc(x) local rx;
-        rx := reduce(x);
-        `if`(rx::Dynamic, f(rx), op(rx))
+    unOp := (f, oper) -> proc(x) local rx;
+        rx := [reduce(x)];
+        `if`(rx::Dynamic, f(op(rx)), oper(op(rx)))
     end proc;
 
-    naryOp := (f, op) -> proc() local ry;
+    naryOp := (f, oper) -> proc() local ry;
         use reduceRight = proc(rx,y) 
-            ry := reduce(y);
-            if [rx]::list(Static) and [ry]::list(Static) then
-                op(eval(rx),eval(ry));
+            ry := [reduce(y)];
+            # rx could be an expseq
+            if [rx]::list(Static) and ry::list(Static) then
+                oper(rx,op(ry));
             else
-                f(embed(rx), embed(ry));
+                f(embed(rx), embed(op(ry)));
             end if;
         end proc
         in foldl(reduceRight, reduce(args[1]), args[2..nargs])
@@ -145,13 +147,13 @@ ReduceExp := module()
     end proc;
 
     red[MExpSeq] := proc() local rs;
-        rs := op(map(reduce, [args]));
-        `if`([rs]::list(Static), rs, MExpSeq(op(map(embed, [rs]))))
+        rs := map(reduce, [args]);
+        `if`(rs::list(Static), op(rs), MExpSeq(op(map(embed, rs))))
     end proc;
 
     red[MList] := proc(eseq) local r;
-        r := reduce(eseq);
-        `if`([r]::list(Static), [r], MList(r))
+        r := [reduce(eseq)];
+        `if`(r::list(Static), r, MList(op(r)))
     end proc;
 
     red[MSet] := proc(eseq) local r;
@@ -160,9 +162,9 @@ ReduceExp := module()
     end proc;
 
     red[MMember] := proc(x1, x2) local rx1, rx2;
-        rx1 := reduce(x1);
+        rx1 := [reduce(x1)];
         rx2 := reduce(x2); # TODO, this is strange semantics, the right side of a member is not evaluated like this
-        `if`([rx1]::list(Static), eval(rx1)[rx2], MMember(embed(rx1), embed(rx2)))
+        `if`(rx1::list(Static), op(rx1)[rx2], MMember(embed(op(rx1)), embed(rx2)))
     end proc;;
 
     
@@ -195,13 +197,13 @@ ReduceExp := module()
             
             rindex := reduce(index);
             
-            if val = MTableref(MParam("D"), MExpSeq(MParam("operation"))) then
-                print("found it man!");
-                print("result: ", env:-isTblValAssigned(Name(var), rindex));
-                print("rindex", [rindex]);
-                print();
-            end if;    
-            
+#            if val = MTableref(MParam("D"), MExpSeq(MParam("operation"))) then
+#                print("found it man!");
+#                print("result: ", env:-isTblValAssigned(Name(var), rindex));
+#                print("rindex", [rindex]);
+#                print();
+#            end if;    
+#            
             if [rindex]::list(Static) then
                 if var::Global then
                     return genv:-isTblValAssigned(Name(var), rindex);
@@ -216,12 +218,14 @@ ReduceExp := module()
     
     specFunc["seq"] := proc(expseq) local m;
         m := MFunction( M:-ProtectedForm("seq"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
-        eval(FromInert(M:-FromM(m)));
+        # eval(FromInert(M:-FromM(m)));
+        FromInert(M:-FromM(m));
     end proc;
     
     specFunc["if"] := proc(expseq) local m;
         m := MFunction( M:-ProtectedForm("if"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
-        eval(FromInert(M:-FromM(m)));
+        # eval(FromInert(M:-FromM(m)));
+        FromInert(M:-FromM(m));
     end proc;
     
    # specFunc_eval := n -> proc(expseq)
@@ -298,45 +302,45 @@ ReduceExp := module()
     red[MName] := reduceName(MName);
     red[MAssignedName] := reduceName(MAssignedName);
 
-    reduceName := f -> proc(n) local hasDyn, c, val;
+    reduceName := f -> proc(n) local hasDyn, c;
         if not assigned(genv) or genv:-isDynamic(n) then
-            c := convert(n, name);
-            `if`(type(c, 'last_name_eval'), c, eval(c));
+            (c-> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
         else
-            val := genv:-getVal(n, 'hasDyn');
-            `if`(hasDyn and treatAsDynamic, f(n), val);
+            `if`(hasDyn and treatAsDynamic, f(n), 
+                genv:-getVal(n, 'hasDyn') );
         end if
     end proc;
     
-    
-    red[MParam]     := reduceVar(MParam);
-    red[MLocal]     := reduceVar(MLocal);
-    red[MSingleUse] := reduceVar(MSingleUse);
-    red[MGeneratedName] := reduceVar(MGeneratedName);
-
-    red[MLexicalLocal] := reduceLex(MLexicalLocal);
-    red[MLexicalParam] := reduceLex(MLexicalParam);
-
-    reduceVar := f -> proc(x) local hasDyn, val;
+    reduceVar := proc(x) local hasDyn, val;
         if env:-isStatic(x) then
             val := env:-getVal(x, 'hasDyn');
             #`if`(hasDyn and treatAsDynamic, f(x), val);
             if hasDyn and treatAsDynamic then
-                return f(x);
+                return __F(x);
             end if;
             if type(val, name) and genv:-isStatic(convert(val, string)) then
                 val := genv:-getVal(convert(val,string), 'hasDyn');
                 if hasDyn and treatAsDynamic then
-                    return f(x);
+                    return __F(x);
                 else
                     return val;
                 end if;
             end if;
-            val
+            eval(val,1);
         else
-            f(x);
+            __F(x);
         end if;
     end proc;
+
+    # these evals are needed to get at the actual proc generated
+    # they make debugging easier
+    red[MParam]     := subs(__F=MParam, eval(reduceVar));
+    red[MLocal]     := subs(__F=MLocal, eval(reduceVar));
+    red[MSingleUse] := subs(__F=MSingleUse, eval(reduceVar));
+    red[MGeneratedName] := subs(__F=MGeneratedName, eval(reduceVar));
+
+    red[MLexicalLocal] := reduceLex(MLexicalLocal);
+    red[MLexicalParam] := reduceLex(MLexicalParam);
 
     reduceLex := f -> proc(x) local lex;
         if not env:-hasLex() then
@@ -397,7 +401,7 @@ ReduceExp := module()
         end proc;
         
         thunk := proc() lookup() end proc;        
-        thunk := setattribute(eval(thunk), 'pe_thunk'); # used to identify these thunks later
+        thunk := setattribute(eval(thunk,2), 'pe_thunk'); # used to identify these thunks later
         
         MFunction(MStatic(thunk), MExpSeq());        
     end proc;

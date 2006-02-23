@@ -4,7 +4,7 @@ interface(labelling=false):
 kernelopts(opaquemodules=false):
 kernelopts(ASSERT=true):
 
-infolevel[PE] := 0:
+infolevel[PE] := 10:
 
 #xx := proc() local C,x,m,m2;
 #   C := DUP(Q,x);
@@ -27,25 +27,29 @@ opts := PEOptions();
 
 opts:-addFunction(PURE, Domains:-RepeatedSquaring):
 
-xx := proc() local C,x,m,m2;
-    C := DUP(Q,x);
-    m := C[Input](x^4-10*x^2+1);
-    return m;
+xx := proc() local C23,x56,mmm, nnn;
+    C23 := DUP(Q,x56);
+    mmm := C23[Input];
+    return mmm(x56^4-10*x56^2+1);
     #m2 := C[`^`](m,2);
     #return C[Output](m2);
 end proc;
 
+yy := proc()
+    Domains:-hasCategory(Domains:-Set, Domains:-Set);
+end proc;
 
-#xx();
+printlevel := 10000;
+xx();
 
-ps := OnPE(xx, opts):
+# ps := OnPE(xx, opts):
 
 #interface(verboseproc=3):
 #print(eval(ps:-ModuleApply));
 
-printmod(ps);
+# printmod(ps);
 
-#G := ps();
+# G := ps();
 #gm := G[Input](x^4-10*x^2+1);
 #gm2 := G[`^`](gm,2);
 #G[Output](gm2);

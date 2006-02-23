@@ -749,15 +749,16 @@ peFunction := proc(funRef::Dynamic,
     
     sfun := SVal(fun);
     
-    if type(eval(sfun), `procedure`) and not ormap(hasOption, ['builtin','pe_thunk'], eval(sfun)) then
+    if type(sfun, `procedure`) and not ormap(hasOption, ['builtin','pe_thunk'], sfun) then
         # if the procedure is builtin then do what the else clause does
         newName := gen(cat(op(1,funRef),"_"));
-        peFunction_StaticFunction(funRef, eval(sfun), argExpSeq, newName, unfold, residualize, symbolic);
+        peFunction_StaticFunction(funRef, sfun, argExpSeq, newName, unfold, residualize, symbolic);
         
 	elif type(sfun, `module`) then
 	    if member(convert("ModuleApply",name), sfun) then
 	        ma := sfun:-ModuleApply;
 	    else
+            # need the full eval, because we need to op into it
             ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(sfun))]));
             if ma = NULL then error "package does not contain ModuleApply" end if;
         end if;
@@ -785,8 +786,7 @@ peFunction_StaticFunction := proc(funRef::Dynamic,
         funOption := gopts:-funcOpt(fun);
         userinfo(5, PE, "StaticFunction: About to reduce", argExpSeq);
         rcall := ReduceExp(argExpSeq);
-        tmp := op(rcall);
-        userinfo(5, PE, "StaticFunction: Arguments for call is", eval(tmp,2));
+        userinfo(5, PE, "StaticFunction: Arguments for call is", rcall);
         
         s := () -> (symbolic @ embed @ fun @ SVal)(rcall);
         r := () -> residualize(funRef, rcall);
@@ -819,6 +819,7 @@ peFunction_SpecializeThenDecideToUnfold := proc(fun::procedure, argExpSeq::mform
     argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
 
     callStack:-push(argListInfo:-newEnv);
+# if fun=Domains:-hasCategory then DEBUG(); end if;
     newProc := peFunction_GenerateNewSpecializedProc(m, newName, argListInfo);
     callStack:-pop();
 

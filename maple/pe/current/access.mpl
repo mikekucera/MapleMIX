@@ -71,6 +71,7 @@ keys := proc(tbl) option inline;
     map(op, [indices(tbl)])
 end proc;
 
+# the full eval here is needed because p could look like m[d] !
 hasOption := proc(n::name, p::procedure)
     member(n, {op(3, eval(p))});
 end proc;
