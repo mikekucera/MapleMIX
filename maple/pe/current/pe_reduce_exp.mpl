@@ -252,7 +252,7 @@ ReduceExp := module()
         userinfo(7, PE, "reducing", tbl, eseq);
         re := [reduce(eseq)];
         if Header(tbl) = MArgs then
-            if env:-hasArgsVal(re) then
+            if env:-hasArgsVal(op(re)) then
                 h := [env:-getArgsVal(op(re))];
                 userinfo(8, PE, "getArgsVal []", h);
                 return op(h);
@@ -293,22 +293,10 @@ ReduceExp := module()
     end proc;
 
     
-<<<<<<< .mine
     reduceName := proc(n) local hasDyn, cc;
-=======
-    red[MName] := reduceName(MName);
-    red[MAssignedName] := reduceName(MAssignedName);
-
-    # reduction of a global name
-    reduceName := f -> proc(n) local hasDyn, c;
->>>>>>> .r268
         if not assigned(genv) or genv:-isDynamic(n) then
-<<<<<<< .mine
             userinfo(7,PE,"Pure name", convert(n,'name'));
             (c-> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
-=======
-            (c -> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
->>>>>>> .r268
         else
             userinfo(7,PE,"Valued name", genv:-getVal(n,'cc'));
             `if`(hasDyn and treatAsDynamic, __F(n), 
@@ -316,13 +304,9 @@ ReduceExp := module()
         end if
     end proc;
     
-<<<<<<< .mine
     red[MName] := subs(__F=MName, eval(reduceName));
     red[MAssignedName] := subs(__F=MAssignedName, eval(reduceName));
 
-=======
-    
->>>>>>> .r268
     reduceVar := proc(x) local hasDyn, val;
         userinfo(7, PE, __F);
         if env:-isStatic(x) then
@@ -337,11 +321,7 @@ ReduceExp := module()
                 if hasDyn and treatAsDynamic then
                     return __F(x);
                 else
-<<<<<<< .mine
-                    return eval(val,1);
-=======
                     return op(val);
->>>>>>> .r268
                 end if;
             end if;
             op(val);
@@ -370,20 +350,9 @@ ReduceExp := module()
         end if
     end proc;
     
-<<<<<<< .mine
     red[MLexicalLocal] := eval(reduceLex);
     red[MLexicalParam] := eval(reduceLex);
 
-    red[MAssignedLocalName] := proc()
-        FromInert(M:-FromM(MAssignedLocalName(args)));
-    end proc;
-
-    red[MLocalName] := proc()
-        FromInert(M:-FromM(MLocalName(args)));
-    end proc;
-=======
->>>>>>> .r268
-    
     red[MAssignedLocalName] := () -> FromInert(M:-FromM(MAssignedLocalName(args)));
     red[MLocalName] := () -> FromInert(M:-FromM(MLocalName(args)));
     
