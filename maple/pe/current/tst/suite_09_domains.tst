@@ -12,12 +12,12 @@ libname := libname, "../lib":
 
 expected := ToInert(proc() x^8 - 20*x^6+102*x^4 - 20*x^2+1 end proc);
 
-
+# 
+# Some small table-driven tests
+#
 p1 := proc(f) expand(f*f) end;
 tab1 := table([Q = p1]);
 p2 := proc(idx) tab1[idx] end;
-
-
 
 # t = tests
 t1 := proc() p1( x^4-10*x^2 +1 ); end;
@@ -34,7 +34,6 @@ t4 := proc()
     tab1[Q](x^4-10*x^2 +1 );
 end;
 
-
 t1s := OnPE(t1);
 got := ToInert(eval(t1s:-ModuleApply));
 Try(101, got, expected);
@@ -50,6 +49,11 @@ Try(103, got, expected);
 t4s := OnPE(t4);
 got := ToInert(eval(t4s:-ModuleApply));
 Try(104, got, expected);
+
+#
+# Some larger Domains-specific tests
+#
+
 
 
 #######################################################################

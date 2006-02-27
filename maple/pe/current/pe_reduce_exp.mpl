@@ -67,7 +67,7 @@ ReduceExp := module()
     
     unOp := (f, oper) -> proc(x) local rx;
         rx := [reduce(x)];
-        `if`(rx::Dynamic, f(op(rx)), oper(op(rx)))
+        `if`(rx::list(Dynamic), f(op(rx)), oper(op(rx)))
     end proc;
 
     
@@ -153,11 +153,11 @@ ReduceExp := module()
 
     red[MSet] := proc(eseq) local r;
         r := {reduce(eseq)};
-        `if`(r::list(Static), r, MSet(op(r)));
+        `if`(r::set(Static), r, MSet(op(r)));
     end proc;
 
     red[MMember] := proc(x1, x2) local rx1, rx2;
-        userinfo(7, PE, "reducing", x1, x2);
+        userinfo(7, PE, "MMember reducing", x1, x2);
         rx1 := [reduce(x1)];
         rx2 := reduce(x2); # TODO, this is strange semantics, the right side of a member is not evaluated like this
         `if`(rx1::list(Static), op(rx1)[rx2], MMember(embed(op(rx1)), embed(rx2)))
@@ -249,7 +249,7 @@ ReduceExp := module()
     # evaluates table references as expressions
     # know that both args are static
     red[MTableref] := proc(tbl, eseq) local re, rt, val, h;
-        userinfo(7, PE, "reducing", tbl, eseq);
+        userinfo(7, PE, "MTableref reducing", tbl, eseq);
         re := [reduce(eseq)];
         if Header(tbl) = MArgs then
             if env:-hasArgsVal(op(re)) then
@@ -311,7 +311,7 @@ ReduceExp := module()
         userinfo(7, PE, __F);
         if env:-isStatic(x) then
             val := [env:-getVal(x, 'hasDyn')];
-            userinfo(7, PE, "value", val, eval(val,1));
+            userinfo(7, PE, "value []", val, eval(val,1));
             #`if`(hasDyn and treatAsDynamic, f(x), val);
             if hasDyn and treatAsDynamic then
                 return __F(x);

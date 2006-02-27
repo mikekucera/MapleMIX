@@ -4,7 +4,7 @@ interface(labelling=false):
 kernelopts(opaquemodules=false):
 kernelopts(ASSERT=true):
 
-infolevel[PE] := 10:
+infolevel[PE] := 7:
 
 #xx := proc() local C,x,m,m2;
 #   C := DUP(Q,x);
@@ -16,7 +16,7 @@ infolevel[PE] := 10:
 with(PEOptions):
 
 opts := PEOptions();
-# opts:-addFunction(PURE, Domains:-UnivariatePolynomial:-ModuleApply);
+opts:-addFunction(PURE, Domains:-UnivariatePolynomial:-ModuleApply);
 
 #opts:-addFunction(PURE, Domains:-EuclideanDomain):
 #opts:-addFunction(PURE, Domains:-UniqueFactorizationDomain):
@@ -35,6 +35,22 @@ xx := proc() local C23,x56,mmm, nnn;
     #return C[Output](m2);
 end proc;
 
+zz :=  proc()
+local t;
+t := proc(a)
+local x;
+    if not type(a, function) or
+    op(0, a) <> `domains/DenseUnivariatePolynomial/badge0` or nops(a) = 0
+    then return false
+    end if;
+    for x in a do
+        if not Domains:-Q[Domains:-Type](x) then return false end if
+    end do;
+    true
+end proc:
+t;
+end proc;
+
 # yy := proc()
 #     Domains:-hasCategory(Domains:-Set, Domains:-Set);
 # end proc;
@@ -42,7 +58,9 @@ end proc;
 # printlevel := 10000;
 # xx();
 
-ps := OnPE(xx, opts):
+ps := OnPE(xx, opts);
+tracelast;
+#ps := OnPE(zz, opts);
 
 #interface(verboseproc=3):
 #print(eval(ps:-ModuleApply));

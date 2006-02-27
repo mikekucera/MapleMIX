@@ -239,7 +239,7 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
     if rcond::Static then
         peM(MStatSeq(ssop(`if`(SVal(rcond), Then, Else)(ifstat)), ssop(S)));
     else
-        print("peIF", args);
+        # print("peIF", args);
         callStack:-setConditional();
         env := callStack:-topEnv();
         env:-grow();
@@ -250,7 +250,7 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
         prevTopLocal, prevTopGlobal  := env:-markTop(), genv:-markTop();
 
         stopAfterC1 := M:-EndsWithErrorOrReturn(C1);
-        print("stopAfterC1", C1, stopAfterC1);
+        # print("stopAfterC1", C1, stopAfterC1);
         if not stopAfterC1 then
             S1 := peM(S);
         end if;
@@ -410,7 +410,8 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
         end do;
         return unroller:-result();
     else
-        error "dynamic loops not supported yet";
+        # error "dynamic loops not supported yet";
+        MWhileForIn(loopVar, rInExp, whileExp, statseq);
     end if;
 end proc;
 

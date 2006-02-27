@@ -91,7 +91,7 @@ OnENV := module()
 
 ##########################################################################################
 
-            getVal := proc(key::Not(mform), hasDyn) local iter, frame, t, v;
+            getVal := proc(key::Not(mform), hasDyn) local iter, frame, t, v, tmp;
                 userinfo(7, PE, "Trying to get", key, "from env");
                 if nargs > 1 then
                     hasDyn := false;
@@ -113,7 +113,12 @@ OnENV := module()
                         end if;
                     elif assigned(frame:-vals[key]) then
                         userinfo(8, PE, "getting it as a value");
-                        return frame:-vals[key];
+                        tmp := frame:-vals[key];
+                        if type(tmp, 'last_name_eval') then
+                            return eval(tmp,2);
+                        else
+                            return tmp;
+                        end if;
                         # ASSERT( not type(v, 'table'), "found table where it should not be" );
                     end if;
                 end do;
@@ -227,7 +232,6 @@ OnENV := module()
                         rec := addTable(tableName, x);
                     end try;
                 end if;
-print("found rec:", rec:-elts, eval(rec:-elts));
                 ASSERT( type(eval(rec:-elts), 'table') );
                 
                 if type(x, 'table') then
@@ -359,11 +363,12 @@ print("found rec:", rec:-elts, eval(rec:-elts));
                             else
                                 tmp := rec:-elts[key];
                                 if eval(tmp,1) = 'rec:-elts'[key] then
-                                    userinfo(8, PE, "eval'd entry", key, rec:-elts[key]);
                                     if type(eval(tmp,1), 'last_name_eval') then
                                         tbl[key] := eval(tmp,2);
+                                        userinfo(8, PE, "eval'd entry", key, eval(tmp,2));
                                     else
                                         tbl[key] := tmp;
+                                        userinfo(8, PE, "eval'd entry", key, tmp);
                                     end if;
                                 else
                                     userinfo(8, PE, "normal entry", key, tmp);

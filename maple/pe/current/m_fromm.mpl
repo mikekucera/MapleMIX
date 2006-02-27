@@ -184,8 +184,8 @@ FromM := module()
         _Inert_FORFROM(mapmtoi(loopVar, fromExp, byExp, toExp), inertTrue, mtoi(statseq));
     end proc;
     
-    inrt[MForIn] := proc(loopVar, inExp, whileExp, statseq)
-        if nargs = 3 then
+    inrt[MForIn] := proc(loopVar, inExp, statseq)
+        if nargs = 2 then
             _Inert_FORIN(mtoi(loopVar), mtoi(inExp), inertTrue, _Inert_STATSEQ(_Inert_EXPSEQ()));
         else
             _Inert_FORIN(mtoi(loopVar), mtoi(inExp), inertTrue, mtoi(statseq));
