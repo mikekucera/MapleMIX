@@ -26,10 +26,7 @@ SuperStack := module()
             end proc;
 
             pop := proc() local temp;
-                if topIndex = 0 then
-                    error "empty stack"
-                end if;
-                temp := data[topIndex];
+                temp := `if`(topIndex=0, ERROR("empty stack"), data[topIndex]);
                 data[topIndex] := evaln(data[topIndex]);
                 topIndex := topIndex - 1;
                 temp;

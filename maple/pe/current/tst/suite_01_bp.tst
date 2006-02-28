@@ -100,5 +100,18 @@ Try(500, got, expected);
 
 #######################################################################
 
+goal := proc(n)
+    pow(6, n)
+end proc;
+
+ped := OnPE(goal);
+
+got := op(5, ToInert(eval(ped:-pow_1)));
+
+expected := _Inert_STATSEQ(_Inert_IF(_Inert_CONDPAIR(_Inert_EQUATION(_Inert_PARAM(1), _Inert_INTPOS(0)), _Inert_STATSEQ(_Inert_RETURN(_Inert_INTPOS(1)))), _Inert_STATSEQ(_Inert_ASSIGN(_Inert_LOCAL(1), _Inert_FUNCTION(_Inert_LEXICAL_LOCAL(1), _Inert_EXPSEQ(_Inert_SUM(_Inert_PARAM(1), _Inert_INTNEG(1))))), _Inert_RETURN(_Inert_PROD(_Inert_LOCAL(1), _Inert_INTPOS(6))))));
+
+Try(600, got, expected);
+
+#######################################################################
 
 #end test

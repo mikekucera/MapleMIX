@@ -10,15 +10,24 @@ local
 $include "access_header.mpl"
     CallStack, PEDebug, Lifter, BuildModule, OnENV, 
     ReduceExp, Unfold,
-    callStack, specializedProcs, gen, genv, gopts,
-    getMCode, embed,
+    getMCode, embed, getEnv,
     pe, peM, peResidualizeStatement, peIF,
     StaticLoopUnroller,
     checkParameterTypeAssertion, getParameterDefault, 
     isPossibleExpSeq, peArgList, isUnfoldable,
     peFunction, peFunction_StaticFunction, 
     peFunction_SpecializeThenDecideToUnfold, 
-    peFunction_GenerateNewSpecializedProc;
+    peFunction_GenerateNewSpecializedProc,  
+    analyzeDynamicLoopBody, getCallSignature,
+    
+    # module local variables
+    callStack,         # callStack grows by one OnENV for every function specialization
+    specializedProcs,  # will change
+    gen,               # used to generate new names
+    genv,              # global environment
+    gopts,             # options
+    share              # table used to share functions
+    ;
 
 
 ModuleApply := PartiallyEvaluate;
@@ -51,15 +60,15 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     callStack := CallStack();
     specializedProcs := table();
     genv := OnENV(); # the global environment
-
+    share := table();
+    
     userinfo(1, PE, "PE on ", eval(p));
     m := getMCode(eval(p));
     userinfo(3, PE, "Successfully got MCode for", p);
     callStack:-push();
     
     try
-        peFunction_GenerateNewSpecializedProc(m, "ModuleApply");
-        userinfo(3, PE, "Successful PE, now Lifting", p);
+        specializedProcs["ModuleApply"] := peFunction_GenerateNewSpecializedProc(m, "ModuleApply");
         Lifter:-LiftPostProcess(specializedProcs);
     catch "debug":
         lprint("debug session exited");
@@ -97,6 +106,8 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     genv := 'genv';
     callStack := 'callStack';
     gopts := 'gopts';
+    share := 'share';
+    
     kernelopts(opaquemodules=before);
 
     print(PEDebug:-GetStatementCount(), "statements processed. Success!");
@@ -145,6 +156,9 @@ embed := proc(e)
     end if;
 end proc;
 
+getEnv := proc(var::mname)
+    `if`(var::Local, callStack:-topEnv(), genv)
+end proc;
 
 ############################################################################
 # Partial Evaluation of statements
@@ -280,11 +294,11 @@ end proc;
 
 
 
-pe[MAssign] := proc(n::mform({Local, GeneratedName, Name, AssignedName, Catenate}), expr::mform)
+pe[MAssign] := proc(n::mname, expr::mform)
     local reduced, env, var;
     userinfo(8, PE, "MAssign:", expr);
     reduced := ReduceExp(expr);
-    env := `if`(n::Global, genv, callStack:-topEnv());
+    env := getEnv(n);
     
     if Header(n) = MCatenate then
         var := ReduceExp(n);
@@ -297,6 +311,10 @@ pe[MAssign] := proc(n::mform({Local, GeneratedName, Name, AssignedName, Catenate
         end if
     else
         var := Name(n);
+    end if;
+    
+    if n::Global then # very conservative
+        callStack:-setGlobalEnvUpdated(true);
     end if;
     
     if reduced::Static then
@@ -315,12 +333,10 @@ end proc;
 
 
  
-pe[MAssignToTable] := proc(n::mform({Local, GeneratedName, Name, AssignedName, Catenate}), expr::mform(Tableref))
-    local tblVar, rindex, env;
-    tblVar := Var(expr);    
+pe[MAssignToTable] := proc(n::mname, expr::mform(Tableref)) local tblVar, rindex, env;
     rindex := ReduceExp(IndexExp(expr));
-    
-    env := `if`(tblVar::Global, genv, callStack:-topEnv());
+    tblVar := Var(expr);
+    env := getEnv(tblVar);
     
     if not env:-isTblValAssigned(Name(tblVar), SVal(rindex)) then
         env:-putTblVal(Name(tblVar), SVal(rindex), table());
@@ -334,12 +350,13 @@ pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
     local rindex, rexpr, env, var;
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
-    
-    env := `if`(Var(tr)::Global, genv, callStack:-topEnv());
-    
-    # ToM will ensure that tableref will be a name
-    var := Name(Var(tr));
+    env := getEnv(Var(tr));
+    var := Name(Var(tr)); # ToM will ensure that tableref will be a name
 
+    if Var(tr)::Global then # very conservative
+        callStack:-setGlobalEnvUpdated(true);
+    end if;
+    
     if [rindex,rexpr]::[Static,Static] then
 userinfo(5, PE, "Static -- putting into env", SVal(rexpr));
         env:-putTblVal(var, SVal(rindex), SVal(rexpr));
@@ -389,6 +406,42 @@ StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
 end proc;
 
 
+# very conservative approach to dynamic loops
+# will simply residualize the entire loop, but must analyze to determine
+# variables that have become dynamic
+analyzeDynamicLoopBody := proc(body::mform)
+    local notImplemented, readVar, readLocal, readGlobal, readTableref, writeVar, writeTable;
+    notImplemented := () -> ERROR("non-intrinsic call in dynamic loop not supported");
+    readVar := proc(n::string, env)
+        if env:-isStatic(n) then
+            error "static value in dynamic loop body is not supported yet";
+        end if;
+    end proc;
+    readLocal  := n -> readVar(n, callStack:-topEnv());
+    readGlobal := n -> readVar(n, genv);
+    readTableref := proc(var)
+        if not getEnv(var):-isDynamic(Name(var)) then # the entire table must be dynamic
+            error "possibly static table lookup in dynamic loop, not supported yet";
+        end if;
+    end proc;
+    writeVar   := var    -> getEnv(var):-setDynamic(Name(var));
+    writeTable := tblref -> writeVar(Var(tblref));
+    
+    eval(body, [MAssignToFunction = notImplemented,
+                MStandaloneFunction = notImplemented,
+                MAssign = writeVar,
+                MAssignToTable = writeVar,
+                MAssignTableIndex = writeTable,
+                MTableref = readTableref,
+                MName = readGlobal,
+                MLocal = readLocal,
+                MParam = readLocal,
+                MGeneratedName = readLocal,
+                MSingleUse = readLocal ]);    
+    NULL
+end proc;
+
+
 pe[MForIn] := proc(loopVar, inExp, statseq)
     pe[MWhileForIn](loopVar, inExp, true, statseq);
 end proc;
@@ -410,7 +463,8 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
         end do;
         return unroller:-result();
     else
-        # error "dynamic loops not supported yet";
+        analyzeDynamicLoopBody(statseq);
+        analyzeDynamicLoopBody(whileExp);
         MWhileForIn(loopVar, rInExp, whileExp, statseq);
     end if;
 end proc;
@@ -440,7 +494,9 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
         end do;   
         unroller:-result();
     else
-        error "dynamic loops not supported yet";
+        analyzeDynamicLoopBody(statseq);
+        analyzeDynamicLoopBody(whileExp);
+        MWhileForFrom(loopVar, rFromExp, rByExp, rToExp, whileExp, statseq)
     end if;
 end proc;
 
@@ -500,7 +556,7 @@ pe[MStandaloneFunction] := proc(var) local unfold;
 end proc;
 
 
-
+# no support for assigning to a global variable, 
 pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Function))
     local unfold, residualize, symbolic;
     unfold := proc(residualProcedure, redCall, fullCall)
@@ -618,13 +674,6 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	                equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
        	            if i <= numParams then
        	                paramSpec := op(i, paramSeq);
-       	                #if Name(paramSpec) = "D" then
-       	                #    print("we got something");
-       	                #    print("paramSpec", paramSpec);
-       	                #    print("about to put val into env", paramSpec);
-       	                #    print("val before", val);
-       	                #end if;
-       	                
        	                if not checkParameterTypeAssertion(val, paramSpec) then
        	                    val := getParameterDefault(paramSpec);
        	                end if;
@@ -705,16 +754,16 @@ end proc;
 
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 # probably won't be needed if I go with the sp-function approach
-isUnfoldable := proc(inertProcedure::mform(Proc), argListInfo) local flattened;
+isUnfoldable := proc(mProc::mform(Proc), argListInfo) local flattened;
     # it dosen't matter if an argument is an expression sequence if there are no defined parameters
-    if argListInfo:-possibleExpSeq and nops(Params(inertProcedure)) > 0 then
+    if argListInfo:-possibleExpSeq and nops(Params(mProc)) > 0 then
         return false;
     end if;
     
     if not callStack:-inConditional() then
         return true;
     end if;
-    flattened := M:-FlattenStatSeq(ProcBody(inertProcedure));
+    flattened := M:-FlattenStatSeq(ProcBody(mProc));
     # if all the func does is return a static value then there is no
     # reason not to unfold
     
@@ -808,34 +857,60 @@ peFunction_StaticFunction := proc(funRef::Dynamic,
     end if;
 end proc;
  
+# returns a list of the arguments used to specialize a procedure
+# with the special value DYN substituted for dynamic arguments
+getCallSignature := proc(argExpSeq::mform(ExpSeq))
+    [op(map(x -> `if`(x::Dynamic, DYN, x), argExpSeq))];
+end proc;
 
 # specialize the function
-peFunction_SpecializeThenDecideToUnfold := proc(fun::procedure, argExpSeq::mform(ExpSeq), newName, unfold, residualize, symbolic)
-    local m, argListInfo, newProc;
+peFunction_SpecializeThenDecideToUnfold := 
+    proc(fun::procedure, argExpSeq::mform(ExpSeq), generatedName, unfold, residualize, symbolic)
+    local m, argListInfo, newProc, newName, rec, signature, call;
+    
 	m := getMCode(eval(fun));
-
-	#if ormap(x -> Name(x) = "D", Params(m)) then
-	#    print("fun", fun)
-	#end if;
+    newName := generatedName;
 	
     argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
-
-    callStack:-push(argListInfo:-newEnv);
-# if fun=Domains:-hasCategory then DEBUG(); end if;
-    newProc := peFunction_GenerateNewSpecializedProc(m, newName, argListInfo);
-    callStack:-pop();
-
-    if isUnfoldable(newProc, argListInfo) then
-        specializedProcs[newName] := evaln(specializedProcs[newName]); # remove mapping from specializedProcs
-userinfo(5, PE, "raw proc", fun);
-# userinfo(5, PE, "after specialization proc", newProc);
-userinfo(5, PE, "actual arguments", argListInfo:-allCall);
-
-        unfold(newProc, argListInfo:-reducedCall, argListInfo:-allCall);
-    elif M:-UsesArgsOrNargs(newProc) then
-        residualize(MString(newName), argListInfo:-allCall)
+    signature := fun, getCallSignature(argListInfo:-allCall);
+    
+    # handle sharing issues
+    if not assigned(share[signature]) then
+        rec := Record('code', 'procName', 'mustResid', 'finished');
+        rec:-procName := newName;
+        rec:-mustResid := false;
+        rec:-finished  := false;
+        share[signature] := rec;
+        
+        callStack:-push(argListInfo:-newEnv);
+        # at this point rec:-finished is false
+        newProc := peFunction_GenerateNewSpecializedProc(m, newName, argListInfo);
+        # if the global env was altered then we do not allow sharing
+        if callStack:-wasGlobalEnvUpdated() then 
+            share[signature] := 'share[signature]';
+        else
+            rec:-code := newProc;
+            rec:-finished := true;
+        end if;
+        callStack:-pop();
     else
-        residualize(MString(newName), argListInfo:-reducedCall)
+        rec := share[signature];
+        if not rec:-finished then # then this is a recursive call to a function currently being specialized
+            rec:-mustResid := true;
+            # TODO, is it safe to just use reducedCall?
+            return residualize(MString(rec:-procName), argListInfo:-reducedCall)
+        end if;
+        newProc := rec:-code;
+        newName := rec:-procName;
+    end if;
+    
+    
+    if not rec:-mustResid and isUnfoldable(newProc, argListInfo) then
+        unfold(newProc, argListInfo:-reducedCall, argListInfo:-allCall);
+    else
+        specializedProcs[newName] := newProc;
+        call := `if`(M:-UsesArgsOrNargs(newProc), argListInfo:-allCall, argListInfo:-reducedCall);
+        residualize(MString(newName), call)
     end if;
 end proc;
 
@@ -873,7 +948,7 @@ peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argList
         newProc := subsop(1=newParams, 11=newKeywords, newProc);
     end if;
 
-    specializedProcs[n] := newProc;
+    #specializedProcs[n] := newProc;
     newProc;
 end proc;
 
