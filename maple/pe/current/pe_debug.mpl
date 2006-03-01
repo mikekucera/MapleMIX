@@ -3,7 +3,7 @@ PEDebug := module()
            DisplayReduceStart, DisplayReduceEnd, 
            DisplayStatmentStart, DisplayStatmentEnd,
            StepUntil, GetStatementCount, Message,
-           RememberVals, DisplayEnv,
+           RememberVals, DisplayEnv, DisplayVar,
            StatementStart, StatementEnd,
            FunctionStart, FunctionEnd;
     local DisplayDebugCommand,
@@ -61,6 +61,10 @@ PEDebug := module()
     StepUntil := proc(num::nonnegative)
         stepUntil := num;
         SetRunningMode(STEP);
+    end proc;
+    
+    DisplayVar := proc(varName)
+        print(eval(callStack:-topEnv():-getVal(convert(varName, string))));
     end proc;
 
     Quit := proc()
@@ -177,6 +181,11 @@ PEDebug := module()
 	            " ",
 	            Button['B6']("Display Env", 'width' = buttonWidth,
 	                         Evaluate(function = 'DisplayEnv()')),
+	            [
+	                Button['B8']("Display Var", 'width' = buttonWidth - 40, 
+	                              Action(Evaluate(function = 'DisplayVar(T2)'))),
+	                TextField['T2'](3)
+	            ],
 	            " ",
 	            CheckBox['C1']('caption' = "Display Statements", 'value' = displayStats),
 	            CheckBox['C2']('caption' = "Display Reductions", 'value' = displayReductions)

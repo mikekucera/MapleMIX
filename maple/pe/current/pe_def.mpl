@@ -412,38 +412,43 @@ end proc;
 analyzeDynamicLoopBody := proc(body::mform)
     local notImplemented, readVar, readLocal, readGlobal, readTableref, writeVar, writeTable;
     notImplemented := () -> ERROR("non-intrinsic call in dynamic loop not supported");
-    readVar := proc(n::string, env)
-        if env:-isStatic(n) then
-            error "static value in dynamic loop body is not supported yet";
-        end if;
-    end proc;
-    readLocal  := n -> readVar(n, callStack:-topEnv());
-    readGlobal := n -> readVar(n, genv);
+    #readVar := proc(n::string, env)
+        #if env:-isStatic(n) then
+        #    error "static value in dynamic loop body is not supported yet";
+        #end if;
+    #end proc;
+    #readLocal  := n -> readVar(n, callStack:-topEnv());
+    #readGlobal := n -> readVar(n, genv);
     readTableref := proc(var)
         if not getEnv(var):-isDynamic(Name(var)) then # the entire table must be dynamic
             error "possibly static table lookup in dynamic loop, not supported yet";
         end if;
     end proc;
-    writeVar   := var    -> getEnv(var):-setDynamic(Name(var));
+    writeVar   := proc(var)
+        if getEnv(var):-isStatic(Name(var)) then
+            error "static -> dynamic is not allowed";
+        end if;
+    end proc;
     writeTable := tblref -> writeVar(Var(tblref));
     
-    eval(body, [MAssignToFunction = notImplemented,
-                MStandaloneFunction = notImplemented,
+    eval(body, [#MAssignToFunction   = notImplemented,
+                #MStandaloneFunction = notImplemented,
                 MAssign = writeVar,
                 MAssignToTable = writeVar,
                 MAssignTableIndex = writeTable,
-                MTableref = readTableref,
-                MName = readGlobal,
-                MLocal = readLocal,
-                MParam = readLocal,
-                MGeneratedName = readLocal,
-                MSingleUse = readLocal ]);    
+                MTableref = readTableref
+                #MName = readGlobal,
+                #MLocal = readLocal,
+                #MParam = readLocal,
+                #MGeneratedName = readLocal,
+                #MSingleUse = readLocal 
+                ]);    
     NULL
 end proc;
 
 
 pe[MForIn] := proc(loopVar, inExp, statseq)
-    pe[MWhileForIn](loopVar, inExp, true, statseq);
+    pe[MWhileForIn](loopVar, inExp, MStatic(true), statseq);
 end proc;
 
 
@@ -463,15 +468,17 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
         end do;
         return unroller:-result();
     else
+        # need to do this because unassigned locals are considered static
+        getEnv(loopVar):-setValDynamic(Name(loopVar));
         analyzeDynamicLoopBody(statseq);
         analyzeDynamicLoopBody(whileExp);
-        MWhileForIn(loopVar, rInExp, whileExp, statseq);
+        MWhileForIn(loopVar, rInExp, whileExp, peM(statseq));
     end if;
 end proc;
 
 
 pe[MForFrom] := proc(loopVar, fromExp, byExp, toExp, statseq)
-    pe[MWhileForFrom](loopVar, fromExp, byExp, toExp, true, statseq);
+    pe[MWhileForFrom](loopVar, fromExp, byExp, toExp, MStatic(true), statseq);
 end proc;
 
 pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
@@ -494,9 +501,11 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
         end do;   
         unroller:-result();
     else
+        # need to do this because unassigned locals are considered static
+        getEnv(loopVar):-setValDynamic(Name(loopVar));
         analyzeDynamicLoopBody(statseq);
         analyzeDynamicLoopBody(whileExp);
-        MWhileForFrom(loopVar, rFromExp, rByExp, rToExp, whileExp, statseq)
+        MWhileForFrom(loopVar, rFromExp, rByExp, rToExp, whileExp, peM(statseq))
     end if;
 end proc;
 
@@ -599,9 +608,9 @@ end proc;
 
 
 # used to statically evaluate a type assertion on a parameter
-checkParameterTypeAssertion := proc(value, paramSpec::mform(ParamSpec)) local ta;
+checkParameterTypeAssertion := proc(value::list(Static), paramSpec::mform(ParamSpec)) local ta;
     ta := TypeAssertion(paramSpec);
-    `if`(nops(ta) > 0, type(value, op(ta)), true);
+    `if`(nops(ta) > 0, type(value, list(op(ta))), true);
 end proc;
 
 # returns a parameter's default value
@@ -612,7 +621,7 @@ getParameterDefault := proc(paramSpec::mform(ParamSpec)) local default, value;
         if nops(value) <> 1 then
             error "expression sequence as default parameter value is not supported";
         elif value::Static then
-            return op(newValue);
+            return op(value);
         else
             error "dynamic default values are not supported"
         end if;
@@ -662,8 +671,8 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	        # flatten the way that Maple does
             staticPart := `if`(reduced::Both, StaticPart(reduced), reduced);
             
-   	        for val in staticPart do
-   	            toEnqueue := `if`(reduced::Both, DynamicPart(reduced), embed(val));
+   	        for val in map(() -> [args], staticPart) do
+   	            toEnqueue := `if`(reduced::Both, DynamicPart(reduced), embed(op(val)));
    	            fullCall:-enqueue(toEnqueue);
    	            if possibleExpSeqSeen or reduced::Both then
    	                redCall:-enqueue(toEnqueue);
@@ -675,13 +684,13 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
        	            if i <= numParams then
        	                paramSpec := op(i, paramSeq);
        	                if not checkParameterTypeAssertion(val, paramSpec) then
-       	                    val := getParameterDefault(paramSpec);
+       	                    val := [getParameterDefault(paramSpec)];
        	                end if;
-       	                env:-putVal(Name(paramSpec), val);
+       	                env:-putVal(Name(paramSpec), op(val));#`if`(type(val,last_name_eval),eval(val),val));
        	                toRemove := toRemove union `if`(reduced::Both, {}, {Name(paramSpec)});
        	            end if;
        	            #argsTbl[i] := val;
-       	            env:-putArgsVal(i, val);
+       	            env:-putArgsVal(i, op(val));
        	            i := i + 1;
        	        end if;
        	    end do;
@@ -873,6 +882,7 @@ peFunction_SpecializeThenDecideToUnfold :=
 	
     argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
     signature := fun, getCallSignature(argListInfo:-allCall);
+    print("signature", signature);
     
     # handle sharing issues
     if not assigned(share[signature]) then

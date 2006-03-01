@@ -24,7 +24,7 @@ BuildModule := module()
             # used to evaluate each name reference
     
             processFuncCall := proc(n)
-                local localName, localIndex;
+                local localName, localIndex, lexicalIndex;
                 if Header(n) = _Inert_ASSIGNEDNAME then
                     return _Inert_FUNCTION(args);
                 end if;
@@ -33,12 +33,12 @@ BuildModule := module()
                 if localName = n then
                     localIndex := nops(lexicalLocals) + 1;
                 else
-                    if not member(localName, locals, localIndex) then #nasty!
+                    if not member(localName, locals, 'localIndex') then #nasty!
                         return _Inert_FUNCTION(args); #error "%1 is not a module local", localName;
                     end if;
                 end if;
     
-                if member(localName=localIndex, lexicalLocals, lexicalIndex) then
+                if member(localName=localIndex, lexicalLocals, 'lexicalIndex') then
                     subsop(1=_Inert_LEXICAL_LOCAL(lexicalIndex), _Inert_FUNCTION(args));
                 else
                     lexicalLocals := [op(lexicalLocals), localName=localIndex];

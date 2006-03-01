@@ -3,7 +3,7 @@ Lifter := module()
     local gen;
     export LiftExp, LiftPostProcess, liftStat, liftExp, liftTable, liftStatic;
 
-    liftStat := proc(stat) local t, e, c, n, f, s, b, stmts, lift, h, q, k, result;
+    liftStat := proc(stat) local l, b, t, e, c, n, f, s, w, stmts, lift, h, q, k, result;
         h := Header(stat);
 
         # first consider the cases that don't result in a call to liftExp
@@ -37,8 +37,12 @@ Lifter := module()
             result := MFunction(lift(s), lift(e));
         elif typematch(stat, MError('s'::anything)) then
             result := MError(lift(s));
+        elif typematch(stat, MWhileForFrom('l'::anything, 'f'::anything, 'b'::anything,
+                                           't'::anything, 'w'::anything, 's'::anything)) then
+            result := MWhileForFrom(lift(l), lift(f), lift(b), lift(t), lift(w), procname(s));
         else
             error "lifting of statement form %1 not supported", h
+            # TODO, make sure all statment forms are here
         end if;
 
         q := SimpleQueue();
