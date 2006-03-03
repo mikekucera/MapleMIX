@@ -179,11 +179,15 @@ ToM := module()
     m[_Inert_INTPOS]   := MInt;
     m[_Inert_INTNEG]   := MInt @ `-`;
     m[_Inert_STRING]   := MString;
+    m[_Inert_FLOAT]    := MFloat @ itom2;
+    
+    m[_Inert_NOT] := MNot @ itom;
+    
+    m[_Inert_ARGS]  := MArgs();
+    m[_Inert_NARGS] := MNargs();
 
-    m[_Inert_NOT]      := MNot @ itom;
-
-    m[_Inert_FLOAT]    := MFloat    @ itom2;
     m[_Inert_EQUATION] := MEquation @ itom2;
+    m[_Inert_INEQUAT]  := MInequat  @ itom2;
     m[_Inert_POWER]    := MPower    @ itom2;
     m[_Inert_CATENATE] := MCatenate @ itom2;
     m[_Inert_LESSEQ]   := MLesseq   @ itom2;
@@ -192,26 +196,21 @@ ToM := module()
     m[_Inert_AND]      := MAnd      @ itom2;
     m[_Inert_OR]       := MOr       @ itom2;
     m[_Inert_XOR]      := MXor      @ itom2;
-
-    m[_Inert_RATIONAL]  := MRational @ itom2;
-    m[_Inert_COMPLEX]   := MComplex  @ itom2;
-
+    m[_Inert_RATIONAL] := MRational @ itom2;
+    m[_Inert_COMPLEX]  := MComplex  @ itom2;
+    m[_Inert_RANGE]    := MRange    @ itom2;
+    
     m[_Inert_LIST]      := MList @ mapitom;
     m[_Inert_SET]       := MSet  @ mapitom;
 
-    m[_Inert_EXPSEQ]    := MExpSeq @ mapitom;
-    m[_Inert_SUM]       := MSum    @ mapitom;
-    m[_Inert_PROD]      := MProd   @ mapitom;
-    m[_Inert_ERROR]     := MError  @ mapitom;
+    m[_Inert_EXPSEQ]    := MExpSeq   @ mapitom;
+    m[_Inert_SUM]       := MSum      @ mapitom;
+    m[_Inert_PROD]      := MProd     @ mapitom;
     m[_Inert_TABLEREF]  := MTableref @ mapitom;
-    m[_Inert_ARGS]      := MArgs @ mapitom;
-    m[_Inert_NARGS]     := MNargs @ mapitom;
-    m[_Inert_UNEVAL]    := MUneval @ mapitom;
-    m[_Inert_RANGE]     := MRange @ mapitom;
-    m[_Inert_INEQUAT]   := MInequat @ mapitom;    
+    m[_Inert_UNEVAL]    := MUneval   @ mapitom;
 
     m[_Inert_MEMBER]    := MMember    @ mapitom;
-    m[_Inert_ATTRIBUTE] := MAttribute @ mapitom;
+    m[_Inert_ATTRIBUTE] := MAttribute @ mapitom; # TODO
     
     m[_Inert_LOCALSEQ]       := MLocalSeq       @ mapitom;
     m[_Inert_OPTIONSEQ]      := MOptionSeq      @ mapitom;
@@ -220,6 +219,7 @@ ToM := module()
     m[_Inert_EXPORTSEQ]      := MExportSeq      @ mapitom;
     m[_Inert_EOP]            := MEop            @ mapitom;    
 
+    m[_Inert_ERROR]     := MError  @ mapitom;
     
     m[_Inert_PARAMSEQ]  := proc() local arg, paramq, keywordq;       
         if nargs = 0 then
@@ -312,7 +312,7 @@ ToM := module()
         body := MStatSeq(itom(body), ssop(ss5));
 
         if toExp = _Inert_EXPSEQ() then # its a simple while loop
-            loop := MWhile(e1, e2, e3, e5, body);
+            loop := MWhile(e1, e2, e3, e5, body); #TODO, what about the other expressions?
         elif whileExp = inertTrue then
             loop := MForFrom(e1, e2, e3, e4, body);
         else

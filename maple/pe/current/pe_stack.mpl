@@ -11,7 +11,7 @@ CallStack := module()
                 inConditional, setConditional,
                 wasGlobalEnvUpdated, setGlobalEnvUpdated;
 
-            stack := SimpleStack();
+            stack := SuperStack();
 
             # push and pop OnENVs but other important information 
             # is also stored in each frame
@@ -39,8 +39,16 @@ CallStack := module()
                 NULL;
             end proc;
 
+            inConditional := proc()
+                try
+                    stack:-find( tbl -> tbl["conditional"] );
+                    true;
+                catch "not found" :
+                    false;
+                end try;
+            end proc;
+            
             topEnv := () -> getInfo("env");
-            inConditional := () -> getInfo("conditional");
             wasGlobalEnvUpdated := () -> getInfo("genvUpdated");
 
             setConditional := proc(b::boolean := true)

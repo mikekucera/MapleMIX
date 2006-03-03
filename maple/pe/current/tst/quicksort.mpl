@@ -4,7 +4,7 @@ swap := proc(A, x, y)
     temp := A[x];
     A[x] := A[y];
     A[y] := temp;
-end proc;
+end proc:
 
 partition := proc(A, m, n, pivot, compare)
     local pivotIndex, pivotValue, storeIndex, i, temp;
@@ -23,7 +23,7 @@ partition := proc(A, m, n, pivot, compare)
     end do;
     swap(A, n, storeIndex);
     return storeIndex;
-end proc;
+end proc:
 
 quicksort := proc(A, m, n, pivot, compare)
     local p;
@@ -32,22 +32,33 @@ quicksort := proc(A, m, n, pivot, compare)
         quicksort(A, m, p-1, pivot, compare);
         quicksort(A, p+1, n, pivot, compare);
     end if;
-end proc;
+end proc:
 
-qs1 := proc(A, m, n)
-    quicksort(A, m, n, (A, m, n) -> n, `<=`)
-end proc;
+qs1 := proc(A, m, n) local p, c;
+    p := (A, m, n) -> n;
+    c := `<=`;
+    quicksort(A, m, n, p, c)
+end proc:
 
 qs2 := proc(A, m, n)
     quicksort(A, m, n, (A, m, n) -> n, `>`)
-end proc;
+end proc:
 
 qs3 := proc(A, m, n)
     quicksort(A, m, n, (A, m, n) -> rand(m..n)(), `<=`);
-end proc;
+end proc:
+
+opts := PEOptions():
+opts:-setConsiderExpseq(false):
+pe_qs1 := OnPE(qs1, opts):
+
+printmod(pe_qs1);
+
+a := Array([4,5,1,8,2,0,3,7,6,9]);
+qs1(a,1,10);
+print(a);
 
 
-#pe_qs1 := OnPE(qs1);
-
-#printmod(pe_qs1);
-
+a := Array([4,5,1,8,2,0,3,7,6,9]);
+pe_qs1(a, 1, 10);
+print(a);
