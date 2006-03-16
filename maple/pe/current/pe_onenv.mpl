@@ -119,10 +119,11 @@ OnENV := module()
             
             # returns false iff the binding was completely static
             # returns true iff the binding should be residualized
-            bind := proc(existingName::Not(mform), {newName::Not(mform):=NULL, argNum::nonnegative:=0, environ:=thismodule})
-                local frame, rec, top, val;
+            bind := proc(existingName::envname, {newName::Not(mform):=NULL, argNum::nonnegative:=0, environ:=thismodule})
+                local frame, rec, top, val, n;
                 print("bind called");
-                frame := environ:-findFrame(existingName, () -> OnENV:-DYN);
+                n := Name(existingName);
+                frame := environ:-findFrame(n, () -> OnENV:-DYN);
                 
                 if frame = OnENV:-DYN then # nothing was found, completely dynamic
                     setValDynamic(newName);
@@ -130,8 +131,8 @@ OnENV := module()
                 end if;
                 
                 top := ss:-top();
-                if assigned(frame:-tbls[existingName]) then
-                    rec := frame:-tbls[existingName];
+                if assigned(frame:-tbls[n]) then
+                    rec := frame:-tbls[n];
                     if newName <> NULL then
                         top:-tbls[newName] := rec;
                     end if;
@@ -139,8 +140,8 @@ OnENV := module()
                         top:-tbls[ArgKey(argNum)] := rec;
                     end if;
                     hasDynamicPart(rec);
-                elif assigned(frame:-vals[existingName]) then
-                    val := frame:-vals[existingName];
+                elif assigned(frame:-vals[n]) then
+                    val := frame:-vals[n];
                     if newName <> NULL then
                         top:-vals[newName] := val;
                     end if;

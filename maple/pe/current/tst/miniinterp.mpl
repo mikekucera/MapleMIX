@@ -198,7 +198,7 @@ end proc:
 
 opts := PEOptions();
 opts:-setConsiderExpseq(false);
-opts:-setIgnoreCommands(true);
+opts:-setIgnoreCommands(false);
 ps := OnPE(goal, opts);
 
 printmod(ps);

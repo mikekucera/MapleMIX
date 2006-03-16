@@ -2,7 +2,7 @@
 PETypes := module() option package;
     global `type/inert`, `type/mform`,
            `type/onenv`, `type/Static`, `type/Dynamic`, `type/Both`,
-           `type/Global`, `type/Local`, `type/mname`;
+           `type/Global`, `type/Local`, `type/mname`, `type/envname`;
     export ModuleLoad;
     local funcPrefixType;
 
@@ -21,6 +21,7 @@ PETypes := module() option package;
 `type/Global` := 'Or'('identical'(MName), 'identical'(MAssignedName), 'identical'(MCatenate), mform({Name, AssignedName, Catenate})):
 `type/Local`  := 'Or'('identical'(MLocal), 'identical'(MParam), 'identical'(MGeneratedName), 'identical'(MSingleUse), mform({Local, GenertatedName, Param, SingleUse})):
 `type/mname`  := 'Or(Global, Local)';
+`type/envname`:= mform({Name, Local, GenertatedName, Param, SingleUse});
 
 ModuleLoad := proc()
     protect('mform');

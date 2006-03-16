@@ -187,6 +187,7 @@ pe[MReturn] := curry(peResidualizeStatement, MReturn);
 pe[MError]  := curry(peResidualizeStatement, MError);
 
 
+
 pe[MStatSeq] := proc() :: mform(StatSeq);
     local q, i, h, stmt, residual, statseq, size, stmtsAfterIf;
     
@@ -320,8 +321,8 @@ pe[MAssign] := proc(n::mname, expr::mform)
     end if;
         
     # id assign is of the form (name := name) then reduction isn't necessary
-    if expr::mname then
-        shouldResidualize := env:-bind(Name(expr), 'newName'=var);
+    if expr::envname then
+        shouldResidualize := env:-bind(expr, 'newName'=var);
         `if`(shouldResidualize, MAssign(n, expr), NULL);
     else
         reduced := ReduceExp(expr);
@@ -669,18 +670,21 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	# loop over expressions in function call
    	for arg in argExpSeq do
    	
-   	    if not possibleExpSeqSeen and arg::mname and getEnv(arg):-isStaticTable(Name(arg)) then
-   	        paramName := `if`(i <= numParams, Name(op(i, paramSeq)), NULL);
-   	        shouldResidualize := env:-bind(Name(arg), 'environ'=getEnv(arg), 'newName'=paramName, 'argNum'=i);
-   	        if shouldResidualize then
-   	            redCall:-enqueue(arg);
-   	        else
-   	            toRemove := toRemove union {Name(arg)};
-   	        end if;
-   	        fullCall:-enqueue(arg);
-   	        i := i + 1;
-   	        next;
-   	    end if;
+   	    #if not possibleExpSeqSeen and arg::envname and getEnv(arg):-isStaticTable(Name(arg)) then
+   	    #    paramName := `if`(i <= numParams, Name(op(i, paramSeq)), NULL);
+   	    #    shouldResidualize := env:-bind(arg, 'environ'=getEnv(arg), 'newName'=paramName, 'argNum'=i);
+   	    #    if true then #if shouldResidualize then
+   	    #        print("redcall");
+   	    #        redCall:-enqueue(arg);
+   	    #        fullCall:-enqueue(arg);
+   	    #    else
+   	    #        toRemove := toRemove union {paramName};
+   	    #        # ??? fullCall:-enqueue(???);
+   	    #    end if;
+   	    #    
+   	    #    i := i + 1;
+   	    #    next;
+   	    #end if;
    	    
    	    reduced := ReduceExp(arg);
    	    if reduced::Both and nops(StaticPart(reduced)) <> 1 then
@@ -902,7 +906,6 @@ peFunction_SpecializeThenDecideToUnfold :=
 	
     argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
     signature := fun, getCallSignature(argListInfo:-allCall);
-    #print("signature", signature);
     
     # handle sharing issues
     if not assigned(share[signature]) then

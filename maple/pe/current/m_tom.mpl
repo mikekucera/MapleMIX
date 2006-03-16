@@ -219,8 +219,9 @@ ToM := module()
     m[_Inert_EXPORTSEQ]      := MExportSeq      @ mapitom;
     m[_Inert_EOP]            := MEop            @ mapitom;
 
-    m[_Inert_ERROR]     := MError  @ mapitom;
-
+    m[_Inert_RETURN] := e -> split(e, MReturn);
+    m[_Inert_ERROR]  := e -> split(e, MError);
+    
     m[_Inert_PARAMSEQ]  := proc() local arg, paramq, keywordq;
         if nargs = 0 then
             return MParamSeq(), MKeywords();
@@ -470,8 +471,6 @@ ToM := module()
         end if;
     end proc;
 
-
-    m[_Inert_RETURN] := e -> split(e, MReturn);
 
     m[_Inert_IF] := proc() local condpair, rest, c, s, el;
         if typematch([args], [_Inert_CONDPAIR('c'::anything, 's'::anything)]) then

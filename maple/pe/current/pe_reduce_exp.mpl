@@ -23,6 +23,7 @@ ReduceExp := module()
         local reduced1, reduced2, res;
         env := reductionEnv;
         PEDebug:-DisplayReduceStart(expr);
+        #print("reducing", expr);
         # TODO, need to rewrite this block so that second reduction happens much less frequently
         treatAsDynamic := false;
         reduced1 := embed(reduce(expr));

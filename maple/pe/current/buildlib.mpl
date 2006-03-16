@@ -40,7 +40,7 @@ Save('`type/Dynamic`');
 Save('`type/Global`');
 Save('`type/Local`');
 Save('`type/mname`');
-
+Save('`type/envname`');
 
 
 #Save(`index/err`);
