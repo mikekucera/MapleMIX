@@ -6,7 +6,7 @@ SuperStack := module()
     ModuleApply := proc()
         module()
             local data, topIndex;
-            export depth, empty, toList, push, pop, top, topDownIterator, find, init;
+            export depth, empty, toList, push, pop, top, topDownIterator, find, each, init;
 
             data := table();
             topIndex := 0;
@@ -39,8 +39,7 @@ SuperStack := module()
                 data[topIndex];
             end proc;
 
-            topDownIterator := proc()
-                local i;
+            topDownIterator := proc() local i;
                 i := topIndex;
                 module() export getNext, hasNext;
                     getNext := proc() local temp;
@@ -52,15 +51,25 @@ SuperStack := module()
                 end module;
             end proc;
 
-            find := proc(p::procedure)
-                local i, frame;
+            find := proc(p::procedure, errormessage) local i, frame;
                 for i from topIndex to 1 by -1 do
                     frame := data[i];
                     if p(frame) then
                         return frame;
                     end if
                 end do;
-                error "not found";
+                if nargs > 1 then
+                    error op(errormessage);
+                else
+                    error "not found";
+                end if;
+            end proc;
+            
+            each := proc(f::procedure) local i;
+                for i from topIndex to 1 by -1 do
+                    f(data[i]);
+                end do;
+                NULL;
             end proc;
 
         end module;

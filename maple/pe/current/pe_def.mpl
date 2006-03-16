@@ -295,15 +295,14 @@ end proc;
 
 
 pe[MAssign] := proc(n::mname, expr::mform)
-    local reduced, env, var;
+    local reduced, env, var, shouldResidualize;
     userinfo(8, PE, "MAssign:", expr);
-    reduced := ReduceExp(expr);
     env := getEnv(n);
     
     if Header(n) = MCatenate then
         var := ReduceExp(n);
         if var::Dynamic then
-            return MAssign(n, reduced); # TODO, maybe don't use n
+            return MAssign(n, ReduceExp(expr)); # TODO, maybe don't use n
         elif nops([SVal(var)]) <> 1 then
             error "multiple assignment not supported"
         else
@@ -313,21 +312,29 @@ pe[MAssign] := proc(n::mname, expr::mform)
         var := Name(n);
     end if;
     
+    # not using end configuration stores, therefore if the global env has been 
+    # updated then a function won't be shared
+    # TODO, make sure this is true
     if n::Global then # very conservative
         callStack:-setGlobalEnvUpdated(true);
     end if;
-    
-    if reduced::Static then
-        env:-putVal(var, SVal(reduced));
-        NULL;
-    elif reduced::Both then
-        env:-putVal(var, SVal(StaticPart(reduced)));
-        MAssign(n, DynamicPart(reduced));
-    elif reduced::Dynamic then
-        env:-setValDynamic(var);
-        MAssign(n, reduced);
+        
+    # id assign is of the form (name := name) then reduction isn't necessary
+    if expr::mname then
+        shouldResidualize := env:-bind(var, Name(expr));
+        `if`(shouldResidualize, MAssign(n, expr), NULL);
     else
-        error "(pe[MAssign]) unknown binding time";
+        reduced := ReduceExp(expr);
+        if reduced::Static then
+            env:-putVal(var, SVal(reduced));
+            NULL;
+        elif reduced::Dynamic then
+            env:-setValDynamic(var);
+            MAssign(n, reduced);
+        else # Both
+            env:-putVal(var, SVal(StaticPart(reduced)));
+            MAssign(n, DynamicPart(reduced));
+        end if;
     end if;
 end proc;
 
@@ -764,14 +771,11 @@ end proc;
 # Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
 # probably won't be needed if I go with the sp-function approach
 isUnfoldable := proc(mProc::mform(Proc), argListInfo) local flattened;
-    print("in isUnfoldable");
     # it dosen't matter if an argument is an expression sequence if there are no defined parameters
     if argListInfo:-possibleExpSeq and nops(Params(mProc)) > 0 then
-        print("here");
         return false;
     end if;
     
-    print("inConditional", callStack:-inConditional());
     if not callStack:-inConditional() then
         true;
     else
@@ -917,7 +921,6 @@ peFunction_SpecializeThenDecideToUnfold :=
         newName := rec:-procName;
     end if;
     
-    print("calling isUnfoldable on", generatedName);
     if not rec:-mustResid and isUnfoldable(newProc, argListInfo) then
         unfold(newProc, argListInfo:-reducedCall, argListInfo:-allCall);
     else
