@@ -321,7 +321,7 @@ pe[MAssign] := proc(n::mname, expr::mform)
         
     # id assign is of the form (name := name) then reduction isn't necessary
     if expr::mname then
-        shouldResidualize := env:-bind(var, Name(expr));
+        shouldResidualize := env:-bind(Name(expr), 'newName'=var);
         `if`(shouldResidualize, MAssign(n, expr), NULL);
     else
         reduced := ReduceExp(expr);
@@ -650,7 +650,7 @@ end proc;
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
     local env, fullCall, redCall, numParams, possibleExpSeqSeen, equationArgs, toRemove, i, t, f,
           reduced, staticPart, val, toEnqueue, paramName, paramVal, paramSpec, reducedArgs, eqn,
-          reducedArg, arg, tmp;
+          reducedArg, arg, tmp, shouldResidualize;
           
     env := OnENV(); # new env for function call
     env:-setLink(callStack:-topEnv());
@@ -664,10 +664,24 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	# table that remembers if an argument expression was a MEquation
    	equationArgs := {}; # set(integer)
    	toRemove := {}; # set of parameter names to be removed from the parameter sequence
-    i := 1; 
+    i := 1; # value of i will not be used if possibleExpSeqSeen is true
     
    	# loop over expressions in function call
    	for arg in argExpSeq do
+   	
+   	    if not possibleExpSeqSeen and arg::mname and getEnv(arg):-isStaticTable(Name(arg)) then
+   	        paramName := `if`(i <= numParams, Name(op(i, paramSeq)), NULL);
+   	        shouldResidualize := env:-bind(Name(arg), 'environ'=getEnv(arg), 'newName'=paramName, 'argNum'=i);
+   	        if shouldResidualize then
+   	            redCall:-enqueue(arg);
+   	        else
+   	            toRemove := toRemove union {Name(arg)};
+   	        end if;
+   	        fullCall:-enqueue(arg);
+   	        i := i + 1;
+   	        next;
+   	    end if;
+   	    
    	    reduced := ReduceExp(arg);
    	    if reduced::Both and nops(StaticPart(reduced)) <> 1 then
    	        error "cannot reliably match up parameters";
@@ -696,7 +710,6 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
        	                env:-putVal(Name(paramSpec), op(val));#`if`(type(val,last_name_eval),eval(val),val));
        	                toRemove := toRemove union `if`(reduced::Both, {}, {Name(paramSpec)});
        	            end if;
-       	            #argsTbl[i] := val;
        	            env:-putArgsVal(i, op(val));
        	            i := i + 1;
        	        end if;
@@ -705,7 +718,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	    else # dynamic
    	        fullCall:-enqueue(reduced);
             redCall:-enqueue(reduced);
-            if isPossibleExpSeq(reduced) then # i will not be used anymore if possibleExpSeqSeen is true
+            if isPossibleExpSeq(reduced) then
                 possibleExpSeqSeen := true;
             else
                 equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});

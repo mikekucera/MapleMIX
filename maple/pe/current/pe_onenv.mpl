@@ -10,17 +10,18 @@ OnENV := module()
             local 
                 ss, mapAddressToTable, prevEnvLink,
                 newFrame, doPutVal, rebuildTable, newTableRecord,
-                lex, nargsVal, isTblVal, findFrame,
+                lex, nargsVal, isTblVal, 
                 hasDynamicPart, isAlreadyDynamic;
             export 
                 setLink, grow, shrink, shrinkGrow, markTop, equalsTop,
                 getVal, putVal, bind, putLoopVarVal, setLoopVar,
                 getArgsVal, getArgs, hasArgsVal, putArgsVal,
-                setValDynamic, isStatic, isStaticVal, isDynamic, isAssigned,
+                setValDynamic, isStatic, isStaticVal, isStaticTable, isDynamic, isAssigned,
                 isTblValStatic, isTblValAssigned,
                 putTblVal, getTblVal, setTblValDynamic, 
                 getLex, attachLex, removeLex, hasLex, setNargs, getNargs, hasNargs,
-                display, displayNames;
+                display, displayNames,
+                findFrame;
             
 ##########################################################################################
 
@@ -118,27 +119,35 @@ OnENV := module()
             
             # returns false iff the binding was completely static
             # returns true iff the binding should be residualized
-            bind := proc(newName::Not(mform), existingName::Not(mform))
-                local frame, rec;
-                print("bind");
-                frame := findFrame(existingName, () -> OnENV:-DYN);
-                print("frame found", frame);
-                display();
+            bind := proc(existingName::Not(mform), {newName::Not(mform):=NULL, argNum::nonnegative:=0, environ:=thismodule})
+                local frame, rec, top, val;
+                print("bind called");
+                frame := environ:-findFrame(existingName, () -> OnENV:-DYN);
+                
                 if frame = OnENV:-DYN then # nothing was found, completely dynamic
                     setValDynamic(newName);
-                    true;
-                elif assigned(frame:-tbls[existingName]) then
-                    print("its a table record");
+                    return true;
+                end if;
+                
+                top := ss:-top();
+                if assigned(frame:-tbls[existingName]) then
                     rec := frame:-tbls[existingName];
-                    ss:-top():-tbls[newName] := rec;
+                    if newName <> NULL then
+                        top:-tbls[newName] := rec;
+                    end if;
+                    if argNum > 0 then
+                        top:-tbls[ArgKey(argNum)] := rec;
+                    end if;
                     hasDynamicPart(rec);
                 elif assigned(frame:-vals[existingName]) then
-                    print("its a val");
-                    ss:-top():-vals[newName] := frame:-vals[existingName];
+                    val := frame:-vals[existingName];
+                    if newName <> NULL then
+                        top:-vals[newName] := val;
+                    end if;
+                    if argNum > 0 then
+                        top:-vals[ArgKey(argNum)] := val;
+                    end if;
                     false;
-                else
-                    print("what!");
-                    true;
                 end if;
             end proc;
             
@@ -369,6 +378,10 @@ OnENV := module()
                 findFrame(key, () -> false, () -> true, considerTables = false);
             end proc;
             
+            isStaticTable := proc(key)
+                findFrame(key, () -> false, () -> true, considerVals = false);
+            end proc;
+            
             # even though the value if a variable is dynamic we can know
             # statically if it is assigned or not
             isAssigned := proc(key)
@@ -381,6 +394,7 @@ OnENV := module()
             # precondition, isStatic(table) = true
             rebuildTable := proc(chain::`record`(elts,link), hasDyn)
                 local tbl, rec, tmp, key;
+                print("warning, rebuildTable called");
                 tbl := table();
                 rec := chain;
                 
