@@ -40,25 +40,40 @@ qs1 := proc(A, m, n) local p, c;
     quicksort(A, m, n, p, c)
 end proc:
 
-qs2 := proc(A, m, n)
-    quicksort(A, m, n, (A, m, n) -> n, `>`)
-end proc:
+qs2 := proc(A, m, n) local p, c;
 
-qs3 := proc(A, m, n)
-    quicksort(A, m, n, (A, m, n) -> rand(m..n)(), `<=`);
+    middle := proc(x, y, z)
+        (x >= y and x <= z) or (x >= z and x <= y)
+    end proc;
+
+    p := proc(A, m, n)
+        x := A[m];
+        y := A[n];
+        z := A[iquo(m+n,2)];
+        if middle(x, y, z) then
+            x
+        elif middle(y, x, z) then
+            y
+        elif middle(z, x, y) then
+            z
+        end if;
+    end proc;
+
+    c := `>`;
+    quicksort(A, m, n, p, c)
 end proc:
 
 opts := PEOptions():
 opts:-setConsiderExpseq(false):
-pe_qs1 := OnPE(qs1, opts):
+pe_qs2 := OnPE(qs2, opts):
 
-printmod(pe_qs1);
+printmod(pe_qs2);
 
 a := Array([4,5,1,8,2,0,3,7,6,9]);
-qs1(a,1,10);
+qs2(a,1,10);
 print(a);
 
 
 a := Array([4,5,1,8,2,0,3,7,6,9]);
-pe_qs1(a, 1, 10);
+pe_qs2(a, 1, 10);
 print(a);

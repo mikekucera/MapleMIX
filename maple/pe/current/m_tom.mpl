@@ -221,7 +221,7 @@ ToM := module()
 
     m[_Inert_RETURN] := e -> split(e, MReturn);
     m[_Inert_ERROR]  := e -> split(e, MError);
-    
+
     m[_Inert_PARAMSEQ]  := proc() local arg, paramq, keywordq;
         if nargs = 0 then
             return MParamSeq(), MKeywords();
@@ -424,14 +424,11 @@ ToM := module()
         elif isIntrinsic(Name(n)) then
             split(expseq, x -> MStandaloneExpr(MFunction(itom(n), x)));
         else
+            #split(_Inert_FUNCTION(n, expseq), MStandaloneExpr);
             ss1, r1 := splitReturn(n);
             ss2, r2 := splitReturn(expseq);
 
-            if nops(ss1) = 0 and nops(ss2) = 0 then
-                MStandaloneFunction(r1, r2);
-            else
-                MStatSeq(ssop(ss1), ssop(ss2), MStandaloneFunction(r1, r2));
-            end if;
+            MStatSeq(ssop(ss1), ssop(ss2), MStandaloneFunction(r1, r2));
         end if;
     end proc;
 

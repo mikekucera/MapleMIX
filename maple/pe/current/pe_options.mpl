@@ -8,18 +8,19 @@ PEOptions := module()
            # INTRINSIC: if all args static then call, otherwise residualize
            # DYNAMIC: always residualize
            # UNKNOWN: always specialize
-           
-    
+
+
     ModuleApply := proc()
-        module()            
+        module()
             export
-                addFunction;
-            local 
+                addFunction,
+                setConsiderExpseq, getConsiderExpseq,
+                setIgnoreCommands, getIgnoreCommands;
+            local
                 level, setLevel, getLevel,
-                considerExpseq, setConsiderExpseq, getConsiderExpseq,
-                ignoreCommands, setIgnoreCommands, getIgnoreCommands,
+                considerExpseq, ignoreCommands,
                 functions, funcOpt, hasFuncOpt;
-            
+
             # mutator functions return thismodule so that they may be chained
             level := infinity;
             setLevel := proc(n::Or(posint,infinity))
@@ -27,42 +28,42 @@ PEOptions := module()
                 thismodule;
             end proc;
             getLevel := () -> level;
-            
+
             considerExpseq := true;
             setConsiderExpseq := proc(x::boolean)
                 considerExpseq := x;
                 thismodule;
             end proc;
             getConsiderExpseq := () -> considerExpseq;
-            
-            
+
+
             ignoreCommands := false;
             setIgnoreCommands := proc(x::boolean)
                 ignoreCommands := x;
                 thismodule;
             end proc;
             getIgnoreCommands := () -> ignoreCommands;
-            
-            
+
+
             functions := table();
-            
+
             addFunction := proc(typ :: {identical(PEOptions:-PURE),
                                         identical(PEOptions:-INTRINSIC),
                                         identical(PEOptions:-DYNAMIC)},
                                 f   :: `procedure`)
                 functions[eval(f)] := typ;
                 thismodule;
-            end proc;                        
-            
+            end proc;
+
             funcOpt := proc(f)
                 `if`(hasFuncOpt(f), functions[eval(f)], UNKNOWN);
             end proc;
-            
+
             hasFuncOpt := proc(f)
                 evalb(assigned(functions[eval(f)]));
             end proc;
-            
+
         end module;
     end proc;
-    
+
 end module:

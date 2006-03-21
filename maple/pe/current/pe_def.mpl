@@ -2,24 +2,24 @@
 
 OnPE := module() option package;
 
-description 
+description
     "online partial evaluator for a subset of Maple";
-export 
+export
     ModuleApply, PartiallyEvaluate, Debug;
-local 
+local
 $include "access_header.mpl"
-    CallStack, PEDebug, Lifter, BuildModule, OnENV, 
+    CallStack, PEDebug, Lifter, BuildModule, OnENV,
     ReduceExp, Unfold,
     getMCode, embed, getEnv,
     pe, peM, peResidualizeStatement, peIF,
     StaticLoopUnroller,
-    checkParameterTypeAssertion, getParameterDefault, 
+    checkParameterTypeAssertion, getParameterDefault,
     isPossibleExpSeq, peArgList, isUnfoldable,
-    peFunction, peFunction_StaticFunction, 
-    peFunction_SpecializeThenDecideToUnfold, 
-    peFunction_GenerateNewSpecializedProc,  
+    peFunction, peFunction_StaticFunction,
+    peFunction_SpecializeThenDecideToUnfold,
+    peFunction_GenerateNewSpecializedProc,
     analyzeDynamicLoopBody, getCallSignature,
-    
+
     # module local variables
     callStack,         # callStack grows by one OnENV for every function specialization
     specializedProcs,  # will change
@@ -53,7 +53,7 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     local before, m, inertModule, res;
     # need access to module locals
     before := kernelopts(opaquemodules=false);
-    
+
     # set up module locals
     gopts := opts;
     gen := NameGenerator();
@@ -61,12 +61,12 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     specializedProcs := table();
     genv := OnENV(); # the global environment
     share := table();
-    
+
     userinfo(1, PE, "PE on ", eval(p));
     m := getMCode(eval(p));
     userinfo(3, PE, "Successfully got MCode for", p);
     callStack:-push();
-    
+
     try
         specializedProcs["ModuleApply"] := peFunction_GenerateNewSpecializedProc(m, "ModuleApply");
         Lifter:-LiftPostProcess(specializedProcs);
@@ -92,7 +92,7 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
         lprint("conversion to inert module failed", lastexception);
         return copy(specializedProcs);
     end try;
-    
+
     try
         res := eval(FromInert(inertModule));
     catch:
@@ -107,11 +107,11 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     callStack := 'callStack';
     gopts := 'gopts';
     share := 'share';
-    
+
     kernelopts(opaquemodules=before);
 
     print(PEDebug:-GetStatementCount(), "statements processed. Success!");
-    return res;    
+    return res;
 end proc;
 
 # runs the PE in debug mode
@@ -190,18 +190,18 @@ pe[MError]  := curry(peResidualizeStatement, MError);
 
 pe[MStatSeq] := proc() :: mform(StatSeq);
     local q, i, h, stmt, residual, statseq, size, stmtsAfterIf;
-    
+
     statseq := M:-FlattenStatSeq(MStatSeq(args));
     size := nops(statseq);
-    
+
     q := SimpleQueue();
-    
+
     for i from 1 to size do
         stmt := op(i, statseq);
         h := Header(stmt);
 
         PEDebug:-StatementStart(stmt);
-        
+
         if h = MIfThenElse then
             stmtsAfterIf := MStatSeq(op(i+1..size, statseq));
             q:-enqueue(peIF(stmt, stmtsAfterIf));
@@ -209,7 +209,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
             break;
         end if;
         residual := peM(stmt);
-        
+
         PEDebug:-StatementEnd(residual);
 
         if residual <> NULL then
@@ -269,13 +269,13 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
         if not stopAfterC1 then
             S1 := peM(S);
         end if;
-        
+
         env:-shrinkGrow();
         genv:-shrinkGrow();
 
         C2 := peM(Else(ifstat));
         stopAfterC2 := M:-EndsWithErrorOrReturn(C2);
-        
+
         if stopAfterC1 and stopAfterC2 then
             result := MIfThenElse(rcond, C1, C2);
         elif env:-equalsTop(prevTopLocal) and genv:-equalsTop(prevTopGlobal) then
@@ -286,7 +286,7 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
             S2 := `if`(stopAfterC2, MStatSeq(), peM(S));
             result := MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1)), MStatSeq(ssop(C2), ssop(S2)));
         end if;
-        
+
         env:-shrink();
         genv:-shrink();
         result;
@@ -299,7 +299,7 @@ pe[MAssign] := proc(n::mname, expr::mform)
     local reduced, env, var, shouldResidualize;
     userinfo(8, PE, "MAssign:", expr);
     env := getEnv(n);
-    
+
     if Header(n) = MCatenate then
         var := ReduceExp(n);
         if var::Dynamic then
@@ -312,14 +312,14 @@ pe[MAssign] := proc(n::mname, expr::mform)
     else
         var := Name(n);
     end if;
-    
-    # not using end configuration stores, therefore if the global env has been 
+
+    # not using end configuration stores, therefore if the global env has been
     # updated then a function won't be shared
     # TODO, make sure this is true
     if n::Global then # very conservative
         callStack:-setGlobalEnvUpdated(true);
     end if;
-        
+
     # id assign is of the form (name := name) then reduction isn't necessary
     if expr::envname then
         shouldResidualize := env:-bind(expr, 'newName'=var);
@@ -340,16 +340,16 @@ pe[MAssign] := proc(n::mname, expr::mform)
 end proc;
 
 
- 
+
 pe[MAssignToTable] := proc(n::mname, expr::mform(Tableref)) local tblVar, rindex, env;
     rindex := ReduceExp(IndexExp(expr));
     tblVar := Var(expr);
     env := getEnv(tblVar);
-    
+
     if not env:-isTblValAssigned(Name(tblVar), SVal(rindex)) then
         env:-putTblVal(Name(tblVar), SVal(rindex), table());
     end if;
-    
+
     pe[MAssign](n, expr); # TODO, this would have to change if PE was run as a fixed point
 end proc;
 
@@ -364,21 +364,21 @@ pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
     if Var(tr)::Global then # very conservative
         callStack:-setGlobalEnvUpdated(true);
     end if;
-    
+
     if [rindex,rexpr]::[Static,Static] then
 userinfo(5, PE, "Static -- putting into env", SVal(rexpr));
         env:-putTblVal(var, SVal(rindex), SVal(rexpr));
         NULL;
-        
+
     elif [rindex,rexpr]::[Static,Both] then
 userinfo(5, PE, "Both -- putting into env", SVal(StaticPart(rexpr)));
         env:-putTblVal(var, SVal(rindex), SVal(StaticPart(rexpr)));
         MAssignTableIndex(subsop(2=rindex, tr), SVal(StaticPart(rexpr)));
-        
+
     elif [rindex,rexpr]::[Static,Dynamic] then
         env:-setTblValDynamic(var, SVal(rindex));
         MAssignTableIndex(subsop(2=rindex, tr), rexpr);
-        
+
     else
         env:-setValDynamic(var);
         MAssignTableIndex(subsop(2=rindex, tr), rexpr);
@@ -394,9 +394,9 @@ StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
         loopVarName := Name(loopVar);
         env:-setLoopVar(loopVarName);
     end if;
-    
+
     q := SimpleQueue();
-    
+
     return module() export setVal, unrollOnce, result;
         setVal := proc(x)
             if assigned(loopVarName) then
@@ -407,9 +407,9 @@ StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
             res := peM(statseq);
             if res <> NULL then
                 q:-enqueue(res);
-            end if;        
-        end proc;       
-        result := () -> MStatSeq(qtoseq(q));        
+            end if;
+        end proc;
+        result := () -> MStatSeq(qtoseq(q));
     end module;
 end proc;
 
@@ -438,7 +438,7 @@ analyzeDynamicLoopBody := proc(body::mform)
         end if;
     end proc;
     writeTable := tblref -> writeVar(Var(tblref));
-    
+
     eval(body, [#MAssignToFunction   = notImplemented,
                 #MStandaloneFunction = notImplemented,
                 MAssign = writeVar,
@@ -449,8 +449,8 @@ analyzeDynamicLoopBody := proc(body::mform)
                 #MLocal = readLocal,
                 #MParam = readLocal,
                 #MGeneratedName = readLocal,
-                #MSingleUse = readLocal 
-                ]);    
+                #MSingleUse = readLocal
+                ]);
     NULL
 end proc;
 
@@ -493,11 +493,11 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
     local rFromExp, rByExp, rToExp, unroller, i, rWhileExp;
     rFromExp  := ReduceExp(fromExp);
     rByExp    := ReduceExp(byExp);
-    rToExp    := ReduceExp(toExp);    
-    
-    if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop        
+    rToExp    := ReduceExp(toExp);
+
+    if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop
         unroller := StaticLoopUnroller(loopVar, statseq);
-        
+
         for i from SVal(rFromExp) by SVal(rByExp) to SVal(rToExp) do
             unroller:-setVal(i);
             rWhileExp := ReduceExp(whileExp);
@@ -506,7 +506,7 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
             end if;
             if not SVal(rWhileExp) then break end if;
             unroller:-unrollOnce();
-        end do;   
+        end do;
         unroller:-result();
     else
         # need to do this because unassigned locals are considered static
@@ -573,7 +573,7 @@ pe[MStandaloneFunction] := proc(var) local unfold;
 end proc;
 
 
-# no support for assigning to a global variable, 
+# no support for assigning to a global variable,
 pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Function))
     local unfold, residualize, symbolic;
     unfold := proc(residualProcedure, redCall, fullCall)
@@ -634,7 +634,7 @@ getParameterDefault := proc(paramSpec::mform(ParamSpec)) local default, value;
             error "dynamic default values are not supported"
         end if;
     else
-        error "static type assertion has failed, expected type %1 but received %2", 
+        error "static type assertion has failed, expected type %1 but received %2",
               TypeAssertion(paramSpec), value;
     end if;
 end proc;
@@ -652,24 +652,24 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
     local env, fullCall, redCall, numParams, possibleExpSeqSeen, equationArgs, toRemove, i, t, f,
           reduced, staticPart, val, toEnqueue, paramName, paramVal, paramSpec, reducedArgs, eqn,
           reducedArg, arg, tmp, shouldResidualize;
-          
+
     env := OnENV(); # new env for function call
     env:-setLink(callStack:-topEnv());
-    
+
    	fullCall := SimpleQueue(); # residual function call including statics
    	redCall  := SimpleQueue(); # residual function call without statics
    	#argsTbl := table(); # mappings for args
-   	
+
    	numParams := nops(paramSeq);
    	possibleExpSeqSeen := false;
    	# table that remembers if an argument expression was a MEquation
    	equationArgs := {}; # set(integer)
    	toRemove := {}; # set of parameter names to be removed from the parameter sequence
     i := 1; # value of i will not be used if possibleExpSeqSeen is true
-    
+
    	# loop over expressions in function call
    	for arg in argExpSeq do
-   	
+
    	    #if not possibleExpSeqSeen and arg::envname and getEnv(arg):-isStaticTable(Name(arg)) then
    	    #    paramName := `if`(i <= numParams, Name(op(i, paramSeq)), NULL);
    	    #    shouldResidualize := env:-bind(arg, 'environ'=getEnv(arg), 'newName'=paramName, 'argNum'=i);
@@ -681,28 +681,28 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	    #        toRemove := toRemove union {paramName};
    	    #        # ??? fullCall:-enqueue(???);
    	    #    end if;
-   	    #    
+   	    #
    	    #    i := i + 1;
    	    #    next;
    	    #end if;
-   	    
+
    	    reduced := ReduceExp(arg);
    	    if reduced::Both and nops(StaticPart(reduced)) <> 1 then
    	        error "cannot reliably match up parameters";
    	    end if;
-   	    
+
    	    if reduced::Or(Static, Both) then
    	        # argument expression may have reduced to an expression sequence
    	        # flatten the way that Maple does
             staticPart := `if`(reduced::Both, StaticPart(reduced), reduced);
-            
+
    	        for val in map(() -> [args], staticPart) do
    	            toEnqueue := `if`(reduced::Both, DynamicPart(reduced), embed(op(val)));
    	            fullCall:-enqueue(toEnqueue);
    	            if possibleExpSeqSeen or reduced::Both then
    	                redCall:-enqueue(toEnqueue);
    	            end if;
-   	            if not possibleExpSeqSeen then 
+   	            if not possibleExpSeqSeen then
    	                # we can still match up args to params
    	                # remember if this arg was coded directly as an equation
    	                equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
@@ -718,7 +718,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
        	            i := i + 1;
        	        end if;
        	    end do;
-       	    
+
    	    else # dynamic
    	        fullCall:-enqueue(reduced);
             redCall:-enqueue(reduced);
@@ -727,26 +727,27 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
             else
                 equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
                 i := i + 1;
-            end if; 	        
+            end if;
    	    end if;
    	end do;
-   	
+
    	if possibleExpSeqSeen and nops(keywords) > 0 then
         error "the partial evaluator must be able to statically resolve all keyword arguments";
    	end if;
-   	 
+
+    # match up keyword arguments
     if not possibleExpSeqSeen then
         env:-setNargs(i-1);
         # loop over arguments which are unmatched
         reducedArgs := fullCall:-toList();
-        for i from numParams+1 to fullCall:-length() do
-            if not member(i, equationArgs) then next end if;
-            reducedArg := reducedArgs[i];
+        for i from numParams+1 to fullCall:-length() do # loop over arguments that haven't been matched
+            if not member(i, equationArgs) then next end if; # skip if its not an equation
+            reducedArg := reducedArgs[i]; # get the reduced form of the argument
             if reducedArg::Static then
-                eqn := SVal(reducedArg);                
-                paramName := convert(lhs(eqn), string);            
+                eqn := SVal(reducedArg);
+                paramName := convert(lhs(eqn), string);
                 paramVal  := rhs(eqn);
-                paramSpec := op(select(k -> Name(k) = paramName, keywords));
+                paramSpec := op(select(k -> Name(k) = paramName, keywords)); # find the matching paramspec
                 if paramSpec <> NULL then
                     t := TypeAssertion(paramSpec);
                     if nops(t) > 0 and not type(paramVal, op(t)) then
@@ -758,24 +759,28 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
                     toRemove := toRemove union {paramName};
                 end if;
             else
-                paramName := op([1,1], reducedArg);
-                error "dynamic keyword equation arguments are not supported: %1", paramName;
-            end if;        
-        end do;
-        
-        # TODO, dynamic keyword equation arguments are not supported yet
-        for paramSpec in keywords do
-            if env:-isDynamic(Name(paramSpec)) then
-                tmp := SVal(ReduceExp(op(Default(paramSpec))));
-                userinfo(5, PE, "doing putVal with", tmp, "which was", paramSpec);
-                env:-putVal(Name(paramSpec), tmp);
+                fullCall:-enqueue(reducedArg);
+                redCall:-enqueue(reducedArg);
+                #paramName := op([1,1], reducedArg);
+                #error "dynamic keyword equation arguments are not supported: %1", paramName;
             end if;
-        end do
-    end if;   
-    
+        end do;
+
+        # TODO, dynamic keyword equation arguments are not supported
+        # yet
+        # can still do this just need a different test, because the
+        # equation lhs is still static
+        #for paramSpec in keywords do # this code assumes that all keyword equation arguments are static
+        #    if env:-isDynamic(Name(paramSpec)) then # then it wasn't passed so use default
+        #        tmp := SVal(ReduceExp(op(Default(paramSpec))));
+        #        env:-putVal(Name(paramSpec), tmp);
+        #    end if;
+        #end do
+    end if;
+
     #env:-setArgs(argsTbl);
     f := MExpSeq @ qtoseq;
-    
+
     # return results as a record just so its more organized
     Record('newEnv'=env, # environment mapping parameter names to static values
            'reducedCall'=f(redCall),  # the reduced call to be residualized if the proc is not unfolded
@@ -792,7 +797,7 @@ isUnfoldable := proc(mProc::mform(Proc), argListInfo) local flattened;
     if argListInfo:-possibleExpSeq and nops(Params(mProc)) > 0 then
         return false;
     end if;
-    
+
     if not callStack:-inConditional() then
         true;
     elif not hasfun(mProc, {MStandaloneFunction, MAssignToFunction}) then
@@ -802,12 +807,12 @@ isUnfoldable := proc(mProc::mform(Proc), argListInfo) local flattened;
         flattened := M:-FlattenStatSeq(ProcBody(mProc));
         # if all the func does is return a static value then there is no
         # reason not to unfold
-        
+
         # if the body of the function is empty then go ahead and unfold
         if nops(flattened) = 0 then
             true
         else # if the function body consists of a single static than it can be easily unfolded
-            nops(op([1,1], flattened)) = 1 
+            nops(op([1,1], flattened)) = 1
             and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
             and op([1,1], flattened)::Static
         end if;
@@ -816,15 +821,15 @@ end proc;
 
 
 # takes continuations to be applied if f results in a procedure
-peFunction := proc(funRef::Dynamic, 
-                   argExpSeq::mform(ExpSeq), 
-                   unfold::procedure, 
-                   residualize::procedure, 
+peFunction := proc(funRef::Dynamic,
+                   argExpSeq::mform(ExpSeq),
+                   unfold::procedure,
+                   residualize::procedure,
                    symbolic::procedure)
     local fun, sfun, newName, ma, redargs, res;
     PEDebug:-FunctionStart(funRef);
     userinfo(10, PE, "Reducing function call", funRef);
-    
+
     fun := ReduceExp(funRef);
 
     if fun::Dynamic then
@@ -832,15 +837,15 @@ peFunction := proc(funRef::Dynamic,
         res := residualize(fun, ReduceExp(argExpSeq));
         PEDebug:-FunctionEnd();
         return res;
-    end if; 
-    
+    end if;
+
     sfun := SVal(fun);
-    
+
     if type(sfun, `procedure`) and not ormap(hasOption, ['builtin','pe_thunk'], sfun) then
         # if the procedure is builtin then do what the else clause does
         newName := gen(cat(op(1,funRef),"_"));
         peFunction_StaticFunction(funRef, sfun, argExpSeq, newName, unfold, residualize, symbolic);
-        
+
 	elif type(sfun, `module`) then
 	    if member(convert("ModuleApply",name), sfun) then
 	        ma := sfun:-ModuleApply;
@@ -850,7 +855,7 @@ peFunction := proc(funRef::Dynamic,
             if ma = NULL then error "package does not contain ModuleApply" end if;
         end if;
 	    peFunction_StaticFunction(funRef, ma, argExpSeq, gen("ma"), unfold, residualize, symbolic);
-	    
+
     else
         redargs := ReduceExp(argExpSeq);
         if [redargs]::list(Static) then
@@ -864,9 +869,9 @@ end proc;
 
 
 # partial evaluation of a known procedure, when the function is static
-peFunction_StaticFunction := proc(funRef::Dynamic, 
-                                  fun::procedure, 
-                                  argExpSeq::mform(ExpSeq), 
+peFunction_StaticFunction := proc(funRef::Dynamic,
+                                  fun::procedure,
+                                  argExpSeq::mform(ExpSeq),
                                   newName, unfold, residualize, symbolic)
     local funOption, rcall, s, r, tmp;
     if gopts:-hasFuncOpt(fun) then
@@ -874,16 +879,17 @@ peFunction_StaticFunction := proc(funRef::Dynamic,
         userinfo(5, PE, "StaticFunction: About to reduce", argExpSeq);
         rcall := ReduceExp(argExpSeq);
         userinfo(5, PE, "StaticFunction: Arguments for call is", rcall);
-        
+
         s := () -> (symbolic @ embed @ fun @ SVal)(rcall);
         r := () -> residualize(funRef, rcall);
-        
+
         # if the function should be treated as PURE
         if funOption = PURE then
             `if`(rcall::Static, s(), peFunction_SpecializeThenDecideToUnfold(args[2..-1]))
         elif funOption = INTRINSIC then
             `if`(rcall::Static, s(), r())
         elif funOption = DYNAMIC then
+            print("its DYNAMIC");
             r()
         else
             error "unknown function option %1", funOption;
@@ -892,7 +898,7 @@ peFunction_StaticFunction := proc(funRef::Dynamic,
         peFunction_SpecializeThenDecideToUnfold(args[2..-1]);
     end if;
 end proc;
- 
+
 # returns a list of the arguments used to specialize a procedure
 # with the special value DYN substituted for dynamic arguments
 getCallSignature := proc(argExpSeq::mform(ExpSeq))
@@ -900,16 +906,16 @@ getCallSignature := proc(argExpSeq::mform(ExpSeq))
 end proc;
 
 # specialize the function
-peFunction_SpecializeThenDecideToUnfold := 
+peFunction_SpecializeThenDecideToUnfold :=
     proc(fun::procedure, argExpSeq::mform(ExpSeq), generatedName, unfold, residualize, symbolic)
     local m, argListInfo, newProc, newName, rec, signature, call;
-    
+
 	m := getMCode(eval(fun));
     newName := generatedName;
-	
+
     argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
     signature := fun, getCallSignature(argListInfo:-allCall);
-    
+
     # handle sharing issues
     if not assigned(share[signature]) then
         rec := Record('code', 'procName', 'mustResid', 'finished');
@@ -917,12 +923,12 @@ peFunction_SpecializeThenDecideToUnfold :=
         rec:-mustResid := false;
         rec:-finished  := false;
         share[signature] := rec;
-        
+
         callStack:-push(argListInfo:-newEnv);
         # at this point rec:-finished is false
         newProc := peFunction_GenerateNewSpecializedProc(m, newName, argListInfo);
         # if the global env was altered then we do not allow sharing
-        if callStack:-wasGlobalEnvUpdated() then 
+        if callStack:-wasGlobalEnvUpdated() then
             share[signature] := 'share[signature]';
         else
             rec:-code := newProc;
@@ -939,7 +945,7 @@ peFunction_SpecializeThenDecideToUnfold :=
         newProc := rec:-code;
         newName := rec:-procName;
     end if;
-    
+
     if not rec:-mustResid and isUnfoldable(newProc, argListInfo) then
         unfold(newProc, argListInfo:-reducedCall, argListInfo:-allCall);
     else
@@ -960,7 +966,7 @@ peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argList
         lexMap := M:-CreateLexNameMap(LexSeq(m), curry(op,2));
         env:-attachLex(lexMap);
     end if;
-    
+
     # create static locals
     for loc in Locals(m) do
         varName := Var(loc);
