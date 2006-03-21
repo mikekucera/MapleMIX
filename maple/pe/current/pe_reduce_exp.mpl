@@ -11,7 +11,7 @@ ReduceExp := module()
     local 
         reduce, binOp, unOp, naryOp, red, isProtectedProc, specFunc,
         reduceName, reduceVar, reduceLex, replaceClosureLexical,
-        env, treatAsDynamic;
+        env, treatAsDynamic, reducedTable;
     
     
     Reduce := proc(expr)
@@ -24,12 +24,13 @@ ReduceExp := module()
         env := reductionEnv;
         PEDebug:-DisplayReduceStart(expr);
         #print("reducing", expr);
-        # TODO, need to rewrite this block so that second reduction happens much less frequently
+
         treatAsDynamic := false;
+        reducedTable := false;
+        
         reduced1 := embed(reduce(expr));
-        if reduced1::Dynamic then
-            res := reduced1;
-        else # reduced1 is static
+        
+        if reducedTable and res::Static then
             treatAsDynamic := true;
             reduced2 := embed(reduce(expr));
             if reduced2::Dynamic then
@@ -37,6 +38,8 @@ ReduceExp := module()
             else
                 res := reduced1;
             end if;
+        else
+            res := reduced1;
         end if;
 
         env := 'env';
@@ -295,10 +298,8 @@ ReduceExp := module()
     
     reduceName := proc(n) local hasDyn, cc;
         if not assigned(genv) or genv:-isDynamic(n) then
-            userinfo(7,PE,"Pure name", convert(n,'name'));
             (c-> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
         else
-            userinfo(7,PE,"Valued name", genv:-getVal(n,'cc'));
             `if`(hasDyn and treatAsDynamic, __F(n), 
                 genv:-getVal(n, 'hasDyn') );
         end if
@@ -321,8 +322,14 @@ ReduceExp := module()
                 if hasDyn and treatAsDynamic then
                     return __F(x);
                 else
+                    if type(op(val), 'table') then
+                        reducedTable := true;
+                    end if;
                     return op(val);
                 end if;
+            end if;
+            if type(op(val), 'table') then
+                reducedTable := true;
             end if;
             op(val);
         else

@@ -86,7 +86,11 @@ Lifter := module()
 
     liftStatic := proc(stmts::`table`, exp::Static) local n, t;
         if type(exp, 'procedure') then
-            MStatic(exp);
+            if Builtins:-isBuiltin(exp) then
+                MStatic(Builtins:-getName(exp))
+            else
+                MStatic(exp);
+            end if;
 	    elif Header(h) = SPackageLocal then 
 	        error "cannot lift a package local yet"
 	    elif typematch(exp, STable('n'::anything, 't'::anything)) then

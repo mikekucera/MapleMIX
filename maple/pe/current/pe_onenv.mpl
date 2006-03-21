@@ -121,7 +121,6 @@ OnENV := module()
             # returns true iff the binding should be residualized
             bind := proc(existingName::envname, {newName::Not(mform):=NULL, argNum::nonnegative:=0, environ:=thismodule})
                 local frame, rec, top, val, n;
-                print("bind called");
                 n := Name(existingName);
                 frame := environ:-findFrame(n, () -> OnENV:-DYN);
                 
@@ -395,7 +394,6 @@ OnENV := module()
             # precondition, isStatic(table) = true
             rebuildTable := proc(chain::`record`(elts,link), hasDyn)
                 local tbl, rec, tmp, key;
-                print("warning, rebuildTable called");
                 tbl := table();
                 rec := chain;
                 

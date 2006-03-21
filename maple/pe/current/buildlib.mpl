@@ -13,6 +13,10 @@ $include "utils.mpl"
 
 Save(printmod);
 
+$include "builtins.mpl"
+
+Save(Builtins);
+
 $include "gen.mpl"
 
 Save(NameGenerator);

@@ -795,6 +795,9 @@ isUnfoldable := proc(mProc::mform(Proc), argListInfo) local flattened;
     
     if not callStack:-inConditional() then
         true;
+    elif not hasfun(mProc, {MStandaloneFunction, MAssignToFunction}) then
+        # in this case there is no recursive call so unfold
+        true;
     else
         flattened := M:-FlattenStatSeq(ProcBody(mProc));
         # if all the func does is return a static value then there is no

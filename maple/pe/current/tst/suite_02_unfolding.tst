@@ -27,21 +27,11 @@ goal := proc(d) p(d, 1, 2) end proc;
 
 ped := OnPE(goal);
 
-Try(101, nops([op(3, eval(ped))]), 1); # there should be only one local
-
 got := op(5, ToInert(eval(ped['ModuleApply']))):
-expected := _Inert_STATSEQ(_Inert_IF(
-    _Inert_CONDPAIR(_Inert_PARAM(1), _Inert_STATSEQ(_Inert_INTPOS(3))),
-    _Inert_STATSEQ(_Inert_FUNCTION(_Inert_LEXICAL_LOCAL(1),
-                                   _Inert_EXPSEQ(_Inert_PARAM(1))))));
+expected := op(5, ToInert(proc(d) if d then 3 else d+1 end if end proc));
 
+Try(101, got, expected);
 
-Try(102, got, expected);
-
-f_2 := op(5, ToInert(eval(ped['f_2'])));
-expected := _Inert_STATSEQ(_Inert_SUM(_Inert_INTPOS(1), _Inert_PARAM(1)));
-
-Try(103, f_2, expected);
 
 # TEST 2 ##############################################################
 
