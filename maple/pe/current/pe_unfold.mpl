@@ -19,8 +19,10 @@ Unfold := module()
         end proc;
 
         body := eval(m, [MLocal=rename(MGeneratedName),
-                         MParam=rename(MGeneratedName),
-                         MSingleUse=rename(MGeneratedName)]); # ok because MSingleUse is removed by FromM
+                         MParam=rename(MGeneratedName)]);
+                         # TODO; MSigngleUse = rename(MSingleUse)
+                         #MSingleUse=rename(MGeneratedName)]); # ok because MSingleUse is removed by FromM
+                         #MSingleUse=rename(MSingleUse)]);
         return body, names;
     end proc;
 
@@ -101,11 +103,22 @@ Unfold := module()
         newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
         newbody := M:-FlattenStatSeq(newbody);
 
+        print("newBody", newbody);
+        
         last  := Last(newbody);
-        if Header(last) = MStandaloneExpr then
-            MStatSeq(Front(newbody), MSingleAssign(assignTo, op(last)));
+        #if Header(last) = MStandaloneExpr then
+        if member(Header(last), {MStandaloneExpr, MStandaloneFunction}) then
+            print("should be here", MStatSeq(Front(newbody), MAssign(assignTo, op(last))));
+            MStatSeq(Front(newbody), MAssign(assignTo, op(last)));
         else
-            addAssigns(newbody, assignTo);
+            if assignTo::mform(SingleUse) then
+                # conservative
+                # this is the place where where a singleuse may be assigned
+                # to more than once, convert into a regular GeneratedName
+                addAssigns(newbody, MGeneratedName(Name(assignTo)));
+            else
+                addAssigns(newbody, assignTo);
+            end if;
         end if;
     end proc;
 

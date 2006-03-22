@@ -137,11 +137,33 @@ FromM := module()
     inrt[MStandaloneExpr] := mapmtoi;
 
     inrt[MStatSeq]            := _Inert_STATSEQ  @ mapmtoi;
-    inrt[MAssign]             := _Inert_ASSIGN   @ mapmtoi;
-    inrt[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
+    
+    
+    
     inrt[MAssignTableIndex]   := _Inert_ASSIGN   @ mapmtoi;
     inrt[MAssignToTable]      := _Inert_ASSIGN   @ mapmtoi;
+    
+    
+    #inrt[MAssign]             := _Inert_ASSIGN   @ mapmtoi;
+    inrt[MAssign] := proc(n::mform, e::mform)
+        if n::mform(SingleUse) then
+            singleAssigns[op(n)] := mtoi(e);
+            NULL;
+        else
+            _Inert_ASSIGN(mapmtoi(args));
+        end if;
+    end proc;
+   
+    inrt[MAssignToFunction] := inrt[MAssign];
+    #inrt[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
+    
         
+    #inrt[MSingleAssign] := proc(n::mform({GeneratedName, SingleUse}), e::mform)
+    #    singleAssigns[op(n)] := mtoi(e);
+    #    NULL;
+    #    #_Inert_ASSIGN(mapmtoi(args));
+    #end proc;
+    
     inrt[MWhileForIn]   := _Inert_FORIN   @ mapmtoi;
     inrt[MWhileForFrom] := _Inert_FORFROM @ mapmtoi;
     
@@ -265,11 +287,7 @@ FromM := module()
     end proc;
 
 
-    inrt[MSingleAssign] := proc(n::mform({GeneratedName, SingleUse}), e::mform)
-        singleAssigns[op(n)] := mtoi(e);
-        NULL;
-        #_Inert_ASSIGN(mapmtoi(args));
-    end proc;
+    
 
     inrt[MSingleUse] := proc(n)
         if assigned(singleAssigns[n]) then

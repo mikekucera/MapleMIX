@@ -579,17 +579,15 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
     unfold := proc(residualProcedure, redCall, fullCall)
         local res, flattened, assign, expr;
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
-        #flattened := M:-FlattenStatSeq(res);
         flattened := M:-RemoveUselessStandaloneExprs(res);
-        if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
+        #if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
+        if nops(flattened) = 1 and member(op([1,0], flattened), {MAssign, MAssignToFunction}) then
             assign := op(flattened);
             expr := op(2, assign);
             if expr::Static then
-userinfo(5, PE, "Static -- var := expr", Name(var), SVal(expr));
                 callStack:-topEnv():-putVal(Name(var), SVal(expr));
                 return NULL;
             elif expr::Both then
-userinfo(5, PE, "Both -- var := expr", Name(var), SVal(StaticPart(expr)));
                 callStack:-topEnv():-putVal(Name(var), SVal(StaticPart(expr)));
             end if;
         end if;
@@ -651,7 +649,7 @@ end proc;
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
     local env, fullCall, redCall, numParams, possibleExpSeqSeen, equationArgs, toRemove, i, t, f,
           reduced, staticPart, val, toEnqueue, paramName, paramVal, paramSpec, reducedArgs, eqn,
-          reducedArg, arg, tmp, shouldResidualize;
+          reducedArg, arg, tmp, shouldResidualize, matchedEquations;
 
     env := OnENV(); # new env for function call
     env:-setLink(callStack:-topEnv());
@@ -735,6 +733,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
         error "the partial evaluator must be able to statically resolve all keyword arguments";
    	end if;
 
+   	matchedEquations := {};
     # match up keyword arguments
     if not possibleExpSeqSeen then
         env:-setNargs(i-1);
@@ -746,6 +745,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
             if reducedArg::Static then
                 eqn := SVal(reducedArg);
                 paramName := convert(lhs(eqn), string);
+                matchedEquations := matchedEquations union {paramName};
                 paramVal  := rhs(eqn);
                 paramSpec := op(select(k -> Name(k) = paramName, keywords)); # find the matching paramspec
                 if paramSpec <> NULL then
@@ -758,24 +758,20 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
                     env:-putVal(paramName, paramVal);
                     toRemove := toRemove union {paramName};
                 end if;
-            else
+            else  
+                matchedEquations := matchedEquations union {Name(op(1,reducedArg))};
                 fullCall:-enqueue(reducedArg);
                 redCall:-enqueue(reducedArg);
-                #paramName := op([1,1], reducedArg);
-                #error "dynamic keyword equation arguments are not supported: %1", paramName;
             end if;
         end do;
 
-        # TODO, dynamic keyword equation arguments are not supported
-        # yet
-        # can still do this just need a different test, because the
-        # equation lhs is still static
-        #for paramSpec in keywords do # this code assumes that all keyword equation arguments are static
-        #    if env:-isDynamic(Name(paramSpec)) then # then it wasn't passed so use default
-        #        tmp := SVal(ReduceExp(op(Default(paramSpec))));
-        #        env:-putVal(Name(paramSpec), tmp);
-        #    end if;
-        #end do
+        # TODO, refactor this ugly code
+        for paramSpec in keywords do 
+            if not member(Name(paramSpec), matchedEquations) then
+                tmp := SVal(ReduceExp(op(Default(paramSpec))));
+                env:-putVal(Name(paramSpec), tmp);
+            end if;
+        end do
     end if;
 
     #env:-setArgs(argsTbl);

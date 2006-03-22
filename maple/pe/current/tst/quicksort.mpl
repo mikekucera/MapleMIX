@@ -13,11 +13,8 @@ partition := proc(A, m, n, pivot, compare)
     swap(A, pivotIndex, n);
     storeIndex := m;
     for i from m to n-1 do
-        if compare(A[i], pivotValue) then #A[i] <= pivotValue then
+        if compare(A[i], pivotValue) then
             swap(A, storeIndex, i);
-            #temp := A[storeIndex];
-            #A[storeIndex] := A[i];
-            #A[i] := temp;
             storeIndex := storeIndex + 1;
         end if;
     end do;
@@ -40,22 +37,23 @@ qs1 := proc(A, m, n) local p, c;
     quicksort(A, m, n, p, c)
 end proc:
 
-qs2 := proc(A, m, n) local p, c;
+qs2 := proc(A, m, n) local middle, p, c;
 
-    middle := proc(x, y, z)
-        (x >= y and x <= z) or (x >= z and x <= y)
+    middle := proc(mid, y, z)
+        (mid >= y and mid <= z) or (mid >= z and mid <= y)
     end proc;
 
-    p := proc(A, m, n)
+    p := proc(A, m, n) local midindex, x, y, z;
+        midindex := iquo(m+n,2);
         x := A[m];
         y := A[n];
-        z := A[iquo(m+n,2)];
+        z := A[midindex];
         if middle(x, y, z) then
-            x
+            m
         elif middle(y, x, z) then
-            y
+            n
         elif middle(z, x, y) then
-            z
+            midindex;
         end if;
     end proc;
 
@@ -63,17 +61,20 @@ qs2 := proc(A, m, n) local p, c;
     quicksort(A, m, n, p, c)
 end proc:
 
+
+M:-Print(M:-ToM(ToInert(eval(partition))));
+
 opts := PEOptions():
 opts:-setConsiderExpseq(false):
-pe_qs2 := OnPE(qs2, opts):
+pe_qs1 := OnPE(qs1, opts):
 
-printmod(pe_qs2);
+printmod(pe_qs1);
 
 a := Array([4,5,1,8,2,0,3,7,6,9]);
-qs2(a,1,10);
+qs1(a,1,10);
 print(a);
 
 
 a := Array([4,5,1,8,2,0,3,7,6,9]);
-pe_qs2(a, 1, 10);
+pe_qs1(a, 1, 10);
 print(a);

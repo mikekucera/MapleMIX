@@ -64,17 +64,16 @@ end proc:
 
 mm := module()
     quicksort_1 := proc(A, m, n)
-        local m1, p;
+        local p;
         if m < n then
-            m1 := partition_1(A, m, n);
-            p := m1;
+            p := partition_1(A, m, n);
             quicksort_1(A, m, p - 1);
             quicksort_1(A, p + 1, n)
         end if
     end proc;
 
     partition_1 := proc(A, m, n)
-        local pivotIndex, pivotValue, temp1, storeIndex, i, m3, temp2, temp3;
+        local pivotIndex, pivotValue, temp1, storeIndex, i, temp2, temp3;
         pivotIndex := n;
         pivotValue := A[pivotIndex];
         temp1 := A[pivotIndex];
@@ -82,8 +81,7 @@ mm := module()
         A[n] := temp1;
         storeIndex := m;
         for i from m to n - 1 do
-            m3 := `<=`(A[i], pivotValue);
-            if m3 then
+            if `<=`(A[i], pivotValue) then
                 temp2 := A[storeIndex];
                 A[storeIndex] := A[i];
                 A[i] := temp2;
@@ -94,7 +92,8 @@ mm := module()
         A[n] := A[storeIndex];
         A[storeIndex] := temp3;
         return storeIndex
-    end proc;
+    end proc
+
 end module;
 
 opts := PEOptions():
