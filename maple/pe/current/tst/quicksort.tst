@@ -81,7 +81,7 @@ mm := module()
         A[n] := temp1;
         storeIndex := m;
         for i from m to n - 1 do
-            if `<=`(A[i], pivotValue) then
+            if A[i] <= pivotValue then
                 temp2 := A[storeIndex];
                 A[storeIndex] := A[i];
                 A[i] := temp2;

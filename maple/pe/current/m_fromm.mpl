@@ -154,15 +154,20 @@ FromM := module()
         end if;
     end proc;
    
-    inrt[MAssignToFunction] := inrt[MAssign];
-    #inrt[MAssignToFunction]   := _Inert_ASSIGN   @ mapmtoi;
-    
-        
-    #inrt[MSingleAssign] := proc(n::mform({GeneratedName, SingleUse}), e::mform)
-    #    singleAssigns[op(n)] := mtoi(e);
-    #    NULL;
-    #    #_Inert_ASSIGN(mapmtoi(args));
-    #end proc;
+    inrt[MAssignToFunction] := proc(n::mform, functioncall::mform) local fcn;
+        print("MAssignToFunction", args);
+        if op(1, functioncall)::Static then
+            print("here1");
+            fcn := op([1,1], functioncall);
+            print("fcn", fcn);
+            if Builtins:-isOperator(fcn) then
+                print("its an operator");
+                return inrt[MAssign](n, Builtins:-getOperatorAsM(fcn)(esop(op(2, functioncall))));
+            end if;
+            print("its not an operator");
+        end if;
+        inrt[MAssign](args);
+    end proc;
     
     inrt[MWhileForIn]   := _Inert_FORIN   @ mapmtoi;
     inrt[MWhileForFrom] := _Inert_FORFROM @ mapmtoi;

@@ -75,3 +75,12 @@ end proc;
 hasOption := proc(n::name, p::procedure)
     member(n, {op(3, eval(p))});
 end proc;
+
+esop := proc(x::mform(ExpSeq)) local res;
+    res := op(x);
+    if nops([res]) = 1 and Header(res) = MExpSeq then
+        procname(res);
+    else
+        res;
+    end if;
+end proc;

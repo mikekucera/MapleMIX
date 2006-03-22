@@ -62,7 +62,7 @@ qs2 := proc(A, m, n) local middle, p, c;
 end proc:
 
 
-M:-Print(M:-ToM(ToInert(eval(partition))));
+#M:-Print(M:-ToM(ToInert(eval(partition))));
 
 opts := PEOptions():
 opts:-setConsiderExpseq(false):

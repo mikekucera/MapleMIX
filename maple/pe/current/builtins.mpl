@@ -1,12 +1,12 @@
 Builtins := module() option package;
     local
-        numToName, builtinNames;
+        numToName, builtinNames, operators;
     export
-        getName, isBuiltin, getNum;
+        getName, isBuiltin, getNum, isOperator, getOperatorAsM;
 
     builtinNames := {anames(builtin)};
     numToName := table(map(x -> op([5,1,1], ToInert(eval(x))) = x, builtinNames));
-
+    
     getName := proc(x::Or(procedure,posint))
         if x::posint then
             ASSERT(assigned(numToName[num]), "invalid builtin number");
@@ -24,5 +24,20 @@ Builtins := module() option package;
         ASSERT(isBuiltin(p), "procedure must be builtin");
         op([5,1,1], ToInert(eval(p)));
     end proc;
+    
+    isOperator := proc(n::procedure)
+        assigned(operators[getNum(n)]);
+    end proc;
+    
+    getOperatorAsM := proc(n::procedure)
+        ASSERT(isOperator(n), "not an operator");
+        operators[getNum(n)];
+    end proc;
 
+    # TODO finish this list
+    operators[getNum(`<=`)] := MLesseq;
+    operators[getNum(`<`)]  := MLessThan;
+    operators[getNum(`+`)]  := MSum;
+    operators[getNum(`*`)]  := MProd;
+    
 end module:
