@@ -31,13 +31,13 @@ quicksort := proc(A, m, n, pivot, compare)
     end if;
 end proc:
 
-qs1 := proc(A, m, n) local p, c;
+qs[1] := proc(A, m, n) local p, c;
     p := (A, m, n) -> n;
     c := `<=`;
     quicksort(A, m, n, p, c)
 end proc:
 
-qs2 := proc(A, m, n) local middle, p, c;
+qs[2] := proc(A, m, n) local middle, p, c;
 
     middle := proc(mid, y, z)
         (mid >= y and mid <= z) or (mid >= z and mid <= y)
@@ -61,20 +61,31 @@ qs2 := proc(A, m, n) local middle, p, c;
     quicksort(A, m, n, p, c)
 end proc:
 
+qs[3] := proc(A)
+    quicksort(A, 10, 9);
+end proc;
+
+qs[4] := proc(A)
+    p := (A, m, n) -> n;
+    c := `<=`;
+    quicksort(A, 1, 2, p, c);
+end proc;
 
 #M:-Print(M:-ToM(ToInert(eval(partition))));
 
+num := 3;
+
 opts := PEOptions():
 opts:-setConsiderExpseq(false):
-pe_qs1 := OnPE(qs1, opts):
+pe_qs := OnPE(qs[num], opts):
 
-printmod(pe_qs1);
+printmod(pe_qs);
 
 a := Array([4,5,1,8,2,0,3,7,6,9]);
-qs1(a,1,10);
+qs[num](a,1,10);
 print(a);
 
 
 a := Array([4,5,1,8,2,0,3,7,6,9]);
-pe_qs1(a, 1, 10);
+pe_qs(a, 1, 10);
 print(a);

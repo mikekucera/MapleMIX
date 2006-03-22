@@ -37,6 +37,10 @@ Builtins := module() option package;
     # TODO finish this list
     operators[getNum(`<=`)] := MLesseq;
     operators[getNum(`<`)]  := MLessThan;
+    operators[getNum(`>`)]  := (x,y) -> MLessThan(y,x);
+    operators[getNum(`>=`)] := (x,y) -> MLesseq(y,x);
+    operators[getNum(`=`)]  := MEquation;
+    operators[getNum(`<>`)] := MInequat;
     operators[getNum(`+`)]  := MSum;
     operators[getNum(`*`)]  := MProd;
     

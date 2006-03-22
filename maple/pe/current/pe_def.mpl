@@ -494,7 +494,11 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
     rFromExp  := ReduceExp(fromExp);
     rByExp    := ReduceExp(byExp);
     rToExp    := ReduceExp(toExp);
-
+    
+    print("MWhileForFrom", args);
+    callStack:-topEnv():-display();
+    print("static", [rFromExp,rByExp,rToExp]);
+    
     if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop
         unroller := StaticLoopUnroller(loopVar, statseq);
 

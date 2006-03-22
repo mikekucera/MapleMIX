@@ -20,8 +20,7 @@ $include "access.mpl"
 
     # constants for easy access to common inert forms
     inertTrue := _Inert_NAME("true", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected")))));
-    inertDollar := _Inert_ASSIGNEDNAME("$","PROC",_Inert_ATTRIBUTE(_Inert_NAME("protected",_Inert_ATTRIBUTE(_Inert_NAME("protected")))));
-
+    inertDollar := _Inert_ASSIGNEDNAME("$","PROC",_Inert_ATTRIBUTE(_Inert_NAME("protected",_Inert_ATTRIBUTE(_Inert_NAME("protected")))));    
 
     # returns true iff the given mform contains the mform of a variable
     HasVariable := proc(m::mform)

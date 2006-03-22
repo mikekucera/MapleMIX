@@ -5,8 +5,10 @@ FromM := module()
     local 
         inrt, mtoi, mtoi2, mapmtoi,
         createParamMap, createLocalMappingFunctions, replaceLexical,
-        singleAssigns, mapStack;
+        singleAssigns, mapStack, inertNull;
 
+    inertNull := _Inert_ASSIGNEDNAME("NULL", "EXPSEQ", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected")))));
+        
     inrt := table();
     mtoi, mtoi2, mapmtoi := createTableProcs("FromM", inrt);
 
@@ -72,7 +74,6 @@ FromM := module()
     
     
     inrt[MarkedLambda] := proc()
-        print("MarkedLambda", args);
         error "(FromM) MarkedLambda should have been removed by ToM";
     end proc;
 
@@ -138,33 +139,27 @@ FromM := module()
 
     inrt[MStatSeq]            := _Inert_STATSEQ  @ mapmtoi;
     
-    
-    
     inrt[MAssignTableIndex]   := _Inert_ASSIGN   @ mapmtoi;
     inrt[MAssignToTable]      := _Inert_ASSIGN   @ mapmtoi;
     
     
-    #inrt[MAssign]             := _Inert_ASSIGN   @ mapmtoi;
     inrt[MAssign] := proc(n::mform, e::mform)
         if n::mform(SingleUse) then
             singleAssigns[op(n)] := mtoi(e);
             NULL;
+        elif e = MExpSeq() then
+            _Inert_ASSIGN(mtoi(n), inertNull);
         else
             _Inert_ASSIGN(mapmtoi(args));
         end if;
     end proc;
    
     inrt[MAssignToFunction] := proc(n::mform, functioncall::mform) local fcn;
-        print("MAssignToFunction", args);
         if op(1, functioncall)::Static then
-            print("here1");
             fcn := op([1,1], functioncall);
-            print("fcn", fcn);
             if Builtins:-isOperator(fcn) then
-                print("its an operator");
-                return inrt[MAssign](n, Builtins:-getOperatorAsM(fcn)(esop(op(2, functioncall))));
+                return inrt[MAssign](n, apply(Builtins:-getOperatorAsM(fcn), esop(op(2, functioncall))));
             end if;
-            print("its not an operator");
         end if;
         inrt[MAssign](args);
     end proc;

@@ -102,13 +102,10 @@ Unfold := module()
         local newbody, last;
         newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
         newbody := M:-FlattenStatSeq(newbody);
-
-        print("newBody", newbody);
         
         last  := Last(newbody);
         #if Header(last) = MStandaloneExpr then
         if member(Header(last), {MStandaloneExpr, MStandaloneFunction}) then
-            print("should be here", MStatSeq(Front(newbody), MAssign(assignTo, op(last))));
             MStatSeq(Front(newbody), MAssign(assignTo, op(last)));
         else
             if assignTo::mform(SingleUse) then
