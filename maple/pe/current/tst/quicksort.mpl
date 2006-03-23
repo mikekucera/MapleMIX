@@ -73,7 +73,7 @@ end proc;
 
 #M:-Print(M:-ToM(ToInert(eval(partition))));
 
-num := 3;
+num := 2;
 
 opts := PEOptions():
 opts:-setConsiderExpseq(false):

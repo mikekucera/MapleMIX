@@ -495,9 +495,7 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
     rByExp    := ReduceExp(byExp);
     rToExp    := ReduceExp(toExp);
     
-    print("MWhileForFrom", args);
     callStack:-topEnv():-display();
-    print("static", [rFromExp,rByExp,rToExp]);
     
     if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop
         unroller := StaticLoopUnroller(loopVar, statseq);
@@ -889,7 +887,6 @@ peFunction_StaticFunction := proc(funRef::Dynamic,
         elif funOption = INTRINSIC then
             `if`(rcall::Static, s(), r())
         elif funOption = DYNAMIC then
-            print("its DYNAMIC");
             r()
         else
             error "unknown function option %1", funOption;

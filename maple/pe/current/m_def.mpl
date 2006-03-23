@@ -166,7 +166,11 @@ $include "access.mpl"
 
 
     IsNoOp := proc(m::mform)
-        m = MStatSeq() or m = MStatSeq(MStandaloneExpr(MExpSeq()));
+        m = MStatSeq() or 
+        m = MStatSeq(MStandaloneExpr(MExpSeq())) or
+        m = MStatSeq(MStatSeq()) or
+        m = MStatSeq(MExpSeq()) or
+        m = MStatSeq(MStatSeq(MExpSeq()))
     end proc;
 
     # removes standalone exprs that are not at the end of a statment sequence

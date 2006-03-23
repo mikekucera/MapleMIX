@@ -5,7 +5,7 @@ FromM := module()
     local 
         inrt, mtoi, mtoi2, mapmtoi,
         createParamMap, createLocalMappingFunctions, replaceLexical,
-        singleAssigns, mapStack, inertNull;
+        singleAssigns, mapStack, inertNull, condpair;
 
     inertNull := _Inert_ASSIGNEDNAME("NULL", "EXPSEQ", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected")))));
         
@@ -299,16 +299,41 @@ FromM := module()
 
     inrt[MGeneratedName] := inrt[MSingleUse];
 
+    
+    #inrt[MIfThenElse] := proc(c, s1, s2)
+    #    if IsNoOp(s1) and IsNoOp(s2) then
+    #        _Inert_EXPSEQ();
+    #    elif IsNoOp(s2) then
+    #        _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)));
+    #    else
+    #        _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), _Inert_STATSEQ(mtoi(s2)))
+    #    end if;
+    #end proc;
+    
     inrt[MIfThenElse] := proc(c, s1, s2)
         if IsNoOp(s1) and IsNoOp(s2) then
             _Inert_EXPSEQ();
         elif IsNoOp(s2) then
             _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)));
         else
-            _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), _Inert_STATSEQ(mtoi(s2)))
+            _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), condpair(s2))
+        end if;
+    end proc;
+    
+    condpair := proc(stmt) local mkpair;
+        mkpair := s -> (_Inert_CONDPAIR(mtoi(Cond(s)), mtoi(Then(s))), condpair(Else(s)));
+        if Header(stmt) = MIfThenElse then
+            mkpair(stmt)
+        elif Header(stmt) = MStatSeq and nops(stmt) = 1 and op([1,0], stmt) = MIfThenElse then
+            mkpair(op(stmt))
+        elif IsNoOp(stmt) then
+            NULL;
+        else
+            _Inert_STATSEQ(mtoi(stmt))
         end if;
     end proc;
 
+    
     inrt[MTypedName] := proc(n::string, t::mform(Type))
         _Inert_DCOLON(_Inert_NAME(n), _Inert_VERBATIM(op(t)));
     end proc;
