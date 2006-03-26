@@ -167,6 +167,10 @@ FromM := module()
     inrt[MWhileForIn]   := _Inert_FORIN   @ mapmtoi;
     inrt[MWhileForFrom] := _Inert_FORFROM @ mapmtoi;
     
+    inrt[MWhile] := proc(loopVar, fromExp, byExp, whileExp, statseq)
+        _Inert_FORFROM(mapmtoi(loopVar, fromExp, byExp), _Inert_EXPSEQ(), mtoi(whileExp), mtoi(statseq));
+    end proc;
+    
     inrt[MCommand] := proc(n)
         _Inert_FUNCTION(_Inert_NAME("&onpe"), _Inert_EXPSEQ(_Inert_STRING(n)));
     end proc;
@@ -201,22 +205,6 @@ FromM := module()
     
     
     inrt[MStandaloneFunction] := inrt[MFunction];
-    
-    inrt[MForFrom] := proc(loopVar, fromExp, byExp, toExp, statseq)
-        _Inert_FORFROM(mapmtoi(loopVar, fromExp, byExp, toExp), inertTrue, mtoi(statseq));
-    end proc;
-    
-    inrt[MForIn] := proc(loopVar, inExp, statseq)
-        if nargs = 2 then
-            _Inert_FORIN(mtoi(loopVar), mtoi(inExp), inertTrue, _Inert_STATSEQ(_Inert_EXPSEQ()));
-        else
-            _Inert_FORIN(mtoi(loopVar), mtoi(inExp), inertTrue, mtoi(statseq));
-        end if;
-    end proc;
-    
-    inrt[MWhile] := proc(loopVar, fromExp, byExp, whileExp, statseq)
-        _Inert_FORFROM(mapmtoi(loopVar, fromExp, byExp), _Inert_EXPSEQ(), mtoi(whileExp), mtoi(statseq));
-    end proc;
     
     inrt[MProc] := proc() local maps, inertProc, pars, keys, newLocalList;
         maps := table();

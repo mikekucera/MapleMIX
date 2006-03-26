@@ -455,11 +455,6 @@ analyzeDynamicLoopBody := proc(body::mform)
 end proc;
 
 
-pe[MForIn] := proc(loopVar, inExp, statseq)
-    pe[MWhileForIn](loopVar, inExp, MStatic(true), statseq);
-end proc;
-
-
 pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
     local rInExp, unroller, i, rWhileExp;
     rInExp := ReduceExp(inExp);
@@ -484,10 +479,6 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
     end if;
 end proc;
 
-
-pe[MForFrom] := proc(loopVar, fromExp, byExp, toExp, statseq)
-    pe[MWhileForFrom](loopVar, fromExp, byExp, toExp, MStatic(true), statseq);
-end proc;
 
 pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
     local rFromExp, rByExp, rToExp, unroller, i, rWhileExp;
@@ -522,6 +513,7 @@ end proc;
 pe[MWhile] := proc()
     error "While loops are not supported";
 end proc;
+
 
 pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
     local rtry, stat, q, c, rcat, rfin;

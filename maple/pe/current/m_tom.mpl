@@ -5,7 +5,7 @@ ToM := module()
         addName, createParamMap, createLocalMap, createLexIndexMap,
         createExportMap,
         getVar, getLexVar, isStandalone,
-        splitAssigns, split, splitReturn, splitTableRef,
+        splitAssigns, split, splitReturn, splitReturnMany, splitTableRef,
         paramSpec, removeNext;
 
     m := table();
@@ -152,12 +152,19 @@ ToM := module()
 
     # version of split that returns the results instead of applying a continuation
     splitReturn := proc(expr) local assigns, reduced;
-        #split(expr, () -> args);
         assigns, reduced := splitAssigns(expr);
         return MStatSeq(op(assigns)), reduced;
     end proc;
 
 
+    # calls splitReturn on each argument, returns a single MStatSeq of all
+    # the assigns and an array of all the expressions
+    splitReturnMany := proc() local assigns, exprs;
+        assigns, exprs := selectremove(x -> evalb(Header(x) = MStatSeq), map(splitReturn, [args]));
+        Array(assigns), Array(exprs);
+    end proc;
+    
+    
     m['string'] := () -> args;
     m['Integer'] := () -> args;
     m[MSingleUse] := MSingleUse;
@@ -273,12 +280,6 @@ ToM := module()
         MParamSpec(n, t, d)
     end proc;
 
-    #
-    #m[_Inert_DCOLON] := proc(n, t)
-    #    # TODO, the op(1,n) will strip off protected attributes, not sure if this is best
-    #    MTypedName(op(1,n), MType(FromInert(t)));
-    #end proc;
-
     # remember tables are not considered
     m[_Inert_HASHTAB] := () -> MExpSeq();
 
@@ -298,56 +299,32 @@ ToM := module()
 
 
     m[_Inert_FORFROM] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
-        local ss1, ss2, ss3, ss4, ss5, e1, e2, e3, e4, e5, body, loop, assigns;
-        ss1, e1 := splitReturn(loopVar);
-        ss2, e2 := splitReturn(fromExp);
-        ss3, e3 := splitReturn(byExp);
-        ss4, e4 := splitReturn(toExp);
-        ss5, e5 := splitReturn(whileExp);
+        local assigns, exprs, body, loop, i;
+        assigns, exprs := splitReturnMany(loopVar, fromExp, byExp, toExp, whileExp);
+        body := MStatSeq(itom(removeNext(statseq)), ssop(assigns[5]));
 
-        # TODO, too restrictive
-        #if hasfun(statseq, _Inert_RETURN) then
-        #    error "return inside a loop is not supported"
-        #end if;
-        body := removeNext(statseq);
-        body := MStatSeq(itom(body), ssop(ss5));
-
-        if toExp = _Inert_EXPSEQ() then # its a simple while loop
-            loop := MWhile(e1, e2, e3, e5, body); #TODO, what about the other expressions?
+        if exprs[4] = _Inert_EXPSEQ() then # if the to expr is NULL then its a simple while loop
+            loop := MWhile(exprs[5], body);
         elif whileExp = inertTrue then
-            loop := MForFrom(e1, e2, e3, e4, body);
+            loop := MWhileForFrom(seq(exprs[i], i=1..4), MStatic(true), body);
         else
-            loop := MWhileForFrom(e1, e2, e3, e4, e5, body);
+            loop := MWhileForFrom(seq(exprs[i], i=1..5), body);
         end if;
 
-        assigns := ssop(ss1), ssop(ss2), ssop(ss3), ssop(ss4), ssop(ss5);
-        MStatSeq(assigns, loop);
+        MStatSeq(seq(ssop(assigns[i]), i=1..5), loop);
     end proc;
 
 
     m[_Inert_FORIN] := proc(loopVar, inExp, whileExp, statseq)
-        local ss1, ss2, ss3, e1, e2, e3, body, loop;
-        ss1, e1 := splitReturn(loopVar);
-        ss2, e2 := splitReturn(inExp);
-        ss3, e3 := splitReturn(whileExp);
-
-        # TODO, too restrictive
-        #if hasfun(statseq, _Inert_RETURN) then
-        #    error "return inside a loop is not supported"
-        #end if;
-        body := removeNext(statseq);
-        body := MStatSeq(itom(body), ssop(ss3));
-
-        if whileExp = inertTrue then
-            loop := MForIn(e1, e2, body);
-        else
-            loop := MWhileForIn(e1, e2, e3, body);
-        end if;
-
-        MStatSeq(ssop(ss1), ssop(ss2), ssop(ss3), loop);
+        local assigns, exprs, body, loop, e3;
+        
+        assigns, exprs := splitReturnMany(loopVar, inExp, whileExp);
+        body := MStatSeq(itom(removeNext(statseq)), ssop(assigns[3]));
+        e3 := `if`(whileExp = inertTrue, MStatic(true), exprs[3]);
+        loop := MWhileForIn(exprs[1], exprs[2], e3, body);
+        MStatSeq(seq(ssop(assigns[i]), i=1..3), loop);
     end proc;
-
-
+    
     # removes a common usage of next in loops
     removeNext := proc(loopBody::inert(STATSEQ)) local num, i, stmt, newIf, c;
         num := nops(loopBody);
