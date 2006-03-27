@@ -254,7 +254,6 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
     if rcond::Static then
         peM(MStatSeq(ssop(`if`(SVal(rcond), Then, Else)(ifstat)), ssop(S)));
     else
-        # print("peIF", args);
         callStack:-setConditional();
         env := callStack:-topEnv();
         env:-grow();
@@ -262,16 +261,24 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
 
         C1 := peM(Then(ifstat));
 
-        prevTopLocal, prevTopGlobal  := env:-markTop(), genv:-markTop();
-
         stopAfterC1 := M:-EndsWithErrorOrReturn(C1);
-        # print("stopAfterC1", C1, stopAfterC1);
+        
         if not stopAfterC1 then
+            # grow the stack again for S1
+            env:-grow();
+            genv:-grow();
             S1 := peM(S);
+            # pop the effects of S1, don't save
+            env:-pop();
+            genv:-pop();
         end if;
-
-        env:-shrinkGrow();
-        genv:-shrinkGrow();
+       
+        # pop the effects of C1 and save
+        prevTopLocal := env:-pop();
+        prevTopGlobal := genv:-pop();
+        # grow again for C2
+        env:-grow();
+        genv:-grow();
 
         C2 := peM(Else(ifstat));
         stopAfterC2 := M:-EndsWithErrorOrReturn(C2);
@@ -287,8 +294,8 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
             result := MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1)), MStatSeq(ssop(C2), ssop(S2)));
         end if;
 
-        env:-shrink();
-        genv:-shrink();
+        env:-pop();
+        genv:-pop();
         result;
     end if
 end proc;

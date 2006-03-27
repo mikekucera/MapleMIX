@@ -13,7 +13,7 @@ OnENV := module()
                 lex, nargsVal, isTblVal, 
                 hasDynamicPart, isAlreadyDynamic;
             export 
-                setLink, grow, shrink, shrinkGrow, markTop, equalsTop,
+                setLink, grow, pop, equalsTop,
                 getVal, putVal, bind, putLoopVarVal, setLoopVar,
                 getArgsVal, getArgs, hasArgsVal, putArgsVal,
                 setValDynamic, isStatic, isStaticVal, isStaticTable, isDynamic, isAssigned,
@@ -49,26 +49,11 @@ OnENV := module()
                 ss:-push(frame);
                 NULL;
             end proc;
-
-            shrink := proc()
-                ss:-pop();
-                NULL;
+            
+            pop := proc()
+                return ss:-pop();
             end proc;
 
-            shrinkGrow := proc()
-                shrink();
-                grow();
-            end proc;
-
-            markTop := proc() local r, top;
-                ASSERT( not ss:-empty(), "empty stack in environment" );
-                r := newFrame();
-                top := ss:-top();
-                r:-vals := copy(top:-vals);
-                r:-dyn  := copy(top:-dyn);
-                r:-tbls := copy(top:-tbls);
-                r;
-            end proc;
 
             equalsTop := proc(f1) local f2, tableName, r1, r2;
                 f2 := ss:-top();
