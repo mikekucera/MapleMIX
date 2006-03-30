@@ -8,6 +8,8 @@ kernelopts(opaquemodules=false):
 libname := libname, "../lib":
 
 ######################################################################
+# In-place quicksort on arrays
+
 
 swap := proc(A, x, y) 
     local temp;
@@ -43,7 +45,7 @@ end proc:
 
 ######################################################################
 
-
+# pivot is last element
 qs1 := proc(A, m, n) local p, c;
     p := (A, m, n) -> n;
     c := `<=`;
@@ -85,101 +87,43 @@ end proc;
 
 mm := module()
     quicksort_1 := proc(A, m, n)
-        local p;
+        local midindex1, x1, y4, z4, m5, pivotIndex1, pivotValue1, temp1, storeIndex1, i1, temp2, temp3, p;
         if m < n then
-            p := partition_1(A, m, n);
-            quicksort_1(A, m, p - 1);
-            quicksort_1(A, p + 1, n)
-        end if
-    end proc;
-
-    partition_1 := proc(A, m, n)
-        local pivotIndex, pivotValue, temp1, storeIndex, i, temp2, temp3;
-        pivotIndex := n;
-        pivotValue := A[pivotIndex];
-        temp1 := A[pivotIndex];
-        A[pivotIndex] := A[n];
-        A[n] := temp1;
-        storeIndex := m;
-        for i from m to n - 1 do
-            if A[i] <= pivotValue then
-                temp2 := A[storeIndex];
-                A[storeIndex] := A[i];
-                A[i] := temp2;
-                storeIndex := storeIndex + 1
-            end if
-        end do;
-        temp3 := A[n];
-        A[n] := A[storeIndex];
-        A[storeIndex] := temp3;
-        return storeIndex
-    end proc
-
-end module;
-
-opts := PEOptions():
-opts:-setConsiderExpseq(false):
-
-pe_qs1 := OnPE(qs1, opts):
-
-got1 := op(5, ToInert(eval(pe_qs1:-quicksort_1)));
-got2 := op(5, ToInert(eval(pe_qs1:-partition_1)));
-
-expected1 := op(5, ToInert(eval(mm:-quicksort_1)));
-expected2 := op(5, ToInert(eval(mm:-partition_1)));
-
-Try(101, got1, expected1);
-Try(102, got2, expected2);
-
-######################################################################
-
-# TODO, need to unfold the call into ModuleApply
-
-mm := module()
-    quicksort_1 := proc(A, m, n)
-        local p;
-        if m < n then
-            p := partition_1(A, m, n);
-            quicksort_1(A, m, p - 1);
-            quicksort_1(A, p + 1, n)
-        end if
-    end proc;
-
-    partition_1 := proc(A, m, n)
-        local midindex1, x1, y4, z4, m5, pivotIndex, pivotValue, temp1, storeIndex,
-        i, temp2, temp3;
-        midindex1 := iquo(m + n, 2);
-        x1 := A[m];
-        y4 := A[n];
-        z4 := A[midindex1];
-        if y4 <= x1 and x1 <= z4 or z4 <= x1 and x1 <= y4 then m5 := m
-        else
-            if x1 <= y4 and y4 <= z4 or z4 <= y4 and y4 <= x1 then m5 := n
+            midindex1 := iquo(m + n, 2);
+            x1 := A[m];
+            y4 := A[n];
+            z4 := A[midindex1];
+            if y4 <= x1 and x1 <= z4 or z4 <= x1 and x1 <= y4 then m5 := m
             else
-                if x1 <= z4 and z4 <= y4 or y4 <= z4 and z4 <= x1 then
-                    m5 := midindex1
-                else m5 := NULL
+                if x1 <= y4 and y4 <= z4 or z4 <= y4 and y4 <= x1 then m5 := n
+                else
+                    if x1 <= z4 and z4 <= y4 or y4 <= z4 and z4 <= x1 then
+                        m5 := midindex1
+                    else m5 := NULL
+                    end if
                 end if
-            end if
-        end if;
-        pivotIndex := m5;
-        pivotValue := A[pivotIndex];
-        temp1 := A[pivotIndex];
-        A[pivotIndex] := A[n];
-        A[n] := temp1;
-        storeIndex := m;
-        for i from m to n - 1 do
-            if pivotValue < A[i] then
-                temp2 := A[storeIndex];
-                A[storeIndex] := A[i];
-                A[i] := temp2;
-                storeIndex := storeIndex + 1
-            end if
-        end do;
-        temp3 := A[n];
-        A[n] := A[storeIndex];
-        A[storeIndex] := temp3;
-        return storeIndex
+            end if;
+            pivotIndex1 := m5;
+            pivotValue1 := A[pivotIndex1];
+            temp1 := A[pivotIndex1];
+            A[pivotIndex1] := A[n];
+            A[n] := temp1;
+            storeIndex1 := m;
+            for i1 from m to n - 1 do
+                if pivotValue1 < A[i1] then
+                    temp2 := A[storeIndex1];
+                    A[storeIndex1] := A[i1];
+                    A[i1] := temp2;
+                    storeIndex1 := storeIndex1 + 1
+                end if
+            end do;
+            temp3 := A[n];
+            A[n] := A[storeIndex1];
+            A[storeIndex1] := temp3;
+            p := storeIndex1;
+            quicksort_1(A, m, p - 1);
+            quicksort_1(A, p + 1, n)
+        end if
     end proc
 
 end module;
@@ -189,14 +133,60 @@ opts:-setConsiderExpseq(false):
 
 pe_qs2 := OnPE(qs2, opts):
 
+
 got1 := op(5, ToInert(eval(pe_qs2:-quicksort_1)));
-got2 := op(5, ToInert(eval(pe_qs2:-partition_1)));
 
 expected1 := op(5, ToInert(eval(mm:-quicksort_1)));
-expected2 := op(5, ToInert(eval(mm:-partition_1)));
 
 Try(201, got1, expected1);
-Try(202, got2, expected2);
+
+######################################################################
+
+# TODO, need to unfold the call into ModuleApply
+
+mm := module()
+    quicksort_1 := proc(A, m, n)
+        local pivotIndex1, pivotValue1, temp1, storeIndex1, i1, temp2, temp3, p;
+        if m < n then
+            pivotIndex1 := n;
+            pivotValue1 := A[pivotIndex1];
+            temp1 := A[pivotIndex1];
+            A[pivotIndex1] := A[n];
+            A[n] := temp1;
+            storeIndex1 := m;
+            for i1 from m to n - 1 do
+                if A[i1] <= pivotValue1 then
+                    temp2 := A[storeIndex1];
+                    A[storeIndex1] := A[i1];
+                    A[i1] := temp2;
+                    storeIndex1 := storeIndex1 + 1
+                end if
+            end do;
+            temp3 := A[n];
+            A[n] := A[storeIndex1];
+            A[storeIndex1] := temp3;
+            p := storeIndex1;
+            quicksort_1(A, m, p - 1);
+            quicksort_1(A, p + 1, n)
+        end if
+    end proc
+end module;
+
+opts := PEOptions():
+opts:-setConsiderExpseq(false):
+
+pe_qs1 := OnPE(qs1, opts):
+
+got1 := op(5, ToInert(eval(pe_qs1:-quicksort_1)));
+
+expected1 := op(5, ToInert(eval(mm:-quicksort_1)));
+
+Try(101, got1, expected1);
+
+
+######################################################################
+
+
 
 #######################################################################
 

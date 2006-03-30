@@ -8,7 +8,6 @@ CallStack := module()
                 stack, getInfo, setInfo;
             export 
                 push, pop, topEnv, 
-                inConditional, setConditional,
                 wasGlobalEnvUpdated, setGlobalEnvUpdated;
 
             stack := SuperStack();
@@ -20,7 +19,6 @@ CallStack := module()
                 local tbl;
                 tbl := table();
                 tbl["env"] := env;
-                tbl["conditional"] := false;
                 tbl["genvUpdated"] := false;
                 stack:-push(tbl);
                 NULL;
@@ -38,22 +36,9 @@ CallStack := module()
                 stack:-top()[s] := x;
                 NULL;
             end proc;
-
-            inConditional := proc()
-                try
-                    stack:-find( tbl -> tbl["conditional"] );
-                    true;
-                catch "not found" :
-                    false;
-                end try;
-            end proc;
             
             topEnv := () -> getInfo("env");
             wasGlobalEnvUpdated := () -> getInfo("genvUpdated");
-
-            setConditional := proc(b::boolean := true)
-                setInfo("conditional", b);
-            end proc;
             
             setGlobalEnvUpdated := proc(b::boolean := true)
                 setInfo("genvUpdated", b):

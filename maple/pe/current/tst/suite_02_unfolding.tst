@@ -50,26 +50,14 @@ goal := proc(d)
     p(d, 1, 2);
 end proc;
 
-
-ped := OnPE(goal);
-
-Try(201, nops([op(3, eval(ped))]), 1); # there should be only one local
+opts := PEOptions():
+opts:-setConsiderExpseq(false):
+ped := OnPE(goal, opts);
 
 got := op(5, ToInert(eval(ped['ModuleApply']))):
-expected :=_Inert_STATSEQ(_Inert_IF(_Inert_CONDPAIR(
-  _Inert_EQUATION(_Inert_PARAM(1), _Inert_INTPOS(1)),
-  _Inert_STATSEQ(_Inert_INTPOS(3))), _Inert_STATSEQ(_Inert_FUNCTION(
-  _Inert_LEXICAL_LOCAL(1),
-  _Inert_EXPSEQ(_Inert_SUM(_Inert_INTPOS(1), _Inert_PARAM(1)))))));
-
+expected := op(5, ToInert(proc(d) local y1; if d=1 then 3 else y1:=d+1; y1+1 end if end proc));
 
 Try(202, got, expected);
-
-f_2 := op(5, ToInert(eval(ped['f_2'])));
-expected := _Inert_STATSEQ(_Inert_SUM(_Inert_INTPOS(1), _Inert_PARAM(1)));
-
-Try(203, f_2, expected);
-
 
 # TEST 3 ##############################################################
 # let insertion
@@ -92,19 +80,6 @@ got := ToInert(eval(ped['ModuleApply'])):
 expected := ToInert(proc (d) local x1, y1; x1 := d+2; y1 := d+1; x1+y1 end proc);
 
 Try(301, got, expected);
-
-
-ped := OnPE(goal, ['noexpseq'=false]);
-
-got := op(5, ToInert(eval(ped['ModuleApply']))):
-expected := _Inert_STATSEQ(_Inert_FUNCTION(_Inert_LEXICAL_LOCAL(1),_Inert_EXPSEQ(_Inert_SUM(_Inert_PARAM(1),_Inert_INTPOS(2)),_Inert_SUM(_Inert_INTPOS(1),_Inert_PARAM(1)))));
-
-Try(302, got, expected);
-
-got := ToInert(eval(ped['f_1'])):
-expected := ToInert(proc (x, y) x+y end proc);
-
-Try(303, got, expected);
 
 
 # TEST 4 ##############################################################

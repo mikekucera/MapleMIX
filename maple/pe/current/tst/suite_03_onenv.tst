@@ -37,7 +37,7 @@ t := env:-getVal("r");
 
 #Try[verify,table](205, t, table(["x"=1, "y"=2, "a"=15]));
 
-env:-shrink();
+env:-pop();
 
 Try(206, env:-getTblVal("r", "x"), 99);
 Try(207, env:-getTblVal("r", "z"), 25);

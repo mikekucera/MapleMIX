@@ -22,7 +22,7 @@ $include "access_header.mpl"
 
     # module local variables
     callStack,         # callStack grows by one OnENV for every function specialization
-    specializedProcs,  # will change
+    specializedProcs,  # code for procedures that don't get unfolded
     gen,               # used to generate new names
     genv,              # global environment
     gopts,             # options
@@ -254,7 +254,7 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
     if rcond::Static then
         peM(MStatSeq(ssop(`if`(SVal(rcond), Then, Else)(ifstat)), ssop(S)));
     else
-        callStack:-setConditional();
+        #callStack:-setConditional();
         env := callStack:-topEnv();
         env:-grow();
         genv:-grow();
@@ -787,36 +787,6 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
 end proc;
 
 
-# Given an inert procedure and an inert function call to that procedure, decide if unfolding should be performed.
-# probably won't be needed if I go with the sp-function approach
-isUnfoldable := proc(mProc::mform(Proc), argListInfo) local flattened;
-    # it dosen't matter if an argument is an expression sequence if there are no defined parameters
-    if argListInfo:-possibleExpSeq and nops(Params(mProc)) > 0 then
-        return false;
-    end if;
-
-    if not callStack:-inConditional() then
-        true;
-    elif not hasfun(mProc, {MStandaloneFunction, MAssignToFunction}) then
-        # in this case there is no recursive call so unfold
-        true;
-    else
-        flattened := M:-FlattenStatSeq(ProcBody(mProc));
-        # if all the func does is return a static value then there is no
-        # reason not to unfold
-
-        # if the body of the function is empty then go ahead and unfold
-        if nops(flattened) = 0 then
-            true
-        else # if the function body consists of a single static than it can be easily unfolded
-            nops(op([1,1], flattened)) = 1
-            and member(op([1,0], flattened), {MReturn, MStandaloneExpr})
-            and op([1,1], flattened)::Static
-        end if;
-    end if;
-end proc;
-
-
 # takes continuations to be applied if f results in a procedure
 peFunction := proc(funRef::Dynamic,
                    argExpSeq::mform(ExpSeq),
@@ -942,7 +912,7 @@ peFunction_SpecializeThenDecideToUnfold :=
         newName := rec:-procName;
     end if;
 
-    if not rec:-mustResid and isUnfoldable(newProc, argListInfo) then
+    if not rec:-mustResid then #and isUnfoldable(newProc, argListInfo) then
         unfold(newProc, argListInfo:-reducedCall, argListInfo:-allCall);
     else
         specializedProcs[newName] := newProc;
