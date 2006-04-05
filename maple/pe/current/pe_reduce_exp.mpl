@@ -237,6 +237,9 @@ ReduceExp := module()
         if isProtectedProc(f) then
             specFunc[Name(f)](expseq);
         else
+            # TODO: this is wrong, if the argument list isn't static
+            # and the function name is static then we have an error
+            # all static names must be removed from the residual program
             rf := [reduce(f)];
             re := [reduce(expseq)];
             if rf::list(Or('procedure','name')) and re::list(Static) then

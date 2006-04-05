@@ -31,11 +31,29 @@ quicksort := proc(A, m, n, pivot, compare)
     end if;
 end proc:
 
+
+
+
+
 qs[1] := proc(A, m, n) local p, c;
     p := (A, m, n) -> n;
     c := `<=`;
     quicksort(A, m, n, p, c)
 end proc:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 qs[2] := proc(A, m, n) local middle, p, c;
 
@@ -52,7 +70,7 @@ qs[2] := proc(A, m, n) local middle, p, c;
             m
         elif middle(y, x, z) then
             n
-        elif middle(z, x, y) then
+        else
             midindex;
         end if;
     end proc;

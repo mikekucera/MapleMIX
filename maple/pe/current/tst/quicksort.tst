@@ -68,7 +68,7 @@ qs2 := proc(A, m, n) local middle, p, c;
             m
         elif middle(y, x, z) then
             n
-        elif middle(z, x, y) then
+        else
             midindex;
         end if;
     end proc;
@@ -87,23 +87,20 @@ end proc;
 
 mm := module()
     quicksort_1 := proc(A, m, n)
-        local midindex1, x1, y4, z4, m5, pivotIndex1, pivotValue1, temp1, storeIndex1, i1, temp2, temp3, p;
+        local midindex1, x1, y3, z3, m4, pivotIndex1, pivotValue1, temp1,
+            storeIndex1, i1, temp2, temp3, p;
         if m < n then
             midindex1 := iquo(m + n, 2);
             x1 := A[m];
-            y4 := A[n];
-            z4 := A[midindex1];
-            if y4 <= x1 and x1 <= z4 or z4 <= x1 and x1 <= y4 then m5 := m
+            y3 := A[n];
+            z3 := A[midindex1];
+            if y3 <= x1 and x1 <= z3 or z3 <= x1 and x1 <= y3 then m4 := m
             else
-                if x1 <= y4 and y4 <= z4 or z4 <= y4 and y4 <= x1 then m5 := n
-                else
-                    if x1 <= z4 and z4 <= y4 or y4 <= z4 and z4 <= x1 then
-                        m5 := midindex1
-                    else m5 := NULL
-                    end if
+                if x1 <= y3 and y3 <= z3 or z3 <= y3 and y3 <= x1 then m4 := n
+                else m4 := midindex1
                 end if
             end if;
-            pivotIndex1 := m5;
+            pivotIndex1 := m4;
             pivotValue1 := A[pivotIndex1];
             temp1 := A[pivotIndex1];
             A[pivotIndex1] := A[n];
