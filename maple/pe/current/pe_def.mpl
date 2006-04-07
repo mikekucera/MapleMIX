@@ -404,17 +404,23 @@ StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
 
     q := SimpleQueue();
 
-    return module() export setVal, unrollOnce, result;
+    return module() 
+        local lastStmt;
+        export setVal, unrollOnce, result, isLastStmtReturn;
         setVal := proc(x)
             if assigned(loopVarName) then
                 env:-putLoopVarVal(loopVarName, x);
             end if;
         end proc;
         unrollOnce := proc() local res; # pass in the loop index
-            res := peM(statseq);
-            if res <> NULL then
-                q:-enqueue(res);
+            lastStmt := peM(statseq);
+            if lastStmt <> NULL then
+                q:-enqueue(lastStmt);
             end if;
+        end proc;
+        isLastStmtReturn := proc()
+            print("lastStmt", lastStmt);
+            assigned(lastStmt) and Header(op(-1, lastStmt)) = MReturn;
         end proc;
         result := () -> MStatSeq(qtoseq(q));
     end module;
@@ -475,6 +481,7 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
             end if;
             if not SVal(rWhileExp) then break end if;
             unroller:-unrollOnce();
+            if unroller:-isLastStmtReturn() then break end if;
         end do;
         return unroller:-result();
     else
@@ -506,6 +513,7 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
             end if;
             if not SVal(rWhileExp) then break end if;
             unroller:-unrollOnce();
+            if unroller:-isLastStmtReturn() then break end if;
         end do;
         unroller:-result();
     else
@@ -912,13 +920,26 @@ peFunction_SpecializeThenDecideToUnfold :=
         newName := rec:-procName;
     end if;
 
-    if not rec:-mustResid then #and isUnfoldable(newProc, argListInfo) then
+    if not rec:-mustResid and isUnfoldable(newProc) then
         unfold(newProc, argListInfo:-reducedCall, argListInfo:-allCall);
     else
         specializedProcs[newName] := newProc;
         call := `if`(M:-UsesArgsOrNargs(newProc), argListInfo:-allCall, argListInfo:-reducedCall);
         residualize(MString(newName), call)
     end if;
+end proc;
+
+
+isUnfoldable := proc(p) local unfold, hasReturn;
+    # a funciton cannot be unfolded if there is a return inside a loop
+    unfold := true;
+    hasReturn := proc()
+        if hasfun([args], MReturn) then
+            unfold := false;
+        end if;
+    end proc;
+    eval(p, [MWhile=hasReturn, MWhileForFrom=hasReturn, MWhileForIn=hasReturn]);
+    return unfold;
 end proc;
 
 
