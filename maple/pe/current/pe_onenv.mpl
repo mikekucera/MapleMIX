@@ -243,6 +243,7 @@ OnENV := module()
                             rec:-elts := x;
                         end if;
                     end if;
+                    frame:-vals[key] := 'frame:-vals[key]';
                 else
                     frame:-tbls[key] := 'frame:-tbls[key]';
                     frame:-vals[key] := x;
@@ -251,18 +252,24 @@ OnENV := module()
             end proc;
             
             
-            putTblVal := proc(tableName::Not(mform), index::Not(mform), x) local foundFrame, rec, newRec, addr;
+            putTblVal := proc(tableName::Not(mform), index::Not(mform), x) 
+                local frame, foundFrame, rec, newRec, addr;
                 userinfo(7, PE, "Putting table", x, "at", tableName, index, "in env");
-                
                 ASSERT( nargs = 3, cat("putTblVal expecting 3 args but received ", nargs) );
-                if assigned(ss:-top():-tbls[tableName]) then # its at the top
-                    rec := ss:-top():-tbls[tableName];
+                
+                print("putTblVal", args);
+                frame:=ss:-top();
+                if assigned(frame:-tbls[tableName]) then # its at the top
+                    print("here1");
+                    rec := frame:-tbls[tableName];
                 else
                     try
+                        print("here2");
                         foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
                         rec := newTableRecord(tableName, x);
                         rec:-link := foundFrame:-tbls[tableName];
                     catch "not found" :
+                        print("here3");
                         rec := newTableRecord(tableName, x);
                     end try;
                 end if;
@@ -287,6 +294,7 @@ OnENV := module()
                     rec:-elts[index] := x;
                 end if;
                 
+                frame:-vals[tableName] := 'frame:-vals[tableName]';
                 NULL;
             end proc;
             
@@ -476,19 +484,26 @@ OnENV := module()
             end proc;
             
             setTblValDynamic := proc(tableName::Not(mform), index)
-                local frame, rec;
+                local frame, foundFrame, rec;
                 frame := ss:-top();
-                if assigned(frame:-tbls[tableName]) then
+                if assigned(frame:-tbls[tableName]) then # its at the top
                     rec := frame:-tbls[tableName];
                 else
-                    rec := newTableRecord(tableName);
+                    try # to find another frame with the same name and link it
+                        foundFrame := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
+                        rec := newTableRecord(tableName);
+                        rec:-link := foundFrame:-tbls[tableName];
+                    catch : # not found so just create a new record
+                        rec := newTableRecord(tableName);
+                    end try;
                 end if;
-                # if its not already dynamic then 
+ 
                 if not isAlreadyDynamic(rec, index) then
                     rec:-dynCount := rec:-dynCount + 1;
                 end if;
                 rec:-elts[index] := OnENV:-DYN;
                 NULL;
+
             end proc;
 
 

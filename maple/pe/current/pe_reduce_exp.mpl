@@ -274,7 +274,7 @@ ReduceExp := module()
                 try
                     return env:-getTblVal(Name(tbl), op(re));
                 catch "table value is dynamic" :
-                    if not env:-isStaticVal(Name(tbl)) then
+                    if env:-isStaticTable(Name(tbl)) then
                         return MTableref(tbl, embed(op(re)));
                     end if;
                 end try;
