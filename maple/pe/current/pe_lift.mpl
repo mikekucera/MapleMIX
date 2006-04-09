@@ -3,7 +3,7 @@ Lifter := module()
     local gen;
     export LiftExp, LiftPostProcess, liftStat, liftExp, liftTable, liftStatic;
 
-    liftStat := proc(stat) local l, b, t, e, c, n, f, s, w, stmts, lift, h, q, k, result;
+    liftStat := proc(stat) local l, b, r, t, e, c, n, f, s, w, stmts, lift, h, q, k, result;
         h := Header(stat);
 
         # first consider the cases that don't result in a call to liftExp
@@ -15,6 +15,8 @@ Lifter := module()
             return MTry(procname(t), procname(c));
         elif typematch(stat, MCatch('s'::anything, 'b'::anything)) then
             return MCatch(s, procname(b));
+        elif typematch(stat, MRef('r'::anything)) then
+            return procname(r:-code); # TODO: is this right?
         end if;
 
         stmts := table();

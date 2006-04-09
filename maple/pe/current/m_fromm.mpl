@@ -273,8 +273,6 @@ FromM := module()
     inrt[MLexicalLocal] := proc(n)
         _Inert_LEXICAL_LOCAL(replaceLexical(_Inert_LOCAL, 'locals', n))
     end proc;
-
-
     
 
     inrt[MSingleUse] := proc(n)
@@ -287,16 +285,6 @@ FromM := module()
 
     inrt[MGeneratedName] := inrt[MSingleUse];
 
-    
-    #inrt[MIfThenElse] := proc(c, s1, s2)
-    #    if IsNoOp(s1) and IsNoOp(s2) then
-    #        _Inert_EXPSEQ();
-    #    elif IsNoOp(s2) then
-    #        _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)));
-    #    else
-    #        _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), _Inert_STATSEQ(mtoi(s2)))
-    #    end if;
-    #end proc;
     
     inrt[MIfThenElse] := proc(c, s1, s2)
         if IsNoOp(s1) and IsNoOp(s2) then
@@ -339,4 +327,7 @@ FromM := module()
         _Inert_TRY(qtoseq(q));
     end proc;
 
+    inrt[MRef] := proc(rec)
+        mtoi(rec:-code);
+    end proc;
 end module;

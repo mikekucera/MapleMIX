@@ -5,7 +5,7 @@ M := module()
            SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs,
            ProtectedForm, EndsWithErrorOrReturn, FlattenStatSeq,
            IsNoOp, RemoveUselessStandaloneExprs, AddImplicitReturns,
-           ToM, FromM, TransformIfNormalForm;
+           ToM, FromM, TransformIf;
     local
 $include "access_header.mpl"
           intrinsic, isIntrinsic, variables, inertTrue, inertDollar,
@@ -15,7 +15,7 @@ $include "access.mpl"
 
 
     # set of builtin function names
-    intrinsic := {anames(builtin), 'curry', 'table', 'rand'};
+    intrinsic := {anames(builtin), 'curry', 'table', 'rand'} minus {'print'};
     isIntrinsic := x -> member(convert(x, name), intrinsic);
 
     # constants for easy access to common inert forms

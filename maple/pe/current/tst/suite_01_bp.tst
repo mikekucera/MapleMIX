@@ -114,4 +114,43 @@ Try(600, got, expected);
 
 #######################################################################
 
+p := proc(d) local x;
+    if d then
+        if d then
+            x := 1;
+            print(x);
+        else
+            x := 2;
+        end if;
+        print(x*10);
+    else
+        x := 3;
+    end if;
+    print(x*100);
+end proc:
+
+ped := OnPE(p);
+
+got := ToInert(eval(ped:-ModuleApply));
+
+expected := ToInert(
+    proc (d) 
+        if d then  
+            if d then 
+                print(1); 
+                print(10); 
+                print(100) 
+            else 
+                print(20); 
+                print(200) 
+            end if 
+        else 
+            print(300) 
+        end if 
+    end proc
+);
+
+Try(700, got, expected);
+
+#######################################################################
 #end test

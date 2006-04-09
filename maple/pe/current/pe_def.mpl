@@ -10,7 +10,7 @@ local
 $include "access_header.mpl"
     CallStack, PEDebug, Lifter, BuildModule, OnENV,
     ReduceExp, Unfold,
-    getMCode, embed, getEnv,
+    getMCode, getMCodeFromCache, embed, getEnv,
     pe, peM, peResidualizeStatement, peIF,
     StaticLoopUnroller,
     checkParameterTypeAssertion, getParameterDefault,
@@ -134,11 +134,16 @@ end proc;
 ######################################################################################
 
 # caches M code of procedures so don't need to call ToM unneccesarily
-getMCode := proc(fun) option cache;
+
+getMCodeFromCache := proc(fun) option cache;
     local code, uniqueNames;
     code, uniqueNames := M:-ToM(ToInert(fun));
     gen:-addNames(uniqueNames);
     code;
+end proc;
+
+getMCode := proc(fun)
+    M:-TransformIf:-TransformToDAG(getMCodeFromCache(fun))
 end proc;
 
 
@@ -165,8 +170,10 @@ end proc;
 ############################################################################
 
 
-# partially evaluates an arbitrary M statement
 peM := proc(m::mform) local h;
+    if nargs = 0 then
+        return NULL;
+    end if;
     h := Header(m);
     userinfo(10, PE, "PE on an", h);
     if assigned(pe[h]) then
@@ -189,7 +196,7 @@ pe[MError]  := curry(peResidualizeStatement, MError);
 
 
 pe[MStatSeq] := proc() :: mform(StatSeq);
-    local q, i, h, stmt, residual, statseq, size, stmtsAfterIf;
+    local q, i, j, h, stmt, residual, statseq, size, stmtsAfterIf;
 
     statseq := M:-FlattenStatSeq(MStatSeq(args));
     size := nops(statseq);
@@ -202,12 +209,12 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
 
         PEDebug:-StatementStart(stmt);
 
-        if h = MIfThenElse then
-            stmtsAfterIf := MStatSeq(op(i+1..size, statseq));
-            q:-enqueue(peIF(stmt, stmtsAfterIf));
-            PEDebug:-StatementEnd();
-            break;
-        end if;
+        #if h = MIfThenElse then
+        #    stmtsAfterIf := MStatSeq(op(i+1..size, statseq));
+        #    q:-enqueue(peIF(stmt, stmtsAfterIf));
+        #    PEDebug:-StatementEnd();
+        #    break;
+        #end if;
         residual := peM(stmt);
 
         PEDebug:-StatementEnd(residual);
@@ -225,6 +232,9 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
     M:-RemoveUselessStandaloneExprs(MStatSeq(qtoseq(q)));
 end proc;
 
+pe[MRef] := proc(ref) 
+    peM(ref:-code); # this means the partial evaluator removes all references
+end proc;
 
 pe[MCommand] := proc(command)
     if gopts:-getIgnoreCommands() then
@@ -247,21 +257,29 @@ pe[MCommand] := proc(command)
     NULL;
 end proc;
 
+#
+#peIF := proc(ifstat::mform(IfThenElse)) #, S::mform(StatSeq))
 
-peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
-    local rcond, env, C1, C2, S1, S2, prevTopLocal, prevTopGlobal, stopAfterC1, stopAfterC2, result;
-    rcond := ReduceExp(Cond(ifstat));
+pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
+    local rcond, env, C1, C2, S, S1, S2, prevTopLocal, prevTopGlobal, stopAfterC1, stopAfterC2, result;
+    rcond := ReduceExp(cond);
     if rcond::Static then
-        peM(MStatSeq(ssop(`if`(SVal(rcond), Then, Else)(ifstat)), ssop(S)));
+        peM(`if`(SVal(rcond), thenBranch, elseBranch));
     else
-        #callStack:-setConditional();
+        #print("dynamic if", args);
+        
         env := callStack:-topEnv();
         env:-grow();
         genv:-grow();
 
-        C1 := peM(Then(ifstat));
+        #C1 := peM(Then(ifstat));
+        C1 := peM(CodeUpToPointer(thenBranch));
+        #print("C1", C1);
 
-        stopAfterC1 := M:-EndsWithErrorOrReturn(C1);
+        stopAfterC1 := M:-EndsWithErrorOrReturn(C1); # TODO, should not be needed
+        
+        S := CodeBelow(thenBranch);
+        #print("thenBranch", thenBranch, "S", S);
         
         if not stopAfterC1 then
             # grow the stack again for S1
@@ -272,7 +290,7 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
             env:-pop();
             genv:-pop();
         end if;
-       
+    
         # pop the effects of C1 and save
         prevTopLocal := env:-pop();
         prevTopGlobal := genv:-pop();
@@ -280,8 +298,12 @@ peIF := proc(ifstat::mform(IfThenElse), S::mform(StatSeq))
         env:-grow();
         genv:-grow();
 
-        C2 := peM(Else(ifstat));
-        stopAfterC2 := M:-EndsWithErrorOrReturn(C2);
+        #C2 := peM(Else(ifstat));
+        C2 := peM(CodeUpToPointer(elseBranch));
+        S := CodeBelow(elseBranch);
+        #print("C2", C2);
+        
+        stopAfterC2 := M:-EndsWithErrorOrReturn(C2); # TODO, should not be needed
 
         if stopAfterC1 and stopAfterC2 then
             result := MIfThenElse(rcond, C1, C2);
@@ -499,8 +521,6 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
     rFromExp  := ReduceExp(fromExp);
     rByExp    := ReduceExp(byExp);
     rToExp    := ReduceExp(toExp);
-    
-    callStack:-topEnv():-display();
     
     if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop
         unroller := StaticLoopUnroller(loopVar, statseq);
@@ -831,6 +851,8 @@ peFunction := proc(funRef::Dynamic,
         end if;
 	    peFunction_StaticFunction(funRef, ma, argExpSeq, gen("ma"), unfold, residualize, symbolic);
 
+    elif hasOption('builtin', sfun) then
+        residualize(fun, MExpSeq(ReduceExp(argExpSeq)));
     else
         redargs := ReduceExp(argExpSeq);
         if [redargs]::list(Static) then
@@ -931,6 +953,7 @@ end proc;
 
 
 isUnfoldable := proc(p) local unfold, hasReturn;
+    #return false;
     # a funciton cannot be unfolded if there is a return inside a loop
     unfold := true;
     hasReturn := proc()

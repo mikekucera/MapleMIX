@@ -29,6 +29,18 @@ Cond := proc(x) option inline; op(1,x) end proc;
 Then := proc(x) option inline; op(2,x) end proc;
 Else := proc(x) option inline; op(3,x) end proc;
 
+CodeUpToPointer := proc(branch::mform(StatSeq))
+    `if`(Header(Last(branch)) = MRef, 
+            MStatSeq(Front(branch)), 
+            branch)
+end proc;
+
+CodeBelow := proc(branch)
+    `if`(Header(Last(branch)) = MRef, Last(branch), NULL);
+end proc;
+
+
+
 # for MTableRef
 Tbl      := proc(x) option inline; op(1,x) end proc;
 Var      := proc(x) option inline; op(1,x) end proc;
@@ -62,7 +74,8 @@ Default := proc(x) option inline; op(3,x) end proc;
 qtoseq := proc(q) option inline; op(q:-toList()) end proc;
 
 # if the arg is a MStatSeq it gets converted into an expression sequence
-ssop := proc(m::mform) option inline;
+ssop := proc(m::mform)
+    if nargs = 0 then return NULL end if;
 	`if`(op(0,m) = MStatSeq, op(m), m)
 end proc;
 

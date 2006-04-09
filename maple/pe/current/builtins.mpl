@@ -26,7 +26,7 @@ Builtins := module() option package;
     end proc;
     
     isOperator := proc(n::procedure)
-        assigned(operators[getNum(n)]);
+        isBuiltin(n) and assigned(operators[getNum(n)]);
     end proc;
     
     getOperatorAsM := proc(n::procedure)

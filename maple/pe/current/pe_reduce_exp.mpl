@@ -234,6 +234,7 @@ ReduceExp := module()
     # specFunc["evaln"] := specFunc_eval("evaln");
     
     red[MFunction] := proc(f, expseq) local rf, re;
+        print("MFunction", args);
         if isProtectedProc(f) then
             specFunc[Name(f)](expseq);
         else
