@@ -208,15 +208,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
         h := Header(stmt);
 
         PEDebug:-StatementStart(stmt);
-
-        #if h = MIfThenElse then
-        #    stmtsAfterIf := MStatSeq(op(i+1..size, statseq));
-        #    q:-enqueue(peIF(stmt, stmtsAfterIf));
-        #    PEDebug:-StatementEnd();
-        #    break;
-        #end if;
         residual := peM(stmt);
-
         PEDebug:-StatementEnd(residual);
 
         if residual <> NULL then
@@ -266,20 +258,14 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
     if rcond::Static then
         peM(`if`(SVal(rcond), thenBranch, elseBranch));
     else
-        #print("dynamic if", args);
-        
         env := callStack:-topEnv();
         env:-grow();
         genv:-grow();
 
-        #C1 := peM(Then(ifstat));
         C1 := peM(CodeUpToPointer(thenBranch));
-        #print("C1", C1);
 
-        stopAfterC1 := M:-EndsWithErrorOrReturn(C1); # TODO, should not be needed
-        
+        stopAfterC1 := M:-EndsWithErrorOrReturn(C1); 
         S := CodeBelow(thenBranch);
-        #print("thenBranch", thenBranch, "S", S);
         
         if not stopAfterC1 then
             # grow the stack again for S1
@@ -298,16 +284,16 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
         env:-grow();
         genv:-grow();
 
-        #C2 := peM(Else(ifstat));
         C2 := peM(CodeUpToPointer(elseBranch));
         S := CodeBelow(elseBranch);
-        #print("C2", C2);
-        
+
         stopAfterC2 := M:-EndsWithErrorOrReturn(C2); # TODO, should not be needed
 
         if stopAfterC1 and stopAfterC2 then
+            print("here1");
             result := MIfThenElse(rcond, C1, C2);
-        elif env:-equalsTop(prevTopLocal) and genv:-equalsTop(prevTopGlobal) then
+        elif (not ormap(rcurry(hasfun, MIfThenElse), [C1, C2])) and
+            env:-equalsTop(prevTopLocal) and genv:-equalsTop(prevTopGlobal) then
             S1 := `if`(stopAfterC1, peM(S), S1);
             result := MStatSeq(MIfThenElse(rcond, C1, C2), ssop(S1));
         else
