@@ -440,6 +440,9 @@ end proc;
 # variables that have become dynamic
 analyzeDynamicLoopBody := proc(body::mform)
     local notImplemented, readVar, readLocal, readGlobal, readTableref, writeVar, writeTable;
+    
+    q := SimpleQueue();
+    
     notImplemented := () -> ERROR("non-intrinsic call in dynamic loop not supported");
     #readVar := proc(n::string, env)
         #if env:-isStatic(n) then
@@ -453,9 +456,16 @@ analyzeDynamicLoopBody := proc(body::mform)
             error "possibly static table lookup in dynamic loop, not supported yet";
         end if;
     end proc;
-    writeVar   := proc(var)
-        if getEnv(var):-isStatic(Name(var)) then
-            error "static -> dynamic is not allowed";
+    writeVar := proc(var) local env;
+        #env := getEnv(var);
+        n := Name(var);
+        env := callStack:-topEnv();
+        if env:-isStatic(n) then # cant be assignments to parameters anyways
+            q:-enqueue(MAssign(MLocal(n), embed(env:-getVal(n))));
+            env:-setValDynamic(n);
+        elif genv:-isStatic(n) then # just make it a name
+            q:-enqueue(MAssign(MName(n), embed(genv:-getVal(n))));
+            env:-setValDynamic(n);
         end if;
     end proc;
     writeTable := tblref -> writeVar(Var(tblref));
@@ -472,7 +482,8 @@ analyzeDynamicLoopBody := proc(body::mform)
                 #MGeneratedName = readLocal,
                 #MSingleUse = readLocal
                 ]);
-    NULL
+                
+    qtoseq(q);
 end proc;
 
 
@@ -495,9 +506,9 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
     else
         # need to do this because unassigned locals are considered static
         getEnv(loopVar):-setValDynamic(Name(loopVar));
-        analyzeDynamicLoopBody(statseq);
-        analyzeDynamicLoopBody(whileExp);
-        MWhileForIn(loopVar, rInExp, whileExp, peM(statseq));
+        assigns := op(map(analyzeDynamicLoopBody, [statseq, whileExp]));
+        stmt := MWhileForIn(loopVar, rInExp, whileExp, peM(statseq));
+        `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
     end if;
 end proc;
 
@@ -525,9 +536,11 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
     else
         # need to do this because unassigned locals are considered static
         getEnv(loopVar):-setValDynamic(Name(loopVar));
-        analyzeDynamicLoopBody(statseq);
-        analyzeDynamicLoopBody(whileExp);
-        MWhileForFrom(loopVar, rFromExp, rByExp, rToExp, whileExp, peM(statseq))
+        assigns := op(map(analyzeDynamicLoopBody, [statseq, whileExp]));
+        stmt := MWhileForFrom(loopVar, rFromExp, rByExp, rToExp, whileExp, peM(statseq));
+        res := `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
+        print("res", res);
+        res;
     end if;
 end proc;
 

@@ -27,6 +27,8 @@ TransformIf := module()
 
     # inserts 'toinsert' at the end of the given statment sequence 'stat'
     insertAtEnd := proc(stat::mform(StatSeq), toinsert::mform)
+        # won't do the insertion if the statseq ends with a return
+        # the specializer won't generate code below a return
         if nops(stat) > 0 and Header(op(-1, stat)) = MReturn then
             stat;
         elif Header(toinsert) = MStatSeq then
@@ -36,6 +38,8 @@ TransformIf := module()
         end if;
     end proc;
     
+    
+    # TODO, shouldn't need fucking both transformations
     
     # recursively performs program transformation
     TransformToReturnNormalForm := proc(mcode::mform(StatSeq)) 
