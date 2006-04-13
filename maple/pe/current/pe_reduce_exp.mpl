@@ -4,21 +4,23 @@
 # reduces to residual code when the expression is dynamic
 
 ReduceExp := module()
-    description 
+    description
         "online expression reducer for use with online partial evaluator";
-    export 
+    export
         ModuleApply, Reduce;
-    local 
+    local
+        SmartOps,
         reduce, binOp, unOp, naryOp, red, isProtectedProc, specFunc,
         reduceName, reduceVar, reduceLex, replaceClosureLexical,
         env, treatAsDynamic, reducedTable;
-    
-    
+
+$include "pe_reduce_smarter.mpl"
+
     Reduce := proc(expr)
         genv := OnENV();
         ModuleApply(expr, OnENV());
     end proc;
-    
+
     ModuleApply := proc(expr, reductionEnv := callStack:-topEnv())
         local reduced1, reduced2, res;
         env := reductionEnv;
@@ -27,9 +29,9 @@ ReduceExp := module()
 
         treatAsDynamic := false;
         reducedTable := false;
-        
+
         reduced1 := embed(reduce(expr));
-        
+
         if reducedTable and res::Static then
             treatAsDynamic := true;
             reduced2 := embed(reduce(expr));
@@ -53,7 +55,7 @@ ReduceExp := module()
             red[h](op(expr));
         else
             error "(reduce) Reduction of %1 not supported yet", h;
-        end if;        
+        end if;
     end proc;
 
 
@@ -67,15 +69,15 @@ ReduceExp := module()
         end if;
     end proc;
 
-    
+
     unOp := (f, oper) -> proc(x) local rx;
         rx := [reduce(x)];
         `if`(rx::list(Dynamic), f(op(rx)), oper(op(rx)))
     end proc;
 
-    
+
     naryOp := (f, oper) -> proc() local ry;
-        use reduceRight = proc(rx,y) 
+        use reduceRight = proc(rx,y)
             ry := [reduce(y)];
             # rx could be an expseq
             if [rx]::list(Static) and ry::list(Static) then
@@ -84,12 +86,12 @@ ReduceExp := module()
                 f(embed(rx), embed(op(ry)));
             end if;
         end proc
-        in 
+        in
             foldl(reduceRight, reduce(args[1]), args[2..nargs])
         end use
-    end proc;    
- 
-    
+    end proc;
+
+
     red[MRational] := binOp(MRational, `/`);
     red[MPower]    := binOp(MPower,    `^`);
     red[MEquation] := binOp(MEquation, `=`);
@@ -100,28 +102,28 @@ ReduceExp := module()
     red[MOr]       := binOp(MOr,       `or`);
     red[MXor]      := binOp(MXor,      `xor`);
     red[MRange]    := binOp(MRange,    `..`);
-    
+
     red[MNot] := unOp(MNot, `not`);
-    
+
     red[MSum]  := naryOp(MSum,  `+`);
     red[MProd] := naryOp(MProd, `*`);
-    
+
     red['Integer'] := () -> args;
     red['string']  := () -> args;
     red['symbol']  := () -> args;
 
     red[MStatic] := () -> args;
     red[MBoth]   := (s, d) -> `if`(treatAsDynamic, d, SVal(s));
-    
+
     red[MInt]    := () -> args;
     red[MString] := () -> args;
     red[MFloat]  := (x,y) -> FromInert(_Inert_FLOAT(M:-FromM(x),M:-FromM(y)));
-    
+
     red[MComplex] := () -> `if`(nargs=1, args * I, args[1] + args[2] * I);
     red[MNargs]   := () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
-    red[MArgs]    := () -> `if`(env:-hasNargs(), env:-getArgs(), MArgs()); 
-    
-    
+    red[MArgs]    := () -> `if`(env:-hasNargs(), env:-getArgs(), MArgs());
+
+
     red[MCatenate] := proc(x,y) local r, h, n;
         r := [reduce(y)];
         if r::list(Static) then # Dynamic then
@@ -135,20 +137,20 @@ ReduceExp := module()
             else
                 error "left side of catenate must be a name or string";
             end if;
-    
+
             op(map(curry(`||`, FromInert(n)), r));
         else
             MCatenate(x, op(r));
         end if;
     end proc;
 
-    
+
     red[MExpSeq] := proc() local rs;
         rs := map(reduce, [args]);
         `if`(rs::list(Static), op(rs), MExpSeq(op(map(embed, rs))))
     end proc;
 
-    
+
     red[MList] := proc(eseq) local r;
         r := [reduce(eseq)];
         `if`(r::list(Static), r, MList(op(r)))
@@ -166,30 +168,30 @@ ReduceExp := module()
         `if`(rx1::list(Static), op(rx1)[rx2], MMember(embed(op(rx1)), embed(rx2)))
     end proc;;
 
-    
+
     isProtectedProc := proc(assignedName) local n;
         if Header(assignedName) <> MAssignedName then
             return false;
         end if;
-        n := Name(assignedName); 
-        assigned(specFunc[n]) and assignedName = M:-ProtectedForm(n);  
+        n := Name(assignedName);
+        assigned(specFunc[n]) and assignedName = M:-ProtectedForm(n);
     end proc;
-    
+
     # below is support for some special functions that have their own uniqe syntax
     # TODO, print should be treated in a special way
     specFunc["print"] := proc(expseq)
         lprint("warning, a print statement was encountered");
         return MFunction(M:-ProtectedForm("print"), embed(reduce(expseq)));
     end proc;
-    
+
     # TODO, this is not correct, because support for evaln is not there yet
     specFunc["assigned"] := proc(expseq) local val, rindex, var, index;
         if nops(expseq) <> 1 then
             error "assigned expects 1 argument, but received %1 arguments", nops(expseq);
         end if;
-        
+
         val := op(expseq); # we know that nops(expseq) = 1
-        
+
         if Header(val) = MAssignedName then
             return true;
         elif val::Global then
@@ -197,10 +199,10 @@ ReduceExp := module()
         elif val::Local then
             return env:-isAssigned(Name(val));
         elif typematch(val, MTableref('var'::mform, 'index'::mform)) then
-            
+
             rindex := [reduce(index)];
             ASSERT( nops(rindex) = 1, "table index must not be an expression sequence" );
-            
+
             if rindex::list(Static) then
                 if var::Global then
                     return genv:-isTblValAssigned(Name(var), op(rindex));
@@ -211,20 +213,20 @@ ReduceExp := module()
         end if;
         MFunction(M:-ProtectedForm("assigned"), embed(reduce(expseq)));
     end proc;
-    
-    
+
+
     specFunc["seq"] := proc(expseq) local m;
         m := MFunction( M:-ProtectedForm("seq"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
         # eval(FromInert(M:-FromM(m)));
         FromInert(M:-FromM(m));
     end proc;
-    
+
     specFunc["if"] := proc(expseq) local m;
         m := MFunction( M:-ProtectedForm("if"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
         # eval(FromInert(M:-FromM(m)));
         FromInert(M:-FromM(m));
     end proc;
-    
+
     # TODO, what to do about this?
     # specFunc_eval := n -> proc(expseq)
     #     MFunction(M:-ProtectedForm(n), MExpSeq(op(map(embed, [reduce(expseq)]))));
@@ -232,23 +234,26 @@ ReduceExp := module()
     # specFunc["eval"] := specFunc_eval("eval");
     # specFunc["evalb"] := specFunc_eval("evalb");
     # specFunc["evaln"] := specFunc_eval("evaln");
-    
+
     red[MFunction] := proc(f, expseq) local rf, re;
-        print("MFunction", args);
         if isProtectedProc(f) then
-            specFunc[Name(f)](expseq);
-        else
-            # TODO: this is wrong, if the argument list isn't static
-            # and the function name is static then we have an error
-            # all static names must be removed from the residual program
-            rf := [reduce(f)];
-            re := [reduce(expseq)];
-            if rf::list(Or('procedure','name')) and re::list(Static) then
-                op(rf)(op(re));
-            else
-                MFunction(embed(op(rf)), embed(op(re)));
+            return specFunc[Name(f)](expseq);
+        end if;
+
+        # TODO: this is wrong, if the argument list isn't static
+        # and the function name is static then we have an error
+        # all static names must be removed from the residual program
+        rf := [reduce(f)];
+        re := [reduce(expseq)];
+
+        if rf::list(Or('procedure','name')) then
+            if re::list(Static) then
+                return op(rf)(op(re))
+            elif SmartOps:-HasHandler(Name(f)) then
+                return SmartOps:-InvokeHandler(Name(f), op(re));
             end if;
         end if;
+        MFunction(embed(op(rf)), embed(op(re)));
     end proc;
 
 
@@ -267,9 +272,9 @@ ReduceExp := module()
                 return MTableref(MArgs(), embed(op(re)))
             end if;
         end if;
-    
+
         # aviod evaluating the entire table if possible
-        if re::list(Static) and tbl::mname then 
+        if re::list(Static) and tbl::mname then
             ASSERT( not tbl::mform(Catenate), "can't use MCatenate to lookup into environment" );
             if tbl::Local then
                 try
@@ -299,16 +304,16 @@ ReduceExp := module()
         end if;
     end proc;
 
-    
+
     reduceName := proc(n) local hasDyn, cc;
         if not assigned(genv) or genv:-isDynamic(n) then
             (c-> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
         else
-            `if`(hasDyn and treatAsDynamic, __F(n), 
+            `if`(hasDyn and treatAsDynamic, __F(n),
                 genv:-getVal(n, 'hasDyn') );
         end if
     end proc;
-    
+
     red[MName] := subs(__F=MName, eval(reduceName));
     red[MAssignedName] := subs(__F=MAssignedName, eval(reduceName));
 
@@ -360,14 +365,14 @@ ReduceExp := module()
             error "cannot find '%1' in lexical environment: %2", x, [op(lex)];
         end if
     end proc;
-    
+
     red[MLexicalLocal] := eval(reduceLex);
     red[MLexicalParam] := eval(reduceLex);
 
     red[MAssignedLocalName] := () -> FromInert(M:-FromM(MAssignedLocalName(args)));
     red[MLocalName] := () -> FromInert(M:-FromM(MLocalName(args)));
-    
-    
+
+
     # a closure is created
     red[MProc] := proc() local p, lexMap, newBody, newProc;
         p := MProc(args);
@@ -375,13 +380,13 @@ ReduceExp := module()
             FromInert(M:-FromM(p));
         else
             lexMap := M:-CreateLexNameMap(LexSeq(p), curry(op, 2));
-            newBody := eval(ProcBody(p), MLexicalLocal = curry(replaceClosureLexical, lexMap));        
+            newBody := eval(ProcBody(p), MLexicalLocal = curry(replaceClosureLexical, lexMap));
             newProc := subsop(5=newBody, 8=MLexicalSeq(), p);
             FromInert(M:-FromM(newProc));
         end if;
     end proc;
 
-    
+
     replaceClosureLexical := proc(lexMap, n) local closureEnv, s, lookup;
         closureEnv := callStack:-topEnv();
         s := op(n);
@@ -402,17 +407,17 @@ ReduceExp := module()
                     error "can't find lexical: %1", s;
                 end if;
             else
-                error "dynamic lexicals in closure is not supported: %1", s; 
+                error "dynamic lexicals in closure is not supported: %1", s;
             end if;
         end proc;
-              
+
         lookup := setattribute(eval(lookup,2), 'pe_thunk'); # used to identify these thunks later
-        
-        MFunction(MStatic(lookup), MExpSeq());        
+
+        MFunction(MStatic(lookup), MExpSeq());
     end proc;
-    
-    
-    red[MUneval] := proc(e) 
+
+
+    red[MUneval] := proc(e)
         if member(Header(e), {MName, MAssignedName}) then
             if type(convert(Name(e), name), protected) then
                 FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), name))));

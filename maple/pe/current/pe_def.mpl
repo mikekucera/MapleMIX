@@ -224,7 +224,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
     M:-RemoveUselessStandaloneExprs(MStatSeq(qtoseq(q)));
 end proc;
 
-pe[MRef] := proc(ref) 
+pe[MRef] := proc(ref)
     peM(ref:-code); # this means the partial evaluator removes all references
 end proc;
 
@@ -264,9 +264,9 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
 
         C1 := peM(CodeUpToPointer(thenBranch));
 
-        stopAfterC1 := M:-EndsWithErrorOrReturn(C1); 
+        stopAfterC1 := M:-EndsWithErrorOrReturn(C1);
         S := CodeBelow(thenBranch);
-        
+
         if not stopAfterC1 then
             # grow the stack again for S1
             env:-grow();
@@ -276,7 +276,7 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
             env:-pop();
             genv:-pop();
         end if;
-    
+
         # pop the effects of C1 and save
         prevTopLocal := env:-pop();
         prevTopGlobal := genv:-pop();
@@ -412,7 +412,7 @@ StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
 
     q := SimpleQueue();
 
-    return module() 
+    return module()
         local lastStmt;
         export setVal, unrollOnce, result, isLastStmtReturn;
         setVal := proc(x)
@@ -439,10 +439,10 @@ end proc;
 # will simply residualize the entire loop, but must analyze to determine
 # variables that have become dynamic
 analyzeDynamicLoopBody := proc(body::mform)
-    local notImplemented, readVar, readLocal, readGlobal, readTableref, writeVar, writeTable;
-    
+    local notImplemented, readVar, readLocal, readGlobal, readTableref, writeVar, writeTable, q;
+
     q := SimpleQueue();
-    
+
     notImplemented := () -> ERROR("non-intrinsic call in dynamic loop not supported");
     #readVar := proc(n::string, env)
         #if env:-isStatic(n) then
@@ -456,7 +456,7 @@ analyzeDynamicLoopBody := proc(body::mform)
             error "possibly static table lookup in dynamic loop, not supported yet";
         end if;
     end proc;
-    writeVar := proc(var) local env;
+    writeVar := proc(var) local env, n;
         #env := getEnv(var);
         n := Name(var);
         env := callStack:-topEnv();
@@ -482,13 +482,13 @@ analyzeDynamicLoopBody := proc(body::mform)
                 #MGeneratedName = readLocal,
                 #MSingleUse = readLocal
                 ]);
-                
+
     qtoseq(q);
 end proc;
 
 
 pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
-    local rInExp, unroller, i, rWhileExp;
+    local rInExp, unroller, i, rWhileExp, assigns, stmt;
     rInExp := ReduceExp(inExp);
     if [rInExp]::list(Static) then
         unroller := StaticLoopUnroller(loopVar, statseq);
@@ -514,11 +514,11 @@ end proc;
 
 
 pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
-    local rFromExp, rByExp, rToExp, unroller, i, rWhileExp;
+    local rFromExp, rByExp, rToExp, unroller, i, rWhileExp, assigns, stmt;
     rFromExp  := ReduceExp(fromExp);
     rByExp    := ReduceExp(byExp);
     rToExp    := ReduceExp(toExp);
-    
+
     if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop
         unroller := StaticLoopUnroller(loopVar, statseq);
 
@@ -538,9 +538,7 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
         getEnv(loopVar):-setValDynamic(Name(loopVar));
         assigns := op(map(analyzeDynamicLoopBody, [statseq, whileExp]));
         stmt := MWhileForFrom(loopVar, rFromExp, rByExp, rToExp, whileExp, peM(statseq));
-        res := `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
-        print("res", res);
-        res;
+        `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
     end if;
 end proc;
 
@@ -786,7 +784,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
                     env:-putVal(paramName, paramVal);
                     toRemove := toRemove union {paramName};
                 end if;
-            else  
+            else
                 matchedEquations := matchedEquations union {Name(op(1,reducedArg))};
                 fullCall:-enqueue(reducedArg);
                 redCall:-enqueue(reducedArg);
@@ -794,7 +792,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
         end do;
 
         # TODO, refactor this ugly code
-        for paramSpec in keywords do 
+        for paramSpec in keywords do
             if not member(Name(paramSpec), matchedEquations) then
                 tmp := SVal(ReduceExp(op(Default(paramSpec))));
                 env:-putVal(Name(paramSpec), tmp);
