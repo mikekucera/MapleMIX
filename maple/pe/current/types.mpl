@@ -12,8 +12,6 @@ PETypes := module() option package;
 # type of M forms
 `type/mform`     := curry(funcPrefixType, 'M'):
 
-`type/onenv` := '`module`'('putVal', 'getVal'):
-
 `type/Both`    := specfunc(anything, 'MBoth');
 `type/Dynamic` := And('mform', Not(specfunc(anything, 'MStatic')), Not(Both)):
 `type/Static`  := And(Not(Dynamic), Not(Both));

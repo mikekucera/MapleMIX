@@ -33,7 +33,7 @@ Try(204, env:-getTblVal("r", "y"), 2);
 
 env:-setTblValDynamic("r", "z");
 
-t := env:-getVal("r");
+t := env:-get("r");
 
 #Try[verify,table](205, t, table(["x"=1, "y"=2, "a"=15]));
 
@@ -43,7 +43,7 @@ Try(206, env:-getTblVal("r", "x"), 99);
 Try(207, env:-getTblVal("r", "z"), 25);
 Try(208, env:-getTblVal("r", "a"), 15);
 
-t2 := env:-getVal("r");
+t2 := env:-get("r");
 
 Try[verify,table](209, t2, table(["x"=99, "z"=25, "a"=15]));
 

@@ -25,7 +25,6 @@ $include "pe_reduce_smarter.mpl"
         local reduced1, reduced2, res;
         env := reductionEnv;
         PEDebug:-DisplayReduceStart(expr);
-        #print("reducing", expr);
 
         treatAsDynamic := false;
         reducedTable := false;
@@ -43,7 +42,7 @@ $include "pe_reduce_smarter.mpl"
         else
             res := reduced1;
         end if;
-
+        print("reduce", expr, "reduced", res);
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
         res;
@@ -305,42 +304,39 @@ $include "pe_reduce_smarter.mpl"
     end proc;
 
 
-    reduceName := proc(n) local hasDyn, cc;
-        if not assigned(genv) or genv:-isDynamic(n) then
+    reduceName := proc(n) local hasDyn, cc, expr;
+        if not assigned(genv) or not genv:-isGettable(n) then
             (c-> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
+        elif hasDyn and treatAsDynamic then
+            __F(n);
         else
-            `if`(hasDyn and treatAsDynamic, __F(n),
-                genv:-getVal(n, 'hasDyn') );
+            expr := genv:-get(n, 'hasDyn');
+            if expr :: Dynamic then
+                MSubst(n, expr);
+            else
+                expr
+            end if;
         end if
     end proc;
 
     red[MName] := subs(__F=MName, eval(reduceName));
     red[MAssignedName] := subs(__F=MAssignedName, eval(reduceName));
 
-    reduceVar := proc(x) local hasDyn, val;
-        userinfo(7, PE, __F);
-        if env:-isStatic(x) then
-            val := [env:-getVal(x, 'hasDyn')];
-            userinfo(7, PE, "value []", val, eval(val,1));
-            #`if`(hasDyn and treatAsDynamic, f(x), val);
+    reduceVar := proc(x) local hasDyn, expr;
+        if env:-isGettable(x) then
+            expr := [env:-get(x, 'hasDyn')];
             if hasDyn and treatAsDynamic then
                 return __F(x);
             end if;
-            if type(op(val), name) and genv:-isStatic(convert(op(val), string)) then
-                val := [genv:-getVal(convert(op(val),string), 'hasDyn')];
-                if hasDyn and treatAsDynamic then
-                    return __F(x);
-                else
-                    if type(op(val), 'table') then
-                        reducedTable := true;
-                    end if;
-                    return op(val);
+            
+            if expr :: Static then
+                if type(op(expr), 'table') then
+                    reducedTable := true;
                 end if;
+                op(expr);
+            else
+                MSubst(x, expr);
             end if;
-            if type(op(val), 'table') then
-                reducedTable := true;
-            end if;
-            op(val);
         else
             __F(x);
         end if;
@@ -393,7 +389,7 @@ $include "pe_reduce_smarter.mpl"
         lookup := proc() local lex, lexName;
             if closureEnv:-isStatic(s) then
                 # TODO, pass hasDyn to getVal?
-                closureEnv:-getVal(s);
+                closureEnv:-get(s);
             elif assigned(lexMap[s]) then
                 if closureEnv:-hasLex() then
                     lex := closureEnv:-getLex();

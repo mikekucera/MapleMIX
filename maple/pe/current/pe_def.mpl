@@ -335,23 +335,21 @@ pe[MAssign] := proc(n::mname, expr::mform)
         callStack:-setGlobalEnvUpdated(true);
     end if;
 
-    # id assign is of the form (name := name) then reduction isn't necessary
-    if expr::envname then
-        shouldResidualize := env:-bind(expr, 'newName'=var);
-        `if`(shouldResidualize, MAssign(n, expr), NULL);
-    else
-        reduced := ReduceExp(expr);
-        if reduced::Static then
-            env:-putVal(var, SVal(reduced));
-            NULL;
-        elif reduced::Dynamic then
-            env:-setValDynamic(var);
-            MAssign(n, reduced);
-        else # Both
-            env:-putVal(var, SVal(StaticPart(reduced)));
-            MAssign(n, DynamicPart(reduced));
-        end if;
+
+    reduced := ReduceExp(expr);
+    
+    if reduced::Static then
+        env:-put(var, SVal(reduced));
+        NULL;
+    elif reduced::Dynamic then
+        #env:-put(var, reduced);
+        env:-setValDynamic(var);
+        MAssign(n, reduced);
+    else # Both
+        env:-put(var, SVal(StaticPart(reduced)));
+        MAssign(n, DynamicPart(reduced));
     end if;
+
 end proc;
 
 
@@ -381,12 +379,10 @@ pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
     end if;
 
     if [rindex,rexpr]::[Static,Static] then
-userinfo(5, PE, "Static -- putting into env", SVal(rexpr));
         env:-putTblVal(var, SVal(rindex), SVal(rexpr));
         NULL;
 
     elif [rindex,rexpr]::[Static,Both] then
-userinfo(5, PE, "Both -- putting into env", SVal(StaticPart(rexpr)));
         env:-putTblVal(var, SVal(rindex), SVal(StaticPart(rexpr)));
         MAssignTableIndex(subsop(2=rindex, tr), SVal(StaticPart(rexpr)));
 
@@ -457,14 +453,13 @@ analyzeDynamicLoopBody := proc(body::mform)
         end if;
     end proc;
     writeVar := proc(var) local env, n;
-        #env := getEnv(var);
         n := Name(var);
         env := callStack:-topEnv();
         if env:-isStatic(n) then # cant be assignments to parameters anyways
-            q:-enqueue(MAssign(MLocal(n), embed(env:-getVal(n))));
+            q:-enqueue(MAssign(MLocal(n), embed(env:-get(n))));
             env:-setValDynamic(n);
         elif genv:-isStatic(n) then # just make it a name
-            q:-enqueue(MAssign(MName(n), embed(genv:-getVal(n))));
+            q:-enqueue(MAssign(MName(n), embed(genv:-get(n))));
             env:-setValDynamic(n);
         end if;
     end proc;
@@ -611,10 +606,10 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
             assign := op(flattened);
             expr := op(2, assign);
             if expr::Static then
-                callStack:-topEnv():-putVal(Name(var), SVal(expr));
+                callStack:-topEnv():-put(Name(var), SVal(expr));
                 return NULL;
             elif expr::Both then
-                callStack:-topEnv():-putVal(Name(var), SVal(StaticPart(expr)));
+                callStack:-topEnv():-put(Name(var), SVal(StaticPart(expr)));
             end if;
         end if;
         flattened;
@@ -627,7 +622,7 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
 
     # TODO, symbolic is bad name, change to something that has to do with static
     symbolic := proc(s)
-        callStack:-topEnv():-putVal(Name(var), SVal(s));
+        callStack:-topEnv():-put(Name(var), SVal(s));
         NULL;
     end proc;
 
@@ -735,7 +730,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
        	                if not checkParameterTypeAssertion(val, paramSpec) then
        	                    val := [getParameterDefault(paramSpec)];
        	                end if;
-       	                env:-putVal(Name(paramSpec), op(val));#`if`(type(val,last_name_eval),eval(val),val));
+       	                env:-put(Name(paramSpec), op(val));#`if`(type(val,last_name_eval),eval(val),val));
        	                toRemove := toRemove union `if`(reduced::Both, {}, {Name(paramSpec)});
        	            end if;
        	            env:-putArgsVal(i, op(val));
@@ -781,7 +776,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
                         error "invalid input: option `%1` expected to be of type %2, but received %3",
                               paramName, op(t), paramVal;
                     end if;
-                    env:-putVal(paramName, paramVal);
+                    env:-put(paramName, paramVal);
                     toRemove := toRemove union {paramName};
                 end if;
             else
@@ -795,7 +790,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
         for paramSpec in keywords do
             if not member(Name(paramSpec), matchedEquations) then
                 tmp := SVal(ReduceExp(op(Default(paramSpec))));
-                env:-putVal(Name(paramSpec), tmp);
+                env:-put(Name(paramSpec), tmp);
             end if;
         end do
     end if;
@@ -977,7 +972,7 @@ peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argList
     # create static locals
     for loc in Locals(m) do
         varName := Var(loc);
-        env:-putVal(varName, convert(varName, '`local`'));
+        env:-put(varName, convert(varName, '`local`'));
     end do;
 
     body := M:-AddImplicitReturns(ProcBody(m)); # if a block ends with an assignment

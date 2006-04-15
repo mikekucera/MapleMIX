@@ -85,7 +85,8 @@ FromM := module()
 
     inrt[MName]         := _Inert_NAME @ mapmtoi;
     inrt[MAssignedName] := _Inert_ASSIGNEDNAME @ mapmtoi;
-
+    inrt[MSubst] := proc(n) n end proc;
+    
     inrt[MMember]    := _Inert_MEMBER    @ mapmtoi;
     inrt[MAttribute] := _Inert_ATTRIBUTE @ mapmtoi;
 

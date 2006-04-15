@@ -7,7 +7,7 @@ SmartOps := module()
 
     HasHandler := n -> assigned(handler[n]);
 
-    InvokeHandler := proc(n::string, arg::mform(ExpSeq))
+    InvokeHandler := proc(n::string, arg::mform(ExpSeq)) local res;
         # will always be one argument because its dynamic
         ASSERT( assigned(handler[n]) );
         res := handler[n](arg);
