@@ -56,7 +56,7 @@ Unfold := module()
             paramName := op([i,1], params);
             # variables can be substituted directly without fear of duplication
             # TODO, this won't be needed if we go to a general purpose copy propagator
-            if member(header, {MParam, MLocal}) then
+            if member(header, {MParam, MLocal, MSubst}) then
                 body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
             else
                 # TODO, this is a redundant check, remove eventually

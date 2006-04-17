@@ -42,7 +42,7 @@ $include "pe_reduce_smarter.mpl"
         else
             res := reduced1;
         end if;
-        print("reduce", expr, "reduced", res);
+        #print("reduce", expr, "reduced", res);
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
         res;
@@ -329,13 +329,13 @@ $include "pe_reduce_smarter.mpl"
                 return __F(x);
             end if;
             
-            if expr :: Static then
+            if expr :: list(Static) then
                 if type(op(expr), 'table') then
                     reducedTable := true;
                 end if;
                 op(expr);
             else
-                MSubst(x, expr);
+                MSubst(__F(x), op(expr));
             end if;
         else
             __F(x);

@@ -168,6 +168,7 @@ $include "access.mpl"
     IsNoOp := proc(m::mform)
         m = MStatSeq() or 
         m = MStatSeq(MStandaloneExpr(MExpSeq())) or
+        m = MStatSeq(MStandaloneExpr(MStatic())) or
         m = MStatSeq(MStatSeq()) or
         m = MStatSeq(MExpSeq()) or
         m = MStatSeq(MStatSeq(MExpSeq()))

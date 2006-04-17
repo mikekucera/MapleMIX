@@ -69,7 +69,8 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
 
     try
         specializedProcs["ModuleApply"] := peFunction_GenerateNewSpecializedProc(m, "ModuleApply");
-        Lifter:-LiftPostProcess(specializedProcs);
+        ##Lifter:-LiftPostProcess(specializedProcs);
+        specializedProcs;
     catch "debug":
         lprint("debug session exited");
         lprint(PEDebug:-GetStatementCount(), "statements partially evaluated");
@@ -342,8 +343,8 @@ pe[MAssign] := proc(n::mname, expr::mform)
         env:-put(var, SVal(reduced));
         NULL;
     elif reduced::Dynamic then
-        #env:-put(var, reduced);
-        env:-setValDynamic(var);
+        env:-put(var, reduced);
+        #env:-setValDynamic(var);
         MAssign(n, reduced);
     else # Both
         env:-put(var, SVal(StaticPart(reduced)));
@@ -397,38 +398,7 @@ pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
 end proc;
 
 
-# returns an object that can be used to unroll the body of a loop
-StaticLoopUnroller := proc(loopVar, statseq) :: `module`;
-    local env, loopVarName, q;
-    env := callStack:-topEnv();
-    if loopVar <> MExpSeq() then
-        loopVarName := Name(loopVar);
-        env:-setLoopVar(loopVarName);
-    end if;
 
-    q := SimpleQueue();
-
-    return module()
-        local lastStmt;
-        export setVal, unrollOnce, result, isLastStmtReturn;
-        setVal := proc(x)
-            if assigned(loopVarName) then
-                env:-putLoopVarVal(loopVarName, x);
-            end if;
-        end proc;
-        unrollOnce := proc() local res; # pass in the loop index
-            lastStmt := peM(statseq);
-            if lastStmt <> NULL then
-                q:-enqueue(lastStmt);
-            end if;
-        end proc;
-        isLastStmtReturn := proc()
-            print("lastStmt", lastStmt);
-            assigned(lastStmt) and Header(op(-1, lastStmt)) = MReturn;
-        end proc;
-        result := () -> MStatSeq(qtoseq(q));
-    end module;
-end proc;
 
 
 # very conservative approach to dynamic loops
@@ -481,23 +451,68 @@ analyzeDynamicLoopBody := proc(body::mform)
     qtoseq(q);
 end proc;
 
+# returns an object that can be used to unroll the body of a loop
+StaticLoopUnroller := proc(loopVar, statseq, whileExp) :: `module`;
+    local env, loopVarName, q;
+    env := callStack:-topEnv();
+    if loopVar <> MExpSeq() then
+        loopVarName := Name(loopVar);
+        env:-setLoopVar(loopVarName);
+    end if;
 
-pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
-    local rInExp, unroller, i, rWhileExp, assigns, stmt;
-    rInExp := ReduceExp(inExp);
-    if [rInExp]::list(Static) then
-        unroller := StaticLoopUnroller(loopVar, statseq);
-        for i in SVal(rInExp) do
-            unroller:-setVal(i);
+    q := SimpleQueue();
+
+    return module()
+        local lastStmt;
+        export setVal, unrollOnce, result, isLastStmtReturn;
+
+        unrollOnce := proc(loopVarVal) local rWhileExp, res; # pass in the loop index
+            # set the loop variable if it exists
+            if assigned(loopVarName) then
+                env:-put(loopVarName, msop(loopVarVal), 'loopVarSet'=true);
+            end if;
+            # reduce the while condition, it can't be dynamic
             rWhileExp := ReduceExp(whileExp);
             if rWhileExp::Or(Dynamic,Both) then
                 error "dynamic while condition not supported: %1", rWhileExp;
             end if;
-            if not SVal(rWhileExp) then break end if;
-            unroller:-unrollOnce();
-            if unroller:-isLastStmtReturn() then break end if;
+            # check the while condition
+            if not SVal(rWhileExp) then 
+                return false;
+            end if;
+            # unroll loop once
+            lastStmt := peM(statseq);
+            if lastStmt <> NULL then
+                q:-enqueue(lastStmt);
+            end if;
+            # stop if it ends with a return
+            if assigned(lastStmt) and Header(op(-1, lastStmt)) = MReturn then 
+                return false 
+            end if;
+            return true;
+        end proc;
+        
+        result := () -> MStatSeq(qtoseq(q));
+    end module;
+end proc;
+
+
+pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
+    local rInExp, rWhileExp, assigns, stmt, unroll;
+    rInExp := ReduceExp(inExp);
+    
+    unroll := proc(expr) local unroller, i;
+        unroller := StaticLoopUnroller(loopVar, statseq, whileExp);
+        for i in expr do
+            if not unroller:-unrollOnce(i) then break end if;
         end do;
         return unroller:-result();
+    end proc;
+    
+    if [rInExp]::list(Static) or Header(rInExp) = MList then
+        unroll(op(rInExp));
+    #elif Header(rInExp) = MSubst and Header(DynExpr(rInExp)) = MList then
+    #    unroll(op(DynExpr(rInExp)));
     else
         # need to do this because unassigned locals are considered static
         getEnv(loopVar):-setValDynamic(Name(loopVar));
@@ -516,16 +531,8 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
 
     if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop
         unroller := StaticLoopUnroller(loopVar, statseq);
-
         for i from SVal(rFromExp) by SVal(rByExp) to SVal(rToExp) do
-            unroller:-setVal(i);
-            rWhileExp := ReduceExp(whileExp);
-            if rWhileExp::Or(Dynamic,Both) then
-                error "dynamic while condition not supported: %1", rWhileExp;
-            end if;
-            if not SVal(rWhileExp) then break end if;
-            unroller:-unrollOnce();
-            if unroller:-isLastStmtReturn() then break end if;
+            if not unroller:-unrollOnce(i) then break end if;
         end do;
         unroller:-result();
     else
@@ -536,6 +543,8 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
         `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
     end if;
 end proc;
+
+
 
 pe[MWhile] := proc()
     error "While loops are not supported";

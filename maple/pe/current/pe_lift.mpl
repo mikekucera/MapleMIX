@@ -1,4 +1,5 @@
 
+# TODO: get rid of this whole module, its totally useless
 Lifter := module()
     local gen;
     export LiftExp, LiftPostProcess, liftStat, liftExp, liftTable, liftStatic;
@@ -78,6 +79,8 @@ Lifter := module()
             MTableref(lift(t), MExpSeq(lift(i)));
         elif typematch(exp, MFunction('s'::anything, 'e'::anything)) then
             MFunction(lift(s), MExpSeq(lift(e)));
+        elif typematch(exp, MSubst('n'::anything, 'e'::anything)) then
+            MSubst(n, lift(e));
         elif exp::Dynamic then
             map(lift, exp);
         else

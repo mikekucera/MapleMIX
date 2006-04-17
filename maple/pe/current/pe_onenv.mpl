@@ -10,12 +10,12 @@ OnENV := module()
             local 
                 ss, mapAddressToTable, prevEnvLink,
                 newSetting, doPutVal, rebuildTable, newTableRecord,
-                lex, nargsVal, isTblVal, 
+                lex, nargsVal, isTblVal, isSetting,
                 hasDynamicPart, isAlreadyDynamic,
                 putStatic, putDynamic, putTable;
             export 
                 setLink, grow, pop, equalsTop,
-                get, put, putLoopVarVal, setLoopVar,
+                get, put, setLoopVar,
                 getArgsVal, getArgs, hasArgsVal, putArgsVal, setValDynamic, 
                 isStatic, isStaticVal, isStaticTable, isDynamic, isAssigned, isGettable,
                 isTblValStatic, isTblValAssigned,
@@ -169,16 +169,10 @@ OnENV := module()
                 end do;
             end proc;
             
-            
-            putLoopVarVal := proc(key::Not(mform), x)
-                ASSERT( nargs = 2, "wrong number of args to putLoopVarVal" );
-                putStaticVal(key,x);
-            end proc;
-            
-            put := proc(key::Not(mform), x) local setting;
-                ASSERT( nargs = 2 , "wrong number of args to putVal");
+
+            put := proc(key::Not(mform), x, {loopVarSet := false}) local setting;
                 setting := ss:-top();
-                if member(key, setting:-loopvars) then
+                if not loopVarSet and member(key, setting:-loopvars) then
                     error "assignement to for loop index variable not supported: %1", key;
                 end if;
                 
@@ -186,8 +180,10 @@ OnENV := module()
                     putTable(key, x)
                 elif x::Dynamic then
                     putDynamic(key, x)
-                else
+                elif x::Static then
                     putStatic(key, x)
+                else 
+                    error "Unsupported binding time";
                 end if;
                 NULL;
             end proc;
@@ -233,17 +229,13 @@ OnENV := module()
             
             
             putDynamic := proc(key, x) local setting;
-                error "putDynamic: not yet!";
+                #error "putDynamic: not yet!";
                 setting := ss:-top();
                 setting:-vals[key] := 'setting:-vals[key]'; #unassign
                 setting:-tbls[key] := 'setting:-tbls[key]'; #unassign
                 setting:-mask := setting:-mask minus {key};
                 
-                #if assigned(setting:-dyn[key]) then
-                    # avoid redundant mappings
-                #else
-                    setting:-dyn[key] := x;
-                #end if;
+                setting:-dyn[key] := substop(x);
             end proc;
             
             
@@ -334,71 +326,65 @@ OnENV := module()
             end proc;  
 
             
-            findSetting := proc(key::Not(mform), 
-                              itsdynamic::procedure := (() -> args), 
-                              itsstatic::procedure := (() -> args), 
-                              {considerTables := true},
-                              {considerVals := true})
+            findSetting := proc(key::Not(mform))
                 local iter, setting;
                 iter := ss:-topDownIterator();
                 while iter:-hasNext() do
                     setting := iter:-getNext();
-                    if assigned(setting:-dyn[key]) or member(key, setting:-mask) then
-                        return itsdynamic(setting)
-                    elif considerTables and assigned(setting:-tbls[key]) then
-                        return itsstatic(setting)
-                    elif considerVals and assigned(setting:-vals[key]) then
-                        return itsstatic(setting)
+                    if assigned(setting:-dyn[key]) 
+                    or assigned(setting:-tbls[key])
+                    or assigned(setting:-vals[key]) then
+                        return setting;
                     end if;
                 end do;
                 error "unassigned value %1", key;
             end proc;
             
+            isSetting := proc(key::Not(mform), 
+                              itsdynamic::boolean, itsmask::boolean, itsstatic::boolean, notfound::boolean,
+                              {considerTables := true}, {considerVals := true})
+                local iter, setting;
+                iter := ss:-topDownIterator();
+                while iter:-hasNext() do
+                    setting := iter:-getNext();
+                    if assigned(setting:-dyn[key]) then
+                        return itsdynamic;
+                    elif member(key, setting:-mask) then
+                        return itsmask;
+                    elif considerTables and assigned(setting:-tbls[key]) then
+                        return itsstatic;
+                    elif considerVals and assigned(setting:-vals[key]) then
+                        return itsstatic;
+                    end if;
+                end do;
+                return notfound;
+            end proc;
+            
             
             isStatic := proc(key)
-                findSetting(key, () -> false, () -> true);
+                isSetting(key, false, false, true, false);
             end proc;
             
             isDynamic := `not` @ isStatic;
             
             isStaticVal := proc(key)
-                findSetting(key, () -> false, () -> true, considerTables = false);
+                isSetting(key, false, false, true, false, considerTables = false);
             end proc;
             
             isStaticTable := proc(key)
-                findSetting(key, () -> false, () -> true, considerVals = false);
+                isSetting(key, false, false, true, false, considerVals = false);
             end proc;
             
-            # even though the value if a variable is dynamic we can know
-            # statically if it is assigned or not
-            isAssigned := proc(key) local iter, setting;
-                iter := ss:-topDownIterator();
-                while iter:-hasNext() do
-                    setting := iter:-getNext();
-                    if assigned(setting:-dyn[key]) 
-                    or member(key, setting:-mask) 
-                    or assigned(setting:-tbls[key])
-                    or assigned(setting:-vals[key]) then
-                        return true;
-                    end if;
-                end do;
-                return false;
+            isAssigned := proc(key)
+                isSetting(key, true, true, true, false);
             end proc;
-            
-            isGettable := proc(key) local iter, setting;
-                iter := ss:-topDownIterator();
-                while iter:-hasNext() do
-                    setting := iter:-getNext();
-                    if assigned(setting:-dyn[key]) 
-                    or assigned(setting:-tbls[key])
-                    or assigned(setting:-vals[key]) then
-                        return true;
-                    end if;
-                end do;
-                return false;
-            end proc;
-            
 
+            
+            isGettable := proc(key) 
+                isSetting(key, true, false, true, false);
+            end proc;
+            
+            
 ##########################################################################################
 
             # precondition, isStatic(table) = true

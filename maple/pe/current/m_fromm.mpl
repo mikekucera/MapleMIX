@@ -61,10 +61,12 @@ FromM := module()
     inrt['Integer'] := () -> args;
     
     inrt[MStatic] := proc()
-        if nargs = 1 then
+        if nargs > 1 then
+            _Inert_EXPSEQ( op(map(_Inert_VERBATIM, [args])) );
+        elif nargs = 1 then
             _Inert_VERBATIM(args);
         else
-            error "MStatic should only contain one operand";
+            _Inert_EXPSEQ();
         end if;
     end proc;
     
@@ -85,7 +87,7 @@ FromM := module()
 
     inrt[MName]         := _Inert_NAME @ mapmtoi;
     inrt[MAssignedName] := _Inert_ASSIGNEDNAME @ mapmtoi;
-    inrt[MSubst] := proc(n) n end proc;
+    inrt[MSubst] := proc(n) mtoi(n) end proc;
     
     inrt[MMember]    := _Inert_MEMBER    @ mapmtoi;
     inrt[MAttribute] := _Inert_ATTRIBUTE @ mapmtoi;
@@ -288,6 +290,8 @@ FromM := module()
 
     
     inrt[MIfThenElse] := proc(c, s1, s2)
+        print("MIfThenElse", s2);
+        print();
         if IsNoOp(s1) and IsNoOp(s2) then
             _Inert_EXPSEQ();
         elif IsNoOp(s2) then

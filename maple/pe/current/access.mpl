@@ -40,6 +40,8 @@ CodeBelow := proc(branch)
 end proc;
 
 
+# for MSubst
+DynExpr := proc(x) option inline; op(2,x) end proc;
 
 # for MTableRef
 Tbl      := proc(x) option inline; op(1,x) end proc;
@@ -96,4 +98,11 @@ esop := proc(x::mform(ExpSeq)) local res;
     else
         res;
     end if;
+end proc;
+
+# if the argument is an MSubst then the dynamic expression is returned
+substop := x -> `if`(Header(x) = MSubst, DynExpr(x), x);
+
+msop := proc(x) option inline;
+    `if`(op(0,x)=MStatic, op(x), x);
 end proc;
