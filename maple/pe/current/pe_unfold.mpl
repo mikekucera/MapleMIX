@@ -39,7 +39,7 @@ Unfold := module()
     # the static ones should have been removed.
     UnfoldStandalone := proc(specProc::mform(Proc), specCall::mform(ExpSeq),
                              fullCall::mform(ExpSeq), genVarName) :: mform(StatSeq);
-        local body, params, let, lets, i, header, paramName, letArgs, newNames, 
+        local body, params, let, lets, i, header, paramName, letArgs, newNames,
               letNargs, argsName, nargsName, argExpr;
         body := M:-TransformIf:-TransformToReturnNormalForm(ProcBody(specProc));
         params := Params(specProc);
@@ -59,12 +59,8 @@ Unfold := module()
             if member(header, {MParam, MLocal, MSubst}) then
                 body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
             else
-                # TODO, this is a redundant check, remove eventually
-                if isPossibleExpSeq(argExpr) then
-                    error "cannot let-insert a dynamic expression if it could possibly be an expression sequence";
-                end if;
                 let := MAssign(MGeneratedName(newNames[paramName]), argExpr);
-                lets:-enqueue(let);                
+                lets:-enqueue(let);
             end if;
             i := i + 1;
         end do;
@@ -102,7 +98,7 @@ Unfold := module()
         local newbody, last;
         newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
         newbody := M:-FlattenStatSeq(newbody);
-        
+
         last  := Last(newbody);
         #if Header(last) = MStandaloneExpr then
         if member(Header(last), {MStandaloneExpr, MStandaloneFunction}) then
@@ -143,7 +139,7 @@ Unfold := module()
 
 	        elif h = MStandaloneFunction then
 	            MAssignToFunction(var, MFunction(op(c)));
-	            
+
             elif typematch(c, MTry('t'::anything, 'cs'::anything, 'f'::anything)) then
                 MTry(procname(t), procname(cs), MFinally(procname(op(f))));
 

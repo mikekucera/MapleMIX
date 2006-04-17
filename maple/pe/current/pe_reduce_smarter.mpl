@@ -26,23 +26,12 @@ SmartOps := module()
     end proc;
 
     handler["op"] := proc(expseq) local num, data, res;
-        print();
-        print("handler op", args);
         num := op(1, expseq);
         if num::MStatic('integer') then
-            print("here1");
             num := op(num);
-            print("num", op(num));
-
             data := substop(op(2, expseq));
-            print("data", data);
-            print("expr", nops(op(data)));
-
             if Header(data) = MList and num <= nops(op(data)) then
-
-                print("here2");
                 res := op(num, op(data));
-                print("res", res);
                 `if`(res::Static, op(res), res);
             end if;
         end if;

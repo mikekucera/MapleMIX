@@ -19,6 +19,7 @@ $include "access_header.mpl"
     peFunction_SpecializeThenDecideToUnfold,
     peFunction_GenerateNewSpecializedProc,
     analyzeDynamicLoopBody, getCallSignature,
+    replaceLocalsWithNewParams,
 
     # module local variables
     callStack,         # callStack grows by one OnENV for every function specialization
@@ -668,53 +669,48 @@ getParameterDefault := proc(paramSpec::mform(ParamSpec)) local default, value;
 end proc;
 
 
-isPossibleExpSeq := proc(exp::Dynamic)
-    # returns true if a dynamic argument could possibly be an expression sequence
-    gopts:-getConsiderExpseq() and Header(exp) <> MParam
+# Removes locals from a dynamic expression and replaces them with new
+# generated parameter names.
+# Used to propagate dynamic expressions into the new environment of a function.
+replaceLocalsWithNewParams := proc(replacements, expr::Dynamic) local loc;
+    loc := f -> proc(n) local newParam;
+        if assigned(replacements[f(n)]) then
+            MParam(replacements[f(n)]);
+        else
+            newParam := gen(n);
+            replacements[f(n)] := MParam(newParam);
+            MParam(newParam);
+        end if;
+    end proc;
+    eval(expr, [MLocal=loc(MLocal), MParam=loc(MParam)]);
 end proc;
 
 
 # returns an environment where static parameters are mapped to their static values
 # as well as the static calls that will be residualized if the function is not unfolded
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
-    local env, fullCall, redCall, numParams, possibleExpSeqSeen, equationArgs, toRemove, i, t, f,
+    local env, fullCall, redCall, numParams, equationArgs, toRemove, i, t, f,
           reduced, staticPart, val, toEnqueue, paramName, paramVal, paramSpec, reducedArgs, eqn,
-          reducedArg, arg, tmp, shouldResidualize, matchedEquations;
+          reducedArg, arg, tmp, shouldResidualize, matchedEquations,
+          locals, params, toExpSeq, loc, newParams;
 
     env := OnENV(); # new env for function call
     env:-setLink(callStack:-topEnv());
 
    	fullCall := SimpleQueue(); # residual function call including statics
    	redCall  := SimpleQueue(); # residual function call without statics
-   	#argsTbl := table(); # mappings for args
-
    	numParams := nops(paramSeq);
-   	possibleExpSeqSeen := false;
+   	#possibleExpSeqSeen := false;
    	# table that remembers if an argument expression was a MEquation
    	equationArgs := {}; # set(integer)
    	toRemove := {}; # set of parameter names to be removed from the parameter sequence
     i := 1; # value of i will not be used if possibleExpSeqSeen is true
 
+    newParams := table([]); # maps replaced locals in dynamic expressions
+
    	# loop over expressions in function call
    	for arg in argExpSeq do
-
-   	    #if not possibleExpSeqSeen and arg::envname and getEnv(arg):-isStaticTable(Name(arg)) then
-   	    #    paramName := `if`(i <= numParams, Name(op(i, paramSeq)), NULL);
-   	    #    shouldResidualize := env:-bind(arg, 'environ'=getEnv(arg), 'newName'=paramName, 'argNum'=i);
-   	    #    if true then #if shouldResidualize then
-   	    #        print("redcall");
-   	    #        redCall:-enqueue(arg);
-   	    #        fullCall:-enqueue(arg);
-   	    #    else
-   	    #        toRemove := toRemove union {paramName};
-   	    #        # ??? fullCall:-enqueue(???);
-   	    #    end if;
-   	    #
-   	    #    i := i + 1;
-   	    #    next;
-   	    #end if;
-
-   	    reduced := ReduceExp(arg);
+        reduced := ReduceExp(arg);
    	    if reduced::Both and nops(StaticPart(reduced)) <> 1 then
    	        error "cannot reliably match up parameters";
    	    end if;
@@ -727,91 +723,88 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	        for val in map(() -> [args], staticPart) do
    	            toEnqueue := `if`(reduced::Both, DynamicPart(reduced), embed(op(val)));
    	            fullCall:-enqueue(toEnqueue);
-   	            if possibleExpSeqSeen or reduced::Both then
+   	            if reduced::Both then
    	                redCall:-enqueue(toEnqueue);
    	            end if;
-   	            if not possibleExpSeqSeen then
-   	                # we can still match up args to params
-   	                # remember if this arg was coded directly as an equation
-   	                equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
-       	            if i <= numParams then
-       	                paramSpec := op(i, paramSeq);
-       	                if not checkParameterTypeAssertion(val, paramSpec) then
-       	                    val := [getParameterDefault(paramSpec)];
-       	                end if;
-       	                env:-put(Name(paramSpec), op(val));#`if`(type(val,last_name_eval),eval(val),val));
+                # remember if this arg was coded directly as an equation
+                equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
+                if i <= numParams then
+                    paramSpec := op(i, paramSeq);
+                    if not checkParameterTypeAssertion(val, paramSpec) then
+                        val := [getParameterDefault(paramSpec)];
+                    end if;
+                    env:-put(Name(paramSpec), op(val));#`if`(type(val,last_name_eval),eval(val),val));
        	                toRemove := toRemove union `if`(reduced::Both, {}, {Name(paramSpec)});
-       	            end if;
-       	            env:-putArgsVal(i, op(val));
-       	            i := i + 1;
-       	        end if;
+                end if;
+                env:-putArgsVal(i, op(val));
+                i := i + 1;
        	    end do;
 
    	    else # dynamic
    	        fullCall:-enqueue(reduced);
             redCall:-enqueue(reduced);
-            if isPossibleExpSeq(reduced) then
-                possibleExpSeqSeen := true;
-            else
-                equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
-                i := i + 1;
-            end if;
+            equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
+            #env:-put(Name(op(i, paramSeq)), replaceLocalsWithNewParams(newParams, reduced));
+            i := i + 1;
    	    end if;
    	end do;
 
-   	if possibleExpSeqSeen and nops(keywords) > 0 then
-        error "the partial evaluator must be able to statically resolve all keyword arguments";
-   	end if;
-
    	matchedEquations := {};
     # match up keyword arguments
-    if not possibleExpSeqSeen then
-        env:-setNargs(i-1);
-        # loop over arguments which are unmatched
-        reducedArgs := fullCall:-toList();
-        for i from numParams+1 to fullCall:-length() do # loop over arguments that haven't been matched
-            if not member(i, equationArgs) then next end if; # skip if its not an equation
-            reducedArg := reducedArgs[i]; # get the reduced form of the argument
-            if reducedArg::Static then
-                eqn := SVal(reducedArg);
-                paramName := convert(lhs(eqn), string);
-                matchedEquations := matchedEquations union {paramName};
-                paramVal  := rhs(eqn);
-                paramSpec := op(select(k -> Name(k) = paramName, keywords)); # find the matching paramspec
-                if paramSpec <> NULL then
-                    t := TypeAssertion(paramSpec);
-                    if nops(t) > 0 and not type(paramVal, op(t)) then
-                        #TODO, perhaps embed an error in the code?
-                        error "invalid input: option `%1` expected to be of type %2, but received %3",
-                              paramName, op(t), paramVal;
-                    end if;
-                    env:-put(paramName, paramVal);
-                    toRemove := toRemove union {paramName};
+    #if not possibleExpSeqSeen then
+    env:-setNargs(i-1);
+    # loop over arguments which are unmatched
+    reducedArgs := fullCall:-toList();
+    for i from numParams+1 to fullCall:-length() do # loop over arguments that haven't been matched
+        if not member(i, equationArgs) then next end if; # skip if its not an equation
+        reducedArg := reducedArgs[i]; # get the reduced form of the argument
+        if reducedArg::Static then
+            eqn := SVal(reducedArg);
+            paramName := convert(lhs(eqn), string);
+            matchedEquations := matchedEquations union {paramName};
+            paramVal  := rhs(eqn);
+            paramSpec := op(select(k -> Name(k) = paramName, keywords)); # find the matching paramspec
+            if paramSpec <> NULL then
+                t := TypeAssertion(paramSpec);
+                if nops(t) > 0 and not type(paramVal, op(t)) then
+                    #TODO, perhaps embed an error in the code?
+                    error "invalid input: option `%1` expected to be of type %2, but received %3",
+                    paramName, op(t), paramVal;
                 end if;
-            else
-                matchedEquations := matchedEquations union {Name(op(1,reducedArg))};
-                fullCall:-enqueue(reducedArg);
-                redCall:-enqueue(reducedArg);
+                env:-put(paramName, paramVal);
+                toRemove := toRemove union {paramName};
             end if;
-        end do;
+        else
+            matchedEquations := matchedEquations union {Name(op(1,reducedArg))};
+            fullCall:-enqueue(reducedArg);
+            redCall:-enqueue(reducedArg);
+        end if;
+    end do;
 
-        # TODO, refactor this ugly code
-        for paramSpec in keywords do
-            if not member(Name(paramSpec), matchedEquations) then
-                tmp := SVal(ReduceExp(op(Default(paramSpec))));
-                env:-put(Name(paramSpec), tmp);
-            end if;
-        end do
-    end if;
+    # TODO, refactor this ugly code
+    for paramSpec in keywords do
+        if not member(Name(paramSpec), matchedEquations) then
+            tmp := SVal(ReduceExp(op(Default(paramSpec))));
+            env:-put(Name(paramSpec), tmp);
+        end if;
+    end do;
 
-    #env:-setArgs(argsTbl);
-    f := MExpSeq @ qtoseq;
+    locals := SimpleQueue();
+    params := SimpleQueue();
+    for loc in keys(newParams) do
+        locals:-enqueue(loc);
+        params:-enqueue(newParams[loc]);
+    end do;
+
+    toExpSeq := proc(q) # inserts the needed locals into the beginning of the call
+        MExpSeq(qtoseq(locals), qtoseq(q));
+    end proc;
 
     # return results as a record just so its more organized
     Record('newEnv'=env, # environment mapping parameter names to static values
-           'reducedCall'=f(redCall),  # the reduced call to be residualized if the proc is not unfolded
-           'allCall'=f(fullCall), # the call but with static arguments still in their place
-           'possibleExpSeq'=possibleExpSeqSeen,# true iff there is the possibility that one of the dynamic arguments could be and expression sequence
+           'reducedCall'=toExpSeq(redCall),  # the reduced call to be residualized if the proc is not unfolded
+           'allCall'=toExpSeq(fullCall), # the call but with static arguments still in their place
+           'addParams'=[qtoseq(params)],
            'removeParams'=toRemove); # parameters to remove from the parameter sequence
 end proc;
 
@@ -970,7 +963,7 @@ end proc;
 # takes inert specializedProcs and assumes static variables are on top of callStack
 # called before unfold
 peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argListInfo) :: mform(Proc);
-    local env, lexMap, loc, varName, body, newProc, p, newParams, newKeywords;
+    local env, lexMap, loc, varName, body, newProc, p, newParams, newKeywords, toParamSpec;
     # attach lexical environment
     env := callStack:-topEnv();
     if not env:-hasLex() then
@@ -995,7 +988,8 @@ peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argList
         # This needs to be here because SetArgsFlags is called after partial evaluation of body of proc
         #p := x -> env:-isDynamic(Name(x));
         p := x -> member(Name(x), argListInfo:-removeParams);
-        newParams   := remove(p, Params(m));
+        toParamSpec := n -> MParamSpec(op(n), MType(), MDefault());
+        newParams   := MParamSeq(op(map(toParamSpec, argListInfo:-addParams)), op(remove(p, Params(m))));
         newKeywords := remove(p, Keywords(m));
         newProc := subsop(1=newParams, 11=newKeywords, newProc);
     end if;
