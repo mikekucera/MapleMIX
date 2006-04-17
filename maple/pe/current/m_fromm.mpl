@@ -1,18 +1,18 @@
 
 FromM := module()
-    export 
+    export
         ModuleApply;
-    local 
+    local
         inrt, mtoi, mtoi2, mapmtoi,
         createParamMap, createLocalMappingFunctions, replaceLexical,
         singleAssigns, mapStack, inertNull, condpair;
 
     inertNull := _Inert_ASSIGNEDNAME("NULL", "EXPSEQ", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected")))));
-        
+
     inrt := table();
     mtoi, mtoi2, mapmtoi := createTableProcs("FromM", inrt);
 
-    
+
     ModuleApply := proc(code::mform) local res;
         singleAssigns := table();
         mapStack := SimpleStack();
@@ -59,7 +59,7 @@ FromM := module()
 
     inrt['string']  := () -> args;
     inrt['Integer'] := () -> args;
-    
+
     inrt[MStatic] := proc()
         if nargs > 1 then
             _Inert_EXPSEQ( op(map(_Inert_VERBATIM, [args])) );
@@ -69,17 +69,17 @@ FromM := module()
             _Inert_EXPSEQ();
         end if;
     end proc;
-    
+
     inrt[MBoth] := proc(s, d)
         mtoi(d);
     end proc;
-    
-    
+
+
     inrt[MarkedLambda] := proc()
         error "(FromM) MarkedLambda should have been removed by ToM";
     end proc;
 
-    
+
     inrt[MParam]     := n -> _Inert_PARAM(mapStack:-top()['params'](n));
     inrt[MLocal]     := n -> _Inert_LOCAL(mapStack:-top()['locals'](n));
     inrt[MLocalName]         := _Inert_LOCALNAME @ mapmtoi;
@@ -88,7 +88,7 @@ FromM := module()
     inrt[MName]         := _Inert_NAME @ mapmtoi;
     inrt[MAssignedName] := _Inert_ASSIGNEDNAME @ mapmtoi;
     inrt[MSubst] := proc(n) mtoi(n) end proc;
-    
+
     inrt[MMember]    := _Inert_MEMBER    @ mapmtoi;
     inrt[MAttribute] := _Inert_ATTRIBUTE @ mapmtoi;
 
@@ -126,7 +126,7 @@ FromM := module()
     inrt[MUneval]  := _Inert_UNEVAL  @ mapmtoi;
     inrt[MRange]   := _Inert_RANGE   @ mapmtoi;
     inrt[MInequat] := _Inert_INEQUAT @ mapmtoi;
-    
+
 
     inrt[MParamSeq]       := _Inert_PARAMSEQ       @ mapmtoi;
     inrt[MLocalSeq]       := _Inert_LOCALSEQ       @ mapmtoi;
@@ -141,11 +141,11 @@ FromM := module()
     inrt[MStandaloneExpr] := mapmtoi;
 
     inrt[MStatSeq]            := _Inert_STATSEQ  @ mapmtoi;
-    
+
     inrt[MAssignTableIndex]   := _Inert_ASSIGN   @ mapmtoi;
     inrt[MAssignToTable]      := _Inert_ASSIGN   @ mapmtoi;
-    
-    
+
+
     inrt[MAssign] := proc(n::mform, e::mform)
         if n::mform(SingleUse) then
             singleAssigns[op(n)] := mtoi(e);
@@ -156,7 +156,7 @@ FromM := module()
             _Inert_ASSIGN(mapmtoi(args));
         end if;
     end proc;
-   
+
     inrt[MAssignToFunction] := proc(n::mform, functioncall::mform) local fcn;
         if op(1, functioncall)::Static then
             fcn := op([1,1], functioncall);
@@ -166,18 +166,18 @@ FromM := module()
         end if;
         inrt[MAssign](args);
     end proc;
-    
+
     inrt[MWhileForIn]   := _Inert_FORIN   @ mapmtoi;
     inrt[MWhileForFrom] := _Inert_FORFROM @ mapmtoi;
-    
+
     inrt[MWhile] := proc(loopVar, fromExp, byExp, whileExp, statseq)
         _Inert_FORFROM(mapmtoi(loopVar, fromExp, byExp), _Inert_EXPSEQ(), mtoi(whileExp), mtoi(statseq));
     end proc;
-    
+
     inrt[MCommand] := proc(n)
         _Inert_FUNCTION(_Inert_NAME("&onpe"), _Inert_EXPSEQ(_Inert_STRING(n)));
     end proc;
-    
+
     inrt[MParamSpec] := proc(n, t, d) # name, type, default
         local param;
         param := _Inert_NAME(n);
@@ -189,26 +189,26 @@ FromM := module()
         end if;
         param;
     end proc;
-    
-    
+
+
     inrt[MKeywords] := proc()
         _Inert_SET(_Inert_EXPSEQ(mapmtoi(args)));
     end proc;
-    
-    
+
+
     # TODO, should MStandaloneFunction be similiar?
     inrt[MFunction] := proc(n, expseq)
         _Inert_FUNCTION(mtoi(n), _Inert_EXPSEQ(mtoi(expseq)));
     end proc;
-    
-    
+
+
     inrt[MTableref] := proc(t, expseq)
         _Inert_TABLEREF(mtoi(t), _Inert_EXPSEQ(mtoi(expseq)));
     end proc;
-    
-    
+
+
     inrt[MStandaloneFunction] := inrt[MFunction];
-    
+
     inrt[MProc] := proc() local maps, inertProc, pars, keys, newLocalList;
         maps := table();
 
@@ -230,7 +230,7 @@ FromM := module()
         pars := op(1, inertProc);
         keys := op(10, inertProc); # keywords are at spot 10 because MFlags maps to NULL
         pars := _Inert_PARAMSEQ(op(pars), keys);
-        
+
         mapStack:-pop();
         subsop(1=pars, 2=newLocalList(), 10=NULL, inertProc);
     end proc;
@@ -241,11 +241,11 @@ FromM := module()
         _Inert_LEXICALSEQ(op(lexQueue:-toList()));
     end proc;
 
-    replaceLexical := proc(f, m, n) 
+    replaceLexical := proc(f, m, n)
         local maps, lexTbl, temp, index, lexpair, lexQueue;
         maps := mapStack:-top();
         lexTbl := maps['lextbl'];
-        
+
         if assigned(lexTbl[n]) then
             lexTbl[n];
         else
@@ -276,7 +276,7 @@ FromM := module()
     inrt[MLexicalLocal] := proc(n)
         _Inert_LEXICAL_LOCAL(replaceLexical(_Inert_LOCAL, 'locals', n))
     end proc;
-    
+
 
     inrt[MSingleUse] := proc(n)
         if assigned(singleAssigns[n]) then
@@ -288,10 +288,8 @@ FromM := module()
 
     inrt[MGeneratedName] := inrt[MSingleUse];
 
-    
+
     inrt[MIfThenElse] := proc(c, s1, s2)
-        print("MIfThenElse", s2);
-        print();
         if IsNoOp(s1) and IsNoOp(s2) then
             _Inert_EXPSEQ();
         elif IsNoOp(s2) then
@@ -300,7 +298,7 @@ FromM := module()
             _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), condpair(s2))
         end if;
     end proc;
-    
+
     condpair := proc(stmt) local mkpair;
         mkpair := s -> (_Inert_CONDPAIR(mtoi(Cond(s)), mtoi(Then(s))), condpair(Else(s)));
         if Header(stmt) = MIfThenElse then
@@ -314,7 +312,7 @@ FromM := module()
         end if;
     end proc;
 
-    
+
     inrt[MTypedName] := proc(n::string, t::mform(Type))
         _Inert_DCOLON(_Inert_NAME(n), _Inert_VERBATIM(op(t)));
     end proc;

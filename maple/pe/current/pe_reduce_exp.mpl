@@ -94,6 +94,7 @@ $include "pe_reduce_smarter.mpl"
     red[MRational] := binOp(MRational, `/`);
     red[MPower]    := binOp(MPower,    `^`);
     red[MEquation] := binOp(MEquation, `=`);
+    red[MInequat]  := binOp(MInequat,  `<>`);
     red[MLesseq]   := binOp(MLesseq,   `<=`);
     red[MLessThan] := binOp(MLessThan, `<`);
     red[MImplies]  := binOp(MImplies,  `implies`);
@@ -328,7 +329,7 @@ $include "pe_reduce_smarter.mpl"
             if hasDyn and treatAsDynamic then
                 return __F(x);
             end if;
-            
+
             if expr :: list(Static) then
                 if type(op(expr), 'table') then
                     reducedTable := true;

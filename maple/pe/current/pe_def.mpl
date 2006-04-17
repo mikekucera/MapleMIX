@@ -338,7 +338,7 @@ pe[MAssign] := proc(n::mname, expr::mform)
 
 
     reduced := ReduceExp(expr);
-    
+
     if reduced::Static then
         env:-put(var, SVal(reduced));
         NULL;
@@ -477,7 +477,7 @@ StaticLoopUnroller := proc(loopVar, statseq, whileExp) :: `module`;
                 error "dynamic while condition not supported: %1", rWhileExp;
             end if;
             # check the while condition
-            if not SVal(rWhileExp) then 
+            if not SVal(rWhileExp) then
                 return false;
             end if;
             # unroll loop once
@@ -486,12 +486,12 @@ StaticLoopUnroller := proc(loopVar, statseq, whileExp) :: `module`;
                 q:-enqueue(lastStmt);
             end if;
             # stop if it ends with a return
-            if assigned(lastStmt) and Header(op(-1, lastStmt)) = MReturn then 
-                return false 
+            if assigned(lastStmt) and Header(op(-1, lastStmt)) = MReturn then
+                return false
             end if;
             return true;
         end proc;
-        
+
         result := () -> MStatSeq(qtoseq(q));
     end module;
 end proc;
@@ -500,7 +500,7 @@ end proc;
 pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
     local rInExp, rWhileExp, assigns, stmt, unroll;
     rInExp := ReduceExp(inExp);
-    
+
     unroll := proc(expr) local unroller, i;
         unroller := StaticLoopUnroller(loopVar, statseq, whileExp);
         for i in expr do
@@ -508,7 +508,7 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
         end do;
         return unroller:-result();
     end proc;
-    
+
     if [rInExp]::list(Static) or Header(rInExp) = MList then
         unroll(op(rInExp));
     #elif Header(rInExp) = MSubst and Header(DynExpr(rInExp)) = MList then
@@ -530,7 +530,7 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
     rToExp    := ReduceExp(toExp);
 
     if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop
-        unroller := StaticLoopUnroller(loopVar, statseq);
+        unroller := StaticLoopUnroller(loopVar, statseq, whileExp);
         for i from SVal(rFromExp) by SVal(rByExp) to SVal(rToExp) do
             if not unroller:-unrollOnce(i) then break end if;
         end do;
