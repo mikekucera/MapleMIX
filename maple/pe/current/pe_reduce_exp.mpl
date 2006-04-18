@@ -48,10 +48,15 @@ $include "pe_reduce_smarter.mpl"
         res;
     end proc;
 
-    reduce := proc(expr) local h;
+    reduce := proc(expr) local h, res;
         h := Header(expr);
         if assigned(red[h]) then
-            red[h](op(expr));
+            res := [red[h](op(expr))];
+            if res::list(Dynamic) and SmartOps:-HasSyntaxHandler(h) then
+                SmartOps:-InvokeSyntaxHandler(op(res));
+            else
+                op(res);
+            end if;
         else
             error "(reduce) Reduction of %1 not supported yet", h;
         end if;
@@ -249,8 +254,8 @@ $include "pe_reduce_smarter.mpl"
         if rf::list(Or('procedure','name')) then
             if re::list(Static) then
                 return op(rf)(op(re))
-            elif SmartOps:-HasHandler(Name(f)) then
-                return SmartOps:-InvokeHandler(Name(f), op(re));
+            elif SmartOps:-HasFunctionHandler(Name(f)) then
+                return SmartOps:-InvokeFunctionHandler(Name(f), op(re));
             end if;
         end if;
         MFunction(embed(op(rf)), embed(op(re)));

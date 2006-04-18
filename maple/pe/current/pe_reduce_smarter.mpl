@@ -1,31 +1,36 @@
 SmartOps := module()
     local
-        handler; # table of special dynamic handlers
+        functionHandler, # table of special dynamic handlers for functions
+        syntaxHandler;
     export
-        HasHandler, InvokeHandler;
+        HasFunctionHandler, InvokeFunctionHandler,
+        HasSyntaxHandler, InvokeSyntaxHandler;
 
+    HasFunctionHandler := n -> assigned(functionHandler[n]);
+    HasSyntaxHandler   := n -> assigned(syntaxHandler[n]);
 
-    HasHandler := n -> assigned(handler[n]);
-
-    InvokeHandler := proc(n::string, expseq::mform(ExpSeq)) local res;
-        # will always be one argument because its dynamic
-        ASSERT( assigned(handler[n]) );
-        res := handler[n](expseq);
-        if res = NULL then
-            MFunction(MName(n), expseq);
-        else
-            res;
-        end if;
+    InvokeFunctionHandler := proc(n::string, expseq::mform(ExpSeq)) local res;
+        ASSERT( assigned(functionHandler[n]) );
+        res := functionHandler[n](expseq);
+        `if`(res = NULL, MFunction(MName(n), expseq), res);
     end proc;
 
-    handler["nops"] := proc(expseq) local res, dyn;
+    InvokeSyntaxHandler := proc(f) local res;
+        ASSERT( assigned(syntaxHandler[Header(f)]) );
+        res := syntaxHandler[Header(f)](op(f));
+        `if`(res = NULL, f, res);
+    end proc;
+    
+    
+    
+    functionHandler["nops"] := proc(expseq) local res, dyn;
         dyn := substop(op(expseq));
         if Header(dyn) = MList then
             nops(op(dyn))
         end if;
     end proc;
 
-    handler["op"] := proc(expseq) local num, data, res;
+    functionHandler["op"] := proc(expseq) local num, data, res;
         num := op(1, expseq);
         if num::MStatic('integer') then
             num := op(num);
@@ -35,7 +40,15 @@ SmartOps := module()
                 `if`(res::Static, op(res), res);
             end if;
         end if;
-    end proc
+    end proc;
+    
+    syntaxHandler[MTableref] := proc(t, expseq) local es, i;
+        if  typematch(t, MSubst(anything, MList('es'::mform(ExpSeq))))
+        and typematch(expseq, MStatic('i'::integer))
+        and i <= nops(es) then 
+            op(i, es)
+        end if;
+    end proc;
 
 
 
