@@ -21,6 +21,10 @@ $include "gen.mpl"
 
 Save(NameGenerator);
 
+$include "deadcode.mpl"
+
+Save(CodeCleanup);
+
 $include "types.mpl"
 
 protect('inert');

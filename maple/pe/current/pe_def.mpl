@@ -630,7 +630,7 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
                 env:-put(Name(var), expr);
             end if;
         end if;
-        
+
         flattened;
     end proc;
 
@@ -753,11 +753,11 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	        fullCall:-enqueue(reduced);
             redCall:-enqueue(reduced);
             equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
-            
+
             if gopts:-getPropagateDynamic() then
                 env:-put(Name(op(i, paramSeq)), replaceLocalsWithNewParams(newParams, reduced));
             end if;
-            
+
             i := i + 1;
    	    end if;
    	end do;

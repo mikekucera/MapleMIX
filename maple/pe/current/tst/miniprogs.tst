@@ -10,7 +10,7 @@ libname := libname, "../lib":
 #######################################################################
 # Testing first Futamura projection
 # Test: generating a residual program from an interpreter and a source program.
-# 
+#
 
 power := mmProgram(
     mmDef("pow", mmParams("x", "n"),
@@ -39,8 +39,7 @@ ps := OnPE(goal, opts);
 got := ToInert(eval(ps:-ModuleApply));
 
 p := proc(x)
-local t, e110, newEnv5, e18, newEnv4, e16, newEnv3, e14, newEnv2, e12,
-newEnv1, e22, e24, e26, e28, e210;
+local t, e110, newEnv5, e18, newEnv4, e16, newEnv3, e14, newEnv2, e12, e22, e24, e26, e28, e210;
     t["x"] := x;
     e110 := t["x"];
     newEnv5["x"] := t["x"];
@@ -51,7 +50,7 @@ newEnv1, e22, e24, e26, e28, e210;
     e14 := newEnv3["x"];
     newEnv2["x"] := newEnv3["x"];
     e12 := newEnv2["x"];
-    newEnv1["x"] := newEnv2["x"];
+    # newEnv1["x"] := newEnv2["x"]; # dead code
     e22 := 1;
     e24 := e12*e22;
     e26 := e14*e24;
