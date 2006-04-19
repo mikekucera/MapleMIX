@@ -29,7 +29,8 @@ expected := ToInert(proc(d) d + 5 end proc);
 Try(102, got, expected);
 
 
-opts := PEOptions():-addFunction(PURE,p);
+opts := PEOptions();
+opts:-addFunction(PURE,p);
 
 ped := OnPE(sgoal, opts);
 got := ToInert(eval(ped:-ModuleApply));
@@ -43,7 +44,8 @@ expected := ToInert(proc(d) d + 5 end proc);
 Try(104, got, expected);
 
 
-opts := PEOptions():-addFunction(INTRINSIC,p);
+opts := PEOptions();
+opts:-addFunction(INTRINSIC,p);
 
 ped := OnPE(sgoal, opts);
 got := ToInert(eval(ped:-ModuleApply));
@@ -56,7 +58,8 @@ expected := ToInert(proc(d) p(d,5) end proc);
 Try(106, got, expected);
 
 
-opts := PEOptions():-addFunction(DYNAMIC,p);
+opts := PEOptions();
+opts:-addFunction(DYNAMIC,p);
 
 ped := OnPE(sgoal, opts);
 got := ToInert(eval(ped:-ModuleApply));
