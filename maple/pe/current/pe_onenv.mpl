@@ -228,14 +228,29 @@ OnENV := module()
             end proc;
             
             
-            putDynamic := proc(key, x) local setting;
+            putDynamic := proc(key, x) local setting, r, refreshSubst;
                 #error "putDynamic: not yet!";
                 setting := ss:-top();
                 setting:-vals[key] := 'setting:-vals[key]'; #unassign
                 setting:-tbls[key] := 'setting:-tbls[key]'; #unassign
                 setting:-mask := setting:-mask minus {key};
                 
-                setting:-dyn[key] := substop(x);
+                # If the dynamic expression being put back into the environmet
+                # has an MSubst then repalce it with its corresponding value.
+                refreshSubst := proc(n, expr)
+                    if member(Header(n), {MLocal, MSingleUse}) then
+                        get(op(n));
+                    else
+                        MSubst(args);
+                    end if;
+                end proc;
+                
+                try
+                    r := eval(x, MSubst=refreshSubst);   
+                    setting:-dyn[key] := substop(r);
+                catch :
+                    setting:-mask := setting:-mask union {key};
+                end try
             end proc;
             
             

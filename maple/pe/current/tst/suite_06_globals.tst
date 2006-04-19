@@ -53,21 +53,21 @@ Try(200, got, expected);
 ####################################################################
 
 
-g := 99;
+#g := 99;
                             
-p := proc()  global g; local l;
-    l := 'g';
-    g := 100;
-    return eval(l);
-end proc;
+#p := proc()  global g; local l;
+#    l := 'g';
+#    g := 100;
+#    return eval(l);
+#end proc;
 
 
-ped := OnPE(p);
+#ped := OnPE(p);
 
-got := ToInert(eval(ped:-ModuleApply));
-expected := ToInert(proc() global g; return 100 end proc);
+#got := ToInert(eval(ped:-ModuleApply));
+#expected := ToInert(proc() global g; return 100 end proc);
 
-Try(300, got, expected);
+#Try(300, got, expected);
 
 
 ####################################################################

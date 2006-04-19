@@ -608,20 +608,29 @@ end proc;
 pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Function))
     local unfold, residualize, symbolic;
     unfold := proc(residualProcedure, redCall, fullCall)
-        local res, flattened, assign, expr;
+        local res, flattened, assign, expr, env;
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         flattened := M:-RemoveUselessStandaloneExprs(res);
         #if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
+        env := callStack:-topEnv();
+        # TODO, rewrite this piece
         if nops(flattened) = 1 and member(op([1,0], flattened), {MAssign, MAssignToFunction}) then
             assign := op(flattened);
             expr := op(2, assign);
             if expr::Static then
-                callStack:-topEnv():-put(Name(var), SVal(expr));
+                env:-put(Name(var), SVal(expr));
                 return NULL;
             elif expr::Both then
-                callStack:-topEnv():-put(Name(var), SVal(StaticPart(expr)));
+                env:-put(Name(var), SVal(StaticPart(expr)));
+            end if;
+        elif nops(flattened) >= 1 and op([-1,0], flattened) = MAssign then
+            assign := op(-1, flattened);
+            expr := op(2, assign);
+            if expr::Dynamic then
+                env:-put(Name(var), expr);
             end if;
         end if;
+        
         flattened;
     end proc;
 
@@ -744,7 +753,11 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	        fullCall:-enqueue(reduced);
             redCall:-enqueue(reduced);
             equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
-            #env:-put(Name(op(i, paramSeq)), replaceLocalsWithNewParams(newParams, reduced));
+            
+            if gopts:-getPropagateDynamic() then
+                env:-put(Name(op(i, paramSeq)), replaceLocalsWithNewParams(newParams, reduced));
+            end if;
+            
             i := i + 1;
    	    end if;
    	end do;
@@ -907,7 +920,8 @@ peFunction_SpecializeThenDecideToUnfold :=
     signature := fun, getCallSignature(argListInfo:-allCall);
 
     # handle sharing issues
-    if not assigned(share[signature]) then
+    if not gopts:-getShareFunctions() # turns function sharing off, signatures are still stored but never used
+    or not assigned(share[signature]) then
         rec := Record('code', 'procName', 'mustResid', 'finished');
         rec:-procName := newName;
         rec:-mustResid := false;

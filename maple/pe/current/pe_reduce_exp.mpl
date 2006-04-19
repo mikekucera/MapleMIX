@@ -42,7 +42,12 @@ $include "pe_reduce_smarter.mpl"
         else
             res := reduced1;
         end if;
-        #print("reduce", expr, "reduced", res);
+        
+        #M:-Print(expr); #, "reduced", res);
+        #print();
+        #M:-Print(res);
+        #print();
+        
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
         res;
@@ -80,19 +85,25 @@ $include "pe_reduce_smarter.mpl"
     end proc;
 
 
-    naryOp := (f, oper) -> proc() local ry;
-        use reduceRight = proc(rx,y)
-            ry := [reduce(y)];
-            # rx could be an expseq
-            if [rx]::list(Static) and ry::list(Static) then
-                oper(rx,op(ry));
+    naryOp := (f, oper) -> proc() local i, q, rt1, rt2;
+        q := SimpleQueue();
+        rt1 := [reduce(args[1])];
+        
+        for i from 2 to nargs do
+            rt2 := [reduce(args[i])];
+            if rt1::list(Static) and rt2::list(Static) then
+                rt1 := [oper(op(rt1), op(rt2))];
             else
-                f(embed(rx), embed(op(ry)));
+                q:-enqueue(embed(op(rt1)));
+                if i = nargs then
+                    q:-enqueue(embed(op(rt2)));
+                else 
+                    rt1 := rt2;
+                end if;
             end if;
-        end proc
-        in
-            foldl(reduceRight, reduce(args[1]), args[2..nargs])
-        end use
+        end do;
+
+        `if`(q:-empty(), op(rt1), f(qtoseq(q)));
     end proc;
 
 

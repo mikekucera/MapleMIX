@@ -30,34 +30,34 @@ Try(100, got, expected);
 # Test 2 ###############################################################
 # let insertion of args and nargs
 
-p := proc() args[1], args[2], args[3], args[4], nargs end proc;
-goal := proc() p(1,2,args,3) end proc;
+#p := proc() args[1], args[2], args[3], args[4], nargs end proc;
+#goal := proc() p(1,2,args,3) end proc;
 
-ped := OnPE(goal);
+#ped := OnPE(goal);
 
-got := ToInert(eval(ped:-ModuleApply));
-expected := ToInert(proc () local args1, nargs1; args1 := 1, 2, args, 3; nargs1 := nops([args1]); 1, 2, args1[3], args1[4], nargs1 end proc);
+#got := ToInert(eval(ped:-ModuleApply));
+#expected := ToInert(proc () local args1, nargs1; args1 := 1, 2, args, 3; nargs1 := nops([args1]); 1, 2, args1[3], args1[4], nargs1 end proc);
 
-Try(200, got, expected);
+#Try(200, got, expected);
 
 
 # Test 3 ###############################################################
 
-p := proc() args[1], args[2], args[3], args[4], nargs end proc;
+#p := proc() args[1], args[2], args[3], args[4], nargs end proc;
 
-goal := proc(d) 
-    if d then
-        p(1,2,args,3) 
-    end if;
-end proc;
+#goal := proc(d) 
+#    if d then
+#        p(1,2,args,3) 
+#    end if;
+#end proc;
 
-ped := OnPE(goal);
+#ped := OnPE(goal);
 
-got := op(5, ToInert(eval(ped:-ModuleApply)));
-expected := op(5, ToInert(proc (d) local args1, nargs1; if d then args1 := 1, 2, args, 3; nargs1 := nops([args1]); 1, 2, args1[3], args1[4], nargs1 end if end proc));
+#got := op(5, ToInert(eval(ped:-ModuleApply)));
+#expected := op(5, ToInert(proc (d) local args1, nargs1; if d then args1 := 1, 2, args, 3; nargs1 := nops([args1]); 1, 2, args1[3], args1[4], nargs1 end if end proc));
 
 
-Try(301, got, expected);
+#Try(301, got, expected);
 
 
 ########################################################################
