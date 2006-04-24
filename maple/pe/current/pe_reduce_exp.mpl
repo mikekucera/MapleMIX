@@ -221,9 +221,9 @@ $include "pe_reduce_smarter.mpl"
 
             if rindex::list(Static) then
                 if var::Global then
-                    return genv:-isTblValAssigned(Name(var), op(rindex));
+                    return genv:-isTblValAssigned(Name(var), MStatic(op(rindex)));
                 elif var::Local then
-                    return env:-isTblValAssigned(Name(var), op(rindex));
+                    return env:-isTblValAssigned(Name(var), MStatic(op(rindex)));
                 end if;
             end if;
         end if;
@@ -294,7 +294,7 @@ $include "pe_reduce_smarter.mpl"
             ASSERT( not tbl::mform(Catenate), "can't use MCatenate to lookup into environment" );
             if tbl::Local then
                 try
-                    return env:-getTblVal(Name(tbl), op(re));
+                    return env:-getTblVal(Name(tbl), MStatic(op(re)));
                 catch "table value is dynamic" :
                     if env:-isStaticTable(Name(tbl)) then
                         return MTableref(tbl, embed(op(re)));
@@ -302,7 +302,7 @@ $include "pe_reduce_smarter.mpl"
                 end try;
             elif tbl::Global then
                 try
-                    return genv:-getTblVal(Name(tbl), op(re));
+                    return genv:-getTblVal(Name(tbl), MStatic(op(re)));
                 catch "table value is dynamic" : # fall through
                 end try;
             end if;

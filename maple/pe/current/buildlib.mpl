@@ -43,6 +43,7 @@ Save('`type/inert`');
 Save('`type/mform`');
 Save('`type/onenv`');
 Save('`type/Static`');
+Save('`type/MStatic`');
 Save('`type/Both`');
 Save('`type/Dynamic`');
 Save('`type/Global`');

@@ -142,7 +142,7 @@ OnENV := module()
             end proc;
 
             
-            getTblVal := proc(tableName::Not(mform), index::Not(mform))
+            getTblVal := proc(tableName::Not(mform), index::MStatic)
                 local err, setting, rec, val;
                 ASSERT( nargs = 2, "getTblVal expected 2 args" );
                 
@@ -152,8 +152,8 @@ OnENV := module()
                 rec   := setting:-tbls[tableName];
                 
                 do
-                    if assigned(rec:-elts[index]) then
-                        val := rec:-elts[index];
+                    if assigned(rec:-elts[SVal(index)]) then
+                        val := rec:-elts[SVal(index)];
                         if val = OnENV:-DYN then
                             error err;
                         elif type(val, 'record(link,elts)') then
@@ -256,7 +256,7 @@ OnENV := module()
             
             
             
-            putTblVal := proc(tableName::Not(mform), index::Not(mform), x) 
+            putTblVal := proc(tableName::Not(mform), index::MStatic, x) 
                 local setting, foundsetting, rec, newRec, addr;
                 ASSERT( nargs = 3, cat("putTblVal expecting 3 args but received ", nargs) );
                 
@@ -281,17 +281,17 @@ OnENV := module()
                 if type(x, 'table') then
                     addr := addressof(eval(x));
                     if assigned(mapAddressToTable[addr]) then
-                        rec:-elts[index] := mapAddressToTable[addr]; # make var point to existing table
+                        rec:-elts[SVal(index)] := mapAddressToTable[addr]; # make var point to existing table
                     elif assigned(prevEnvLink) and assigned(prevEnvLink:-mapAddressToTable[addr]) then
-                        rec:-elts[index] := prevEnvLink:-mapAddressToTable[addr];
+                        rec:-elts[SVal(index)] := prevEnvLink:-mapAddressToTable[addr];
                     else
                         newRec := newTableRecord();
                         # don't know how far down the table is, assume that x is the proper name
                         newRec:-elts := x;
-                        rec:-elts[index] := newRec;
+                        rec:-elts[SVal(index)] := newRec;
                     end if;
                 else    
-                    rec:-elts[index] := x;
+                    rec:-elts[SVal(index)] := x;
                 end if;
                 
                 setting:-vals[tableName] := 'setting:-vals[tableName]';
@@ -404,34 +404,34 @@ OnENV := module()
 
             # precondition, isStatic(table) = true
             rebuildTable := proc(chain::`record`(elts,link), hasDyn)
-                local tbl, rec, tmp, key;
+                local tbl, rec, tmp, index;
                 tbl := table();
                 rec := chain;
                 
                 do
-                    for key in keys(rec:-elts) do
-                        if not assigned(tbl[key]) then
+                    for index in indices(rec:-elts) do
+                        if not assigned(tbl[op(index)]) then
                             #ASSERT( not type(rec:-elts[key], 'table'), "found table not being managed by env");
                             
-                            if type(rec:-elts[key], 'record(elts,link)') then
-                                tbl[key] := rebuildTable(rec:-elts[key]);
+                            if type(rec:-elts[op(index)], 'record(elts,link)') then
+                                tbl[op(index)] := rebuildTable(rec:-elts[op(index)]);
                                 #tbl[key] := eval(rec:-elts[key],2);
                             else
-                                tmp := rec:-elts[key];
-                                if eval(tmp,1) = 'rec:-elts'[key] then
+                                tmp := rec:-elts[op(index)];
+                                if eval(tmp,1) = 'rec:-elts'[op(index)] then
                                     if type(eval(tmp,1), 'last_name_eval') then
-                                        tbl[key] := eval(tmp,2);
-                                        userinfo(8, PE, "eval'd entry", key, eval(tmp,2));
+                                        tbl[op(index)] := eval(tmp,2);
+                                        userinfo(8, PE, "eval'd entry", op(index), eval(tmp,2));
                                     else
-                                        tbl[key] := tmp;
-                                        userinfo(8, PE, "eval'd entry", key, tmp);
+                                        tbl[op(index)] := tmp;
+                                        userinfo(8, PE, "eval'd entry", op(index), tmp);
                                     end if;
                                 else
-                                    userinfo(8, PE, "normal entry", key, tmp);
-                                    tbl[key] := tmp;
+                                    userinfo(8, PE, "normal entry", op(index), tmp);
+                                    tbl[op(index)] := tmp;
                                 end if;
                             end if;
-                            if nargs > 1 and tbl[key] = OnENV:-DYN then
+                            if nargs > 1 and tbl[op(index)] = OnENV:-DYN then
                                 hasDyn := true;
                             end if;
                         end if;
@@ -469,14 +469,14 @@ OnENV := module()
             end proc;
 
 
-            isTblVal := proc(tableName::Not(mform), index::Not(mform), found::procedure)
+            isTblVal := proc(tableName::Not(mform), index::MStatic, found::procedure)
                 local foundsetting, rec;
                 try
                     foundsetting := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
                     rec := foundsetting:-tbls[tableName];
                     do
-                        if assigned((rec:-elts)[index]) then
-                            return found(rec:-elts[index]);
+                        if assigned((rec:-elts)[SVal(index)]) then
+                            return found(rec:-elts[SVal(index)]);
                         elif assigned(rec:-link) then
                             rec := rec:-link;
                         else
@@ -488,20 +488,20 @@ OnENV := module()
                 end try;
             end proc;
             
-            isTblValStatic := proc(tableName::Not(mform), index::Not(mform))
+            isTblValStatic := proc(tableName::Not(mform), index::MStatic)
                 isTblVal(tableName, index, val -> evalb(val <> OnENV:-DYN));
             end proc;
             
-            isTblValAssigned := proc(tableName::Not(mform), index::Not(mform))
+            isTblValAssigned := proc(tableName::Not(mform), index::MStatic)
                 isTblVal(tableName, index, () -> true);
             end proc;
             
             
-            isAlreadyDynamic := proc(rec, index) # private
-                assigned(rec:-elts[index]) and rec:-elts[index] = OnENV:-DYN
+            isAlreadyDynamic := proc(rec, index::MStatic) # private
+                assigned(rec:-elts[SVal(index)]) and rec:-elts[SVal(index)] = OnENV:-DYN
             end proc;
             
-            setTblValDynamic := proc(tableName::Not(mform), index)
+            setTblValDynamic := proc(tableName::Not(mform), index::MStatic)
                 local setting, foundsetting, rec;
                 setting := ss:-top();
                 if assigned(setting:-tbls[tableName]) then # its at the top
@@ -519,7 +519,7 @@ OnENV := module()
                 if not isAlreadyDynamic(rec, index) then
                     rec:-dynCount := rec:-dynCount + 1;
                 end if;
-                rec:-elts[index] := OnENV:-DYN;
+                rec:-elts[SVal(index)] := OnENV:-DYN;
                 NULL;
 
             end proc;

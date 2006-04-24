@@ -361,8 +361,8 @@ pe[MAssignToTable] := proc(n::mname, expr::mform(Tableref)) local tblVar, rindex
     tblVar := Var(expr);
     env := getEnv(tblVar);
 
-    if not env:-isTblValAssigned(Name(tblVar), SVal(rindex)) then
-        env:-putTblVal(Name(tblVar), SVal(rindex), table());
+    if not env:-isTblValAssigned(Name(tblVar), rindex) then
+        env:-putTblVal(Name(tblVar), rindex, table());
     end if;
 
     pe[MAssign](n, expr); # TODO, this would have to change if PE was run as a fixed point
@@ -381,15 +381,15 @@ pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
     end if;
 
     if [rindex,rexpr]::[Static,Static] then
-        env:-putTblVal(var, SVal(rindex), SVal(rexpr));
+        env:-putTblVal(var, rindex, SVal(rexpr));
         NULL;
 
     elif [rindex,rexpr]::[Static,Both] then
-        env:-putTblVal(var, SVal(rindex), SVal(StaticPart(rexpr)));
+        env:-putTblVal(var, rindex, SVal(StaticPart(rexpr)));
         MAssignTableIndex(subsop(2=rindex, tr), SVal(StaticPart(rexpr)));
 
     elif [rindex,rexpr]::[Static,Dynamic] then
-        env:-setTblValDynamic(var, SVal(rindex));
+        env:-setTblValDynamic(var, rindex);
         MAssignTableIndex(subsop(2=rindex, tr), rexpr);
 
     else
