@@ -255,7 +255,8 @@ end proc;
 #peIF := proc(ifstat::mform(IfThenElse)) #, S::mform(StatSeq))
 
 pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
-    local rcond, env, C1, C2, S, S1, S2, prevTopLocal, prevTopGlobal, stopAfterC1, stopAfterC2, result;
+    local rcond, env, C1, C2, S, S1, S2, prevTopLocal, prevTopGlobal, 
+          stopAfterC1, stopAfterC2, result, a1, a2, a3, a4;
     rcond := ReduceExp(cond);
     if rcond::Static then
         peM(`if`(SVal(rcond), thenBranch, elseBranch));
@@ -292,7 +293,6 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
         stopAfterC2 := M:-EndsWithErrorOrReturn(C2); # TODO, should not be needed
 
         if stopAfterC1 and stopAfterC2 then
-            print("here1");
             result := MIfThenElse(rcond, C1, C2);
         elif (not ormap(rcurry(hasfun, MIfThenElse), [C1, C2])) and
             env:-equalsTop(prevTopLocal) and genv:-equalsTop(prevTopGlobal) then
@@ -301,11 +301,11 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
         else
             S1 := `if`(stopAfterC1, MStatSeq(), S1);
             S2 := `if`(stopAfterC2, MStatSeq(), peM(S));
-            result := MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1)), MStatSeq(ssop(C2), ssop(S2)));
+            a1, a2 := env:-merge(prevTopLocal);
+            a3, a4 := genv:-merge(prevTopGlobal);
+            result := MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1), ssop(a1), ssop(a3)), 
+                                         MStatSeq(ssop(C2), ssop(S2), ssop(a2), ssop(a4)));
         end if;
-
-        env:-pop();
-        genv:-pop();
         result;
     end if
 end proc;

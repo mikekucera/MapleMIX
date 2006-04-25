@@ -12,9 +12,10 @@ OnENV := module()
                 newSetting, doPutVal, rebuildTable, newTableRecord,
                 lex, nargsVal, isTblVal, isSetting,
                 hasDynamicPart, isAlreadyDynamic,
-                putStatic, putDynamic, putTable;
+                putStatic, putDynamic, putTable,
+                doMerge, createAssign, addToMask;
             export 
-                setLink, grow, pop, equalsTop,
+                setLink, grow, pop, equalsTop, merge,
                 get, put, setLoopVar,
                 getArgsVal, getArgs, hasArgsVal, putArgsVal, setValDynamic, 
                 isStatic, isStaticVal, isStaticTable, isDynamic, isAssigned, isGettable,
@@ -84,6 +85,58 @@ OnENV := module()
                 end do;
                 true;
             end proc;
+            
+            
+            # merges environment s1 into the environment on the top of the stack
+            # returns 2 statment sequences for residual assignments
+            doMerge := proc(s1, s2, mutateNum) local mut, q1, q2, key;
+                mut := args[mutateNum];
+                q1 := SimpleQueue();
+                q2 := SimpleQueue();
+                
+                for key in keys(s1:-vals) do
+                    if assigned(s2:-vals[key]) then
+                        if s1:-vals[key] <> s2:-vals[key] then
+                            createAssign(q1, s1, key);
+                            createAssign(q2, s2, key);
+                            addToMask(mut, key);
+                        end if;
+                    else
+                        createAssign(q1, s1, key);
+                        addToMask(mut, key);
+                    end if;
+                end do;
+                
+                for key in s1:-mask do
+                    if not member(key, s2:-mask) then
+                        createAssign(q2, s2, key);
+                        addToMask(mut, key);
+                    end if;
+                end do;
+                
+                q1:-toList(), q2:-toList();
+            end proc;
+            
+            addToMask := proc(setting, key)
+                setting:-vals[key] := 'setting:-vals[key]';
+                setting:-mask := setting:-mask union {key}
+            end proc;
+            
+            createAssign := proc(q, setting, key)
+                if assigned(setting:-vals[key]) then
+                    q:-enqueue( MAssign(MLocal(key), MStatic(setting:-vals[key])) );
+                elif assigned(setting:-dyn[key]) then
+                    q:-enqueue( MAssign(MLocak(key), MStatic(setting:-dyn[key])) );
+                end if;
+            end proc;
+            
+            merge := proc(s1) local s2, l1, l2, l3, l4;
+                s2 := ss:-top();
+                l1, l2 := doMerge(s1, s2, 2);
+                l3, l4 := doMerge(s2, s1, 1);
+                MStatSeq(op(l1), op(l3)), MStatSeq(op(l2), op(l3));
+            end proc;
+            
 
 ##########################################################################################
 
