@@ -102,14 +102,8 @@ goal := proc(d) p(d, 3, 2) end proc;
 
 ped := OnPE(goal);
 
-got :=  op(5, ToInert(eval(ped[ModuleApply])));
-
-expected :=  _Inert_STATSEQ(_Inert_IF(_Inert_CONDPAIR(
-  _Inert_EQUATION(_Inert_PARAM(1), _Inert_INTPOS(3)), _Inert_STATSEQ(
-  _Inert_ASSIGN(_Inert_LOCAL(1), _Inert_PROD(_Inert_PARAM(1), _Inert_INTPOS(3))
-  ))), _Inert_STATSEQ(_Inert_ASSIGN(_Inert_LOCAL(1),
-  _Inert_PROD(_Inert_PARAM(1), _Inert_INTPOS(2))))),
-  _Inert_ASSIGN(_Inert_LOCAL(2), _Inert_LOCAL(1)), _Inert_LOCAL(2));
+got :=  ToInert(eval(ped[ModuleApply]));
+expected := ToInert(proc (d) local m2, r1; if d = 3 then m2 := 9 else m2 := 2*d end if; r1 := m2; r1 end proc);
 
 Try(401, got, expected);
 

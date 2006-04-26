@@ -19,7 +19,7 @@ $include "access_header.mpl"
     peFunction_SpecializeThenDecideToUnfold,
     peFunction_GenerateNewSpecializedProc,
     analyzeDynamicLoopBody, getCallSignature,
-    replaceLocalsWithNewParams,
+    replaceLocalsWithNewParams, extractBindingFromEquationConditional,
     handleStaticLoop, handleDynamicLoop, forFromTerminationTest,
 
     # module local variables
@@ -261,8 +261,16 @@ pe[MCommand] := proc(command)
     NULL;
 end proc;
 
-#
-#peIF := proc(ifstat::mform(IfThenElse)) #, S::mform(StatSeq))
+
+extractBindingFromEquationConditional := proc(rcond) local n, v, i;
+    print("extrayadayada", args);
+    if typematch(rcond, MEquation('n'::mname, 'v'::Static)) then
+        getEnv(n):-put(Name(n), SVal(v));
+    elif typematch(rcond, MEquation(MTableref('n'::mname, 'i'::Static), 'v'::Static)) then
+        getEnv(n):-putTblVal(Name(n), i, SVal(v));
+    end if;
+end proc;
+
 
 pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
     local rcond, env, C1, C2, S, S1, S2, prevTopLocal, prevTopGlobal,
@@ -275,6 +283,9 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
         env:-grow();
         genv:-grow();
 
+        # extract data from conditional expression
+        extractBindingFromEquationConditional(rcond);
+        
         C1 := peM(CodeUpToPointer(thenBranch));
 
         stopAfterC1 := M:-EndsWithErrorOrReturn(C1);
