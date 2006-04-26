@@ -437,7 +437,8 @@ ToM := module()
     end proc;
 
 
-    m[_Inert_ASSIGN] := proc(target, expr) local assigns, splitTarget, moreAssigns, newName;
+    m[_Inert_ASSIGN] := proc(target, expr) 
+        local assigns, splitTarget, moreAssigns, newName, splitExp, expseq, eqnToAssign;
         #in this case the assignment has multiple table refs on the left side that
         # must be split outp
         if Header(target) = _Inert_TABLEREF then
@@ -448,6 +449,19 @@ ToM := module()
                          split(expr, curry(MAssignTableIndex, MTableref(newName, IndexExp(splitTarget)))));
             else
                 MStatSeq(op(assigns), split(expr, curry(MAssignTableIndex, splitTarget)));
+            end if;
+        elif Header(expr) = _Inert_FUNCTION 
+        and  op(1, expr) = _Inert_ASSIGNEDNAME("table", "PROC", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected"))))) 
+        and  Header(op([2,1], expr)) = _Inert_LIST then
+            assigns, splitExp := splitReturn(expr);
+            expseq := op([2,1,1], splitExp);
+            if andmap(x -> evalb(Header(x) = MEquation), expseq) then
+                eqnToAssign := proc(eqn)
+                    MAssignTableIndex(MTableref(itom(target), Fst(eqn)), Snd(eqn));
+                end proc;
+                MStatSeq(assigns, op(map(eqnToAssign, expseq)), MStandaloneExpr(itom(target)));
+            else
+                split(expr, curry(MAssign, itom(target)))
             end if;
         else
             split(expr, curry(MAssign, itom(target)))
