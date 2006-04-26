@@ -19,7 +19,7 @@ PETypes := module() option package;
 `type/MStatic` := specfunc(anything, 'MStatic');
 
 `type/Global` := 'Or'('identical'(MName), 'identical'(MAssignedName), 'identical'(MCatenate), mform({Name, AssignedName, Catenate})):
-`type/Local`  := 'Or'('identical'(MLocal), 'identical'(MParam), 'identical'(MGeneratedName), 'identical'(MSingleUse), mform({Local, GeneratedName, Param, SingleUse})):
+`type/Local`  := 'Or'('identical'(MLocal), 'identical'(MParam), 'identical'(MGeneratedName), 'identical'(MSingleUse), 'identical'(MLoopVar), mform({Local, GeneratedName, Param, SingleUse, LoopVar})):
 `type/mname`  := 'Or(Global, Local)';
 `type/envname`:= mform({Name, Local, GeneratedName, Param, SingleUse});
 

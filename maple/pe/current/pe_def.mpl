@@ -20,6 +20,7 @@ $include "access_header.mpl"
     peFunction_GenerateNewSpecializedProc,
     analyzeDynamicLoopBody, getCallSignature,
     replaceLocalsWithNewParams,
+    handleStaticLoop, handleDynamicLoop, forFromTerminationTest,
 
     # module local variables
     callStack,         # callStack grows by one OnENV for every function specialization
@@ -146,9 +147,7 @@ getMCodeFromCache := proc(fun) option cache;
 end proc;
 
 getMCode := proc(fun)
-    res := M:-TransformIf:-TransformToDAG(getMCodeFromCache(fun));
-    print("DAG", res);
-res;
+    M:-TransformIf:-TransformToDAG(getMCodeFromCache(fun));
 end proc;
 
 
@@ -201,7 +200,7 @@ pe[MError]  := curry(peResidualizeStatement, MError);
 
 
 pe[MStatSeq] := proc() :: mform(StatSeq);
-    local q, i, j, h, stmt, residual, statseq, size, stmtsAfterIf;
+    local q, i, j, h, stmt, residual, statseq, size, stmtsAfterIf, below;
 
     statseq := M:-FlattenStatSeq(MStatSeq(args));
     size := nops(statseq);
@@ -214,9 +213,9 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
 
         PEDebug:-StatementStart(stmt);
 
-        if h = MWhileForFrom then
+        if member(h, {MWhileForFrom, MWhileForIn}) then
             below := MStatSeq(op(i+1..size, statseq));
-            q:-enqueue( pe[MWhileForFrom](op(stmt), below) );
+            q:-enqueue( pe[h](op(stmt), below) );
             PEDebug:-StatementEnd();
             break;
         end if;
@@ -313,11 +312,14 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
             S1 := `if`(stopAfterC1, MStatSeq(), S1);
             S2 := `if`(stopAfterC2, MStatSeq(), peM(S));
             # TODO, get rid of merging
-            a1, a2 := env:-merge(prevTopLocal);
-            a3, a4 := genv:-merge(prevTopGlobal);
-            result := MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1), ssop(a1), ssop(a3)),
-                                         MStatSeq(ssop(C2), ssop(S2), ssop(a2), ssop(a4)));
+            #a1, a2 := env:-merge(prevTopLocal);
+            #a3, a4 := genv:-merge(prevTopGlobal);
+            #result := MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1), ssop(a1), ssop(a3)),
+            #                             MStatSeq(ssop(C2), ssop(S2), ssop(a2), ssop(a4)));
+            result := MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1)), MStatSeq(ssop(C2), ssop(S2)));
         end if;
+        env:-pop();
+        genv:-pop();
         result;
     end if
 end proc;
@@ -348,7 +350,6 @@ pe[MAssign] := proc(n::mname, expr::mform)
     if n::Global then # very conservative
         callStack:-setGlobalEnvUpdated(true);
     end if;
-
 
     reduced := ReduceExp(expr);
 
@@ -465,126 +466,204 @@ analyzeDynamicLoopBody := proc(body::mform)
 end proc;
 
 # returns an object that can be used to unroll the body of a loop
-StaticLoopUnroller := proc(loopVar, statseq, whileExp) :: `module`;
-    local env, loopVarName, q;
-    env := callStack:-topEnv();
-    if loopVar <> MExpSeq() then
-        loopVarName := Name(loopVar);
-        env:-setLoopVar(loopVarName);
-    end if;
+#StaticLoopUnroller := proc(loopVar, statseq, whileExp) :: `module`;
+#    local env, loopVarName, q;
+#    env := callStack:-topEnv();
+#    if loopVar <> MExpSeq() then
+#        loopVarName := Name(loopVar);
+#        env:-setLoopVar(loopVarName);
+#    end if;#
+#
+#    q := SimpleQueue();
+#
+#    return module()
+#        local lastStmt;
+#        export setVal, unrollOnce, result, isLastStmtReturn;
+#
+#        unrollOnce := proc(loopVarVal) local rWhileExp, res; # pass in the loop index
+#            # set the loop variable if it exists
+#            if assigned(loopVarName) then
+#                env:-put(loopVarName, msop(loopVarVal), 'loopVarSet'=true);
+#            end if;
+#            # reduce the while condition, it can't be dynamic
+#            rWhileExp := ReduceExp(whileExp);
+#            if rWhileExp::Or(Dynamic,Both) then
+#                error "dynamic while condition not supported: %1", rWhileExp;
+#            end if;
+#            # check the while condition
+#            if not SVal(rWhileExp) then
+#                return false;
+#            end if;
+#            # unroll loop once
+#            lastStmt := peM(statseq);
+#            if lastStmt <> NULL then
+#                q:-enqueue(lastStmt);
+#            end if;
+#            # stop if it ends with a return
+#            if assigned(lastStmt) and Header(op(-1, lastStmt)) = MReturn then
+#                return false
+#            end if;
+#            return true;
+#        end proc;
+#
+#        result := () -> MStatSeq(qtoseq(q));
+#    end module;
+#end proc;
 
-    q := SimpleQueue();
 
-    return module()
-        local lastStmt;
-        export setVal, unrollOnce, result, isLastStmtReturn;
-
-        unrollOnce := proc(loopVarVal) local rWhileExp, res; # pass in the loop index
-            # set the loop variable if it exists
-            if assigned(loopVarName) then
-                env:-put(loopVarName, msop(loopVarVal), 'loopVarSet'=true);
-            end if;
-            # reduce the while condition, it can't be dynamic
-            rWhileExp := ReduceExp(whileExp);
-            if rWhileExp::Or(Dynamic,Both) then
-                error "dynamic while condition not supported: %1", rWhileExp;
-            end if;
-            # check the while condition
-            if not SVal(rWhileExp) then
-                return false;
-            end if;
-            # unroll loop once
-            lastStmt := peM(statseq);
-            if lastStmt <> NULL then
-                q:-enqueue(lastStmt);
-            end if;
-            # stop if it ends with a return
-            if assigned(lastStmt) and Header(op(-1, lastStmt)) = MReturn then
-                return false
-            end if;
-            return true;
-        end proc;
-
-        result := () -> MStatSeq(qtoseq(q));
-    end module;
-end proc;
+#pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
+#    local rInExp, rWhileExp, assigns, stmt, unroll;
+#    rInExp := ReduceExp(inExp);
+#
+#    unroll := proc(expr) local unroller, i;
+#        unroller := StaticLoopUnroller(loopVar, statseq, whileExp);
+#        for i in expr do
+#            if not unroller:-unrollOnce(i) then break end if;
+#        end do;
+#        return unroller:-result();
+#    end proc;
+#
+#    if [rInExp]::list(Static) or Header(rInExp) = MList then
+#        unroll(op(rInExp));
+#    #elif Header(rInExp) = MSubst and Header(DynExpr(rInExp)) = MList then
+#    #    unroll(op(DynExpr(rInExp)));
+#    else
+#        # need to do this because unassigned locals are considered static
+#        getEnv(loopVar):-setValDynamic(Name(loopVar));
+#        assigns := op(map(analyzeDynamicLoopBody, [statseq, whileExp]));
+#        stmt := MWhileForIn(loopVar, rInExp, whileExp, peM(statseq));
+#        `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
+#    end if;
+#end proc;
 
 
-pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
-    local rInExp, rWhileExp, assigns, stmt, unroll;
+
+pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq, below)
+    local rInExp, env, indexVar, mkDriver, mkDynamicLoop;
     rInExp := ReduceExp(inExp);
-
-    unroll := proc(expr) local unroller, i;
-        unroller := StaticLoopUnroller(loopVar, statseq, whileExp);
-        for i in expr do
-            if not unroller:-unrollOnce(i) then break end if;
-        end do;
-        return unroller:-result();
-    end proc;
-
-    if [rInExp]::list(Static) or Header(rInExp) = MList then
-        unroll(op(rInExp));
-    #elif Header(rInExp) = MSubst and Header(DynExpr(rInExp)) = MList then
-    #    unroll(op(DynExpr(rInExp)));
+    
+    if rInExp::Static then
+        if nops(rInExp) > 0 then
+            indexVar := gen("indexVar");
+            env := callStack:-topEnv();
+            env:-setLoopVar(Name(loopVar));
+            env:-setLoopVar(indexVar, SVal(rInExp)); # TODO, this isn't needed
+            env:-put(indexVar, 1, 'loopVarSet'=true);
+            env:-put(Name(loopVar), op(1, SVal(rInExp)), 'loopVarSet'=true);
+            
+            mkDriver := thunk -> MForInDriver(thunk, below, loopVar, indexVar, rInExp, whileExp);
+            handleStaticLoop(whileExp, statseq, mkDriver); 
+        end if;
     else
-        # need to do this because unassigned locals are considered static
-        getEnv(loopVar):-setValDynamic(Name(loopVar));
-        assigns := op(map(analyzeDynamicLoopBody, [statseq, whileExp]));
-        stmt := MWhileForIn(loopVar, rInExp, whileExp, peM(statseq));
-        `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
+        mkDynamicLoop := () -> MWhileForIn(loopVar, rInExp, whileExp, peM(statseq));
+        handleDynamicLoop(loopVar, statseq, whileExp, below, mkDynamicLoop);
     end if;
 end proc;
 
 
 
 pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq, below)
-    local rFromExp, rByExp, rToExp, rWhileExp, link1, link2, driver, assigns, stmt, env;
+    local rFromExp, rByExp, rToExp, env, mkDriver, mkDynamicLoop;
     rFromExp  := ReduceExp(fromExp);
     rByExp    := ReduceExp(byExp);
     rToExp    := ReduceExp(toExp);
 
     if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop
-        link1 := Record('code' = statseq);
-        link2 := Record('code' = below); #TODO: make code below loop available
-        env := callStack:-topEnv();
-        env:-setLoopVar(Name(loopVar));
-        env:-put(Name(loopVar), SVal(rFromExp), 'loopVarSet'=true);
-        rWhileExp := ReduceExp(whileExp);
-        if rWhileExp::Dynamic then
-            error "dynamic while condition not supported";
-        end if;
-        if SVal(rWhileExp) then
-            driver := MForFromDriver(link1, link2, loopVar, rByExp, rToExp, whileExp);
-            peM(MStatSeq(ssop(statseq), driver));
-        else
-            NULL
-        end if;
+        if not forFromTerminationTest(rByExp, rToExp, SVal(rFromExp)) then
+            env := callStack:-topEnv();
+            env:-setLoopVar(Name(loopVar));
+            env:-put(Name(loopVar), SVal(rFromExp), 'loopVarSet'=true);
+        
+            mkDriver := thunk -> MForFromDriver(thunk, below, loopVar, rByExp, rToExp, whileExp);
+            handleStaticLoop(whileExp, statseq, mkDriver);
+        end if
     else
-        # need to do this because unassigned locals are considered static
-        getEnv(loopVar):-setValDynamic(Name(loopVar));
-        assigns := op(map(analyzeDynamicLoopBody, [statseq, whileExp]));
-        stmt := MWhileForFrom(loopVar, rFromExp, rByExp, rToExp, whileExp, peM(statseq));
-        `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
+        mkDynamicLoop := () -> MWhileForFrom(loopVar, rFromExp, rByExp, rToExp, whileExp, peM(statseq));
+        handleDynamicLoop(loopVar, statseq, whileExp, below, mkDynamicLoop);
     end if;
 end proc;
 
 
-pe[MForFromDriver] := proc(link1, link2, loopVar, byVal, toVal, whileExp)
+handleStaticLoop := proc(whileExp, statseq, mkDriver::procedure)
+    local rWhileExp, flattened, thunk, driver;
+    rWhileExp := ReduceExp(whileExp);
+    if rWhileExp::Dynamic then
+        error "dynamic while condition not supported";
+    end if;
+
+    if SVal(rWhileExp) then
+        flattened := M:-FlattenStatSeq(statseq);
+        if M:-EndsWithIf(flattened) then
+            thunk := proc() local ifstmt, ifstmt2;
+                ifstmt := op(-1, flattened);
+                ifstmt2 := MIfThenElse(Cond(ifstmt), 
+                                  MStatSeq(ssop(Then(ifstmt)), driver), 
+                                  MStatSeq(ssop(Else(ifstmt)), driver));
+                peM(MStatSeq(op(1..-2, flattened), ifstmt2));
+            end proc;
+        else
+            thunk := () -> MStatSeq(ssop(statseq), driver);
+        end if;
+        driver := mkDriver(thunk);
+        peM(thunk());
+    else
+        NULL
+    end if;
+end proc;
+
+
+handleDynamicLoop := proc(loopVar, statseq, whileExp, below, mkDynamicLoop)
+    local assigns, stmt;
+    # need to do this because unassigned locals are considered static
+    getEnv(loopVar):-setValDynamic(Name(loopVar));
+    assigns := op(map(analyzeDynamicLoopBody, [statseq, whileExp]));
+    stmt := mkDynamicLoop();
+    `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt, peM(below)), MStatSeq(stmt, peM(below)));
+end proc;
+
+
+forFromTerminationTest := proc(byVal, toVal, val)
+    (SVal(byVal) > 0 and val > SVal(toVal)) or
+    (SVal(byVal) < 0 and val < SVal(toVal)) 
+end proc;
+
+
+pe[MForFromDriver] := proc(thunk, below, loopVar, byVal, toVal, whileExp)
     local env, val, rWhileExp;
     env := callStack:-topEnv();
     val::integer := env:-get(Name(loopVar)) + SVal(byVal);
-    if (SVal(byVal) > 0 and val > SVal(toVal))
-    or (SVal(byVal) < 0 and val < SVal(toVal)) then
-        peM(link2:-code);
+    env:-put(Name(loopVar), val, 'loopVarSet'=true);
+    
+    if forFromTerminationTest(byVal, toVal, val) then
+        peM(below);
     else
+
         rWhileExp := ReduceExp(whileExp);
         if rWhileExp::Dynamic then
             error "Dynamic while condition not supported";
         end if;
-        peM(`if`(SVal(rWhileExp), link1, link2):-code);
+        `if`(SVal(rWhileExp), peM(thunk()), peM(below));
     end if
 end proc;
 
+
+pe[MForInDriver] := proc(thunk, below, loopVar, indexVar, rInExp, whileExp)
+    local env, val, rWhileExp;
+    env := callStack:-topEnv();
+    val::integer := env:-get(indexVar) + 1;
+    env:-put(indexVar, val, 'loopVarSet'=true);
+    
+    if val > nops(SVal(rInExp)) then
+        peM(below);
+    else
+        env:-put(Name(loopVar), op(val, SVal(rInExp)), 'loopVarSet'=true);
+        rWhileExp := ReduceExp(whileExp);
+        if rWhileExp::Dynamic then
+            error "Dynamic while condition not supported";
+        end if;
+        `if`(SVal(rWhileExp), peM(thunk()), peM(below));
+    end if
+end proc;
 
 #pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
 #    local rFromExp, rByExp, rToExp, unroller, i, rWhileExp, assigns, stmt;
@@ -688,7 +767,7 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
         elif nops(flattened) >= 1 and op([-1,0], flattened) = MAssign then
             assign := op(-1, flattened);
             expr := op(2, assign);
-            if expr::Dynamic then
+            if expr::Dynamic and gopts:-getPropagateDynamic() then
                 env:-put(Name(var), expr);
             end if;
         end if;
@@ -885,7 +964,7 @@ end proc;
 
 
 # takes continuations to be applied if f results in a procedure
-peFunction := proc(funRef::Dynamic,
+peFunction := proc(funRef,#::Dynamic,
                    argExpSeq::mform(ExpSeq),
                    unfold::procedure,
                    residualize::procedure,

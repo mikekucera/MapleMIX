@@ -105,18 +105,18 @@ p := proc(d) local x;
     print(x);
 end proc;
 
-ps := proc(d) local x; 
+ps := proc(d) 
     if d then 
-        x := 2 
+        if d then 
+            print(3) 
+        else 
+            print(4) 
+        end if 
+    elif d then 
+        print(4) 
     else 
-        x := 3 
-    end if; 
-    if d then 
-        x := x+1 
-    else 
-        x := x+2 
-    end if; 
-    print(x) 
+        print(5) 
+    end if 
 end proc;
 
 ped := OnPE(p);

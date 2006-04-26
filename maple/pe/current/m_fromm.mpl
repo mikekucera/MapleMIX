@@ -88,6 +88,7 @@ FromM := module()
     inrt[MName]         := _Inert_NAME @ mapmtoi;
     inrt[MAssignedName] := _Inert_ASSIGNEDNAME @ mapmtoi;
     inrt[MSubst] := proc(n) mtoi(n) end proc;
+    inrt[MLoopVar] := () -> _Inert_EXPSEQ();
 
     inrt[MMember]    := _Inert_MEMBER    @ mapmtoi;
     inrt[MAttribute] := _Inert_ATTRIBUTE @ mapmtoi;

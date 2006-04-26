@@ -303,6 +303,10 @@ ToM := module()
         assigns, exprs := splitReturnMany(loopVar, fromExp, byExp, toExp, whileExp);
         body := MStatSeq(itom(removeNext(statseq)), ssop(assigns[5]));
 
+        if loopVar = _Inert_EXPSEQ() then
+            exprs[1] := MLoopVar(gen("loopVar"));
+        end if;
+        
         if exprs[4] = _Inert_EXPSEQ() then # if the to expr is NULL then its a simple while loop
             loop := MWhile(exprs[5], body);
         elif whileExp = inertTrue then
@@ -319,6 +323,11 @@ ToM := module()
         local assigns, exprs, body, loop, e3;
         
         assigns, exprs := splitReturnMany(loopVar, inExp, whileExp);
+        
+        if loopVar = _Inert_EXPSEQ() then
+            exprs[1] := MLoopVar(gen("loopVar"));
+        end if;
+        
         body := MStatSeq(itom(removeNext(statseq)), ssop(assigns[3]));
         e3 := `if`(whileExp = inertTrue, MStatic(true), exprs[3]);
         loop := MWhileForIn(exprs[1], exprs[2], e3, body);

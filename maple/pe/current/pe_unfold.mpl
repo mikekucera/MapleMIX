@@ -41,7 +41,7 @@ Unfold := module()
                              fullCall::mform(ExpSeq), genVarName) :: mform(StatSeq);
         local body, params, let, lets, i, header, paramName, letArgs, newNames,
               letNargs, argsName, nargsName, argExpr;
-        body := M:-TransformIf:-TransformToReturnNormalForm(ProcBody(specProc));
+        body := M:-TransformIf:-TransformToReturnNormalForm(ProcBody(specProc));;
         params := Params(specProc);
         body, newNames := renameAllLocals(body, genVarName);
         body := removeReturns(body);
@@ -98,7 +98,6 @@ Unfold := module()
         local newbody, last;
         newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
         newbody := M:-FlattenStatSeq(newbody);
-
         last  := Last(newbody);
         #if Header(last) = MStandaloneExpr then
         if member(Header(last), {MStandaloneExpr, MStandaloneFunction}) then

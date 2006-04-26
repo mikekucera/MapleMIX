@@ -283,6 +283,11 @@ OnENV := module()
             
             putDynamic := proc(key, x) local setting, r, refreshSubst;
                 #error "putDynamic: not yet!";
+                if not gopts:-getPropagateDynamic() then
+                    setValDynamic(key);
+                    return;
+                end if;
+                
                 setting := ss:-top();
                 setting:-vals[key] := 'setting:-vals[key]'; #unassign
                 setting:-tbls[key] := 'setting:-tbls[key]'; #unassign

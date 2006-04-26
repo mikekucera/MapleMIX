@@ -45,7 +45,7 @@ TransformIf := module()
     TransformToReturnNormalForm := proc(mcode::mform(StatSeq))
         local m, index, firstpart, ifstat, rest;
         m := FlattenStatSeq(mcode);
-        index := indexOfFirstIf(m);
+        index := indexOfFirst(MIfThenElse, m);
         if index = FAIL then # there is no if statment
             return m;
         end if;
@@ -54,7 +54,6 @@ TransformIf := module()
         firstpart := op(1..index-1, m);
         ifstat    := op(index, m);
         rest      := MStatSeq(op(index+1..-1, m));
-
 
         if not hasfun(ifstat, MReturn) then # TODO, why this test?
             m
@@ -69,7 +68,7 @@ TransformIf := module()
 
 
     TransformToDAG := proc(mcode::mform({StatSeq, Proc}))
-        local m, index, firstpart, ifstat, rest, ref;
+        local m, index, firstpart, ifstat, rest, ref, loop;
         #print("transformToDAG", args);
         if Header(mcode) = MProc then
             return subsop(5=procname(ProcBody(mcode)), mcode);

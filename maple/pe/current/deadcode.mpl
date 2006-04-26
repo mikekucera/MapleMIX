@@ -6,6 +6,7 @@ CodeCleanup := module()
 
 
     RemoveDeadCodeSimple := proc(p) local m, _;
+        print("removing dead code");
         if type(p, 'procedure') then
             m, _ := M:-ToM(ToInert(eval(p)));
             simpleAlg(m):-code;
