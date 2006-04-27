@@ -6,12 +6,15 @@
 # Output:	reduced matrix
 #
 
+libname := libname, "../lib":
+kernelopts(opaquemodules=false):
+
 GE := proc(AA, n, m)
-local B,i,j,k,r,d,s,t,rmar;
+local B,i,j,k,r,d,s,t,rmar,pivot,ii;
 
 # make a copy
 B := table();
-for i to n do for j to m do B[i,j] := AA[i,j] end do end do;
+for ii to n do for j to m do B[ii,j] := AA[ii,j] end do end do;
 
 rmar := min(n,m);
 s := 1;
@@ -20,14 +23,20 @@ r := 1;
 for k to m while r <= rmar do
 
     # Search for a pivot element.  Choose the first
-    for i from r to n while B[i,k] = 0 do end do;
+    pivot := -1;
+    for i from r to n do
+        if (pivot = -1) and (B[i,k] <> 0) then 
+            pivot := i; 
+        end if;
+    end do;
+    # for i from r to n while B[i,k] = 0 do end do;
 
-    if i<=n then
+    if pivot>-1 then
 		# interchange row i with row r is necessary
-		if i <> r then 
+		if pivot <> r then 
             s := -s; 
             for j from k to m do
-			   t := B[i,j]; B[i,j] := B[r,j]; B[r,j] := t
+			   t := B[pivot,j]; B[pivot,j] := B[r,j]; B[r,j] := t
             end do;
 		end if;
 
@@ -86,3 +95,12 @@ goal2c := proc()
     GE(A, 3, 4);
 end proc:
 Matrix(3, 4, goal2c());
+
+res1 := OnPE(goal1): # fully static, easy
+tracelast;
+quit
+res2 := OnPE(goal2): # the one we really care about
+
+print(res2:-ModuleApply);
+
+print(res2:-ModuleApply);
