@@ -53,13 +53,13 @@ for k to m while r <= rmar do
     end if;
 end do;			  # go to next column
 
-return eval(B);
+eval(B);
 end proc:
 
 goal1 := proc()
     local A;
     A := table([(1,1)=1, (1,2)=2, (2,1)=-5, (2,2)=6]);
-    return GE(A, 2, 2);
+    GE(A, 2, 2);
 end proc:
 goal1();
 
@@ -103,5 +103,7 @@ res1 := OnPE(goal1): # fully static, easy
 res2 := OnPE(goal2): # the one we really care about
 
 print(res1:-ModuleApply);
+res1();
 
 print(res2:-ModuleApply);
+res2(a);
