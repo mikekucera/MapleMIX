@@ -85,7 +85,7 @@ TransformIf := module()
                 firstpart := op(1..index-1, m);
                 loop    := op(index, m);
                 rest      := MStatSeq(op(index+1..-1, m));
-                MStatSeq(firstpart, subsop(-1 = procname(op(-1,loop)), loop), ssop(rest));
+                MStatSeq(firstpart, subsop(-1 = procname(op(-1,loop)), loop), ssop(procname(rest)));
             end if;
         else
             # break original statment sequence into three parts

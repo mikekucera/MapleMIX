@@ -264,7 +264,6 @@ end proc;
 
 
 extractBindingFromEquationConditional := proc(rcond) local n, v, i;
-    print("extrayadayada", args);
     if typematch(rcond, MEquation('n'::mname, 'v'::Static)) then
         getEnv(n):-put(Name(n), SVal(v));
     elif typematch(rcond, MEquation(MTableref('n'::mname, 'i'::Static), 'v'::Static)) then
@@ -565,6 +564,8 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq, below)
             
             mkDriver := thunk -> MForInDriver(thunk, below, loopVar, indexVar, rInExp, whileExp);
             handleStaticLoop(whileExp, statseq, mkDriver); 
+        else
+            peM(below);
         end if;
     else
         mkDynamicLoop := () -> MWhileForIn(loopVar, rInExp, whileExp, peM(statseq));
@@ -588,6 +589,8 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq, bel
         
             mkDriver := thunk -> MForFromDriver(thunk, below, loopVar, rByExp, rToExp, whileExp);
             handleStaticLoop(whileExp, statseq, mkDriver);
+        else
+            peM(below);
         end if
     else
         mkDynamicLoop := () -> MWhileForFrom(loopVar, rFromExp, rByExp, rToExp, whileExp, peM(statseq));
