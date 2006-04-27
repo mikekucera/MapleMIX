@@ -6,7 +6,7 @@
 # Output:	reduced matrix
 #
 
-libname := libname, "../lib":
+libname := libname, "lib":
 kernelopts(opaquemodules=false):
 
 GE := proc(AA, n, m)
@@ -25,8 +25,10 @@ for k to m while r <= rmar do
     # Search for a pivot element.  Choose the first
     pivot := -1;
     for i from r to n do
-        if (pivot = -1) and (B[i,k] <> 0) then 
-            pivot := i; 
+        if (pivot = -1) then
+            if (B[i,k] <> 0) then 
+                pivot := i; 
+            end if;
         end if;
     end do;
     # for i from r to n while B[i,k] = 0 do end do;
@@ -42,7 +44,7 @@ for k to m while r <= rmar do
 
 		for i from r+1 to n do
 			for j from k+1 to m do
-                B[i,j] := B[i,j]*B[r,k]-B[r,j]*B[i,k]/ d;
+                B[i,j] := (B[i,j]*B[r,k]- B[r,j]*B[i,k])/ d;
 			end do;
 			B[i,k] := 0;
 		end do;
@@ -51,7 +53,7 @@ for k to m while r <= rmar do
     end if;
 end do;			  # go to next column
 
-eval(B);
+B;
 end proc:
 
 goal1 := proc()
@@ -97,10 +99,8 @@ end proc:
 Matrix(3, 4, goal2c());
 
 res1 := OnPE(goal1): # fully static, easy
-tracelast;
-quit
 res2 := OnPE(goal2): # the one we really care about
 
-print(res2:-ModuleApply);
+print(res1:-ModuleApply);
 
 print(res2:-ModuleApply);
