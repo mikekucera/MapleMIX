@@ -452,7 +452,7 @@ ToM := module()
             end if;
         elif Header(expr) = _Inert_FUNCTION 
         and  op(1, expr) = _Inert_ASSIGNEDNAME("table", "PROC", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected"))))) 
-        and  Header(op([2,1], expr)) = _Inert_LIST then
+        and  nops(op(2,expr))>0 and Header(op([2,1], expr)) = _Inert_LIST then
             assigns, splitExp := splitReturn(expr);
             expseq := op([2,1,1], splitExp);
             if andmap(x -> evalb(Header(x) = MEquation), expseq) then
