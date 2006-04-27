@@ -215,7 +215,8 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
 
         if member(h, {MWhileForFrom, MWhileForIn}) then
             below := MStatSeq(op(i+1..size, statseq));
-            q:-enqueue( pe[h](op(stmt), below) );
+            residual := pe[h](op(stmt), below);
+            if residual <> NULL then q:-enqueue( residual ); end if;
             PEDebug:-StatementEnd();
             break;
         end if;
