@@ -70,10 +70,12 @@ TransformIf := module()
     TransformToDAG := proc(mcode::mform({StatSeq, Proc}))
         local m, index, firstpart, ifstat, rest, ref, loop;
         #print("transformToDAG", args);
+        if nargs <> 1 then
+            error "TransformToDAG must be called with exactly one arg: %1", nargs;
+        end if;
         if Header(mcode) = MProc then
             return subsop(5=procname(ProcBody(mcode)), mcode);
         end if;
-
 
         m := FlattenStatSeq(mcode);
         index := indexOfFirst(MIfThenElse, m);
@@ -89,13 +91,13 @@ TransformIf := module()
             end if;
         else
             # break original statment sequence into three parts
-            firstpart := op(1..index-1, m);
+            firstpart := MStatSeq(op(1..index-1, m));
             ifstat    := op(index, m);
             rest      := MStatSeq(op(index+1..-1, m));
 
             if nops(rest) > 0 then
                 ref := MRef(Record('code'=procname(rest)));
-                MStatSeq(firstpart, MIfThenElse(Cond(ifstat),
+                MStatSeq(procname(firstpart), MIfThenElse(Cond(ifstat),
                                                 procname(insertAtEnd(Then(ifstat), ref)),
                                                 procname(insertAtEnd(Else(ifstat), ref))));
             else

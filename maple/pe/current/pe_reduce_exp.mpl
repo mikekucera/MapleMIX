@@ -291,14 +291,19 @@ $include "pe_reduce_smarter.mpl"
 
         # aviod evaluating the entire table if possible
         if re::list(Static) and tbl::mname then
+            #print("here1");
             ASSERT( not tbl::mform(Catenate), "can't use MCatenate to lookup into environment" );
             if tbl::Local then
                 try
+                    #print("here2");
                     return env:-getTblVal(Name(tbl), MStatic(op(re)));
                 catch "table value is dynamic" :
+                    #print("here3");
                     if env:-isStaticTable(Name(tbl)) then
+                        #print("here4");
                         return MTableref(tbl, embed(op(re)));
                     end if;
+                    #print("here5");
                 end try;
             elif tbl::Global then
                 try
@@ -307,17 +312,24 @@ $include "pe_reduce_smarter.mpl"
                 end try;
             end if;
         end if;
-
+        
+        #print("here6");
         rt := [reduce(tbl)];
         if rt::list(Static) and re::list(Static) then
+            #print("here7");
             val := [op(rt)[op(re)]];
+            #print("tableref val", val);
             if val = [OnENV:-DYN] then
+                print("here8");
                 error "lookup of dynamic value in table, table expressions must be names";
             end if;
+            #print("here9");
             op(val);
         else
+            #print("here10");
             MTableref(embed(op(rt)), embed(op(re)));
         end if;
+        #print("here11");
     end proc;
 
 

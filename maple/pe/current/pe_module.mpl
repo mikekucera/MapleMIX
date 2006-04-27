@@ -16,7 +16,7 @@ BuildModule := module()
             local procName, p, lexicalLocals, body, lseq, f, processFuncCall;
             procName := lhs(eqn);
             p := rhs(eqn);
-            p := CodeCleanup:-RemoveDeadCodeSimple(p);
+            #p := CodeCleanup:-RemoveDeadCodeSimple(p);
             p := M:-FromM( p );
             procLocalIndex := procLocalIndex + `if`(procName = n, 0, 1);
 

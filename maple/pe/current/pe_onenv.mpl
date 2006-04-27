@@ -197,6 +197,7 @@ OnENV := module()
             
             getTblVal := proc(tableName::Not(mform), index::MStatic)
                 local err, setting, rec, val;
+                #print("getTblVal", args);
                 ASSERT( nargs = 2, "getTblVal expected 2 args" );
                 
                 err   := "table value is dynamic %1[%2]", tableName, index;
