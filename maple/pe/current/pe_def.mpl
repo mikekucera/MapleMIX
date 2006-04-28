@@ -19,7 +19,8 @@ $include "access_header.mpl"
     peFunction_SpecializeThenDecideToUnfold,
     peFunction_GenerateNewSpecializedProc,
     analyzeDynamicLoopBody, getCallSignature,
-    replaceLocalsWithNewParams, extractBindingFromEquationConditional,
+    replaceLocalsWithNewParams, 
+    extractBindingFromEquationConditional, extractBinding,
     handleStaticLoop, handleDynamicLoop, forFromTerminationTest, insertDriver,
 
     # module local variables
@@ -263,10 +264,16 @@ pe[MCommand] := proc(command)
 end proc;
 
 
-extractBindingFromEquationConditional := proc(rcond) local n, v, i;
-    if typematch(rcond, MEquation('n'::mname, 'v'::Static)) then
+
+
+extractBindingFromEquationConditional := proc(rcond, {neg:=false})
+    extractBinding(rcond, `if`(neg, MInequat, MEquation));
+end proc;
+
+extractBinding := proc(rcond, equattype)
+    if typematch(rcond, equattype('n'::mname, 'v'::Static)) then
         getEnv(n):-put(Name(n), SVal(v));
-    elif typematch(rcond, MEquation(MTableref('n'::mname, 'i'::Static), 'v'::Static)) then
+    elif typematch(rcond, equattype(MTableref('n'::mname, 'i'::Static), 'v'::Static)) then
         getEnv(n):-putTblVal(Name(n), i, SVal(v));
     end if;
 end proc;
@@ -284,7 +291,7 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
         genv:-grow();
 
         # extract data from conditional expression
-        extractBindingFromEquationConditional(rcond);
+        extractBindingFromEquationConditional(rcond, neg=false);
         
         C1 := peM(CodeUpToPointer(thenBranch));
 
@@ -308,6 +315,8 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
         env:-grow();
         genv:-grow();
 
+        extractBindingFromEquationConditional(rcond, neg=true);
+        
         C2 := peM(CodeUpToPointer(elseBranch));
         S := CodeBelow(elseBranch);
 
