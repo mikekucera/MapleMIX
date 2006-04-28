@@ -107,3 +107,7 @@ res1();
 
 print(res2:-ModuleApply);
 res2(a);
+
+res2b := OnPE(eval(res2:-ModuleApply)):
+print(res2b:-ModuleApply);
+res2b(a);
