@@ -19,7 +19,7 @@ $include "access_header.mpl"
     peFunction_SpecializeThenDecideToUnfold,
     peFunction_GenerateNewSpecializedProc,
     analyzeDynamicLoopBody, getCallSignature,
-    replaceLocalsWithNewParams, 
+    replaceLocalsWithNewParams,
     extractBindingFromEquationConditional, extractBinding,
     handleStaticLoop, handleDynamicLoop, forFromTerminationTest, insertDriver,
 
@@ -292,7 +292,7 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
 
         # extract data from conditional expression
         extractBindingFromEquationConditional(rcond, neg=false);
-        
+
         C1 := peM(CodeUpToPointer(thenBranch));
 
         stopAfterC1 := M:-EndsWithErrorOrReturn(C1);
@@ -316,7 +316,7 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
         genv:-grow();
 
         extractBindingFromEquationConditional(rcond, neg=true);
-        
+
         C2 := peM(CodeUpToPointer(elseBranch));
         S := CodeBelow(elseBranch);
 
@@ -561,7 +561,7 @@ end proc;
 pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq, below)
     local rInExp, env, indexVar, mkDriver, mkDynamicLoop;
     rInExp := ReduceExp(inExp);
-    
+
     if rInExp::Static then
         if nops(rInExp) > 0 then
             indexVar := gen("indexVar");
@@ -570,9 +570,9 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq, below)
             env:-setLoopVar(indexVar, SVal(rInExp)); # TODO, this isn't needed
             env:-put(indexVar, 1, 'loopVarSet'=true);
             env:-put(Name(loopVar), op(1, SVal(rInExp)), 'loopVarSet'=true);
-            
+
             mkDriver := thunk -> MForInDriver(thunk, below, loopVar, indexVar, rInExp, whileExp);
-            handleStaticLoop(whileExp, statseq, mkDriver); 
+            handleStaticLoop(whileExp, statseq, mkDriver);
         else
             peM(below);
         end if;
@@ -595,7 +595,7 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq, bel
             env := callStack:-topEnv();
             env:-setLoopVar(Name(loopVar));
             env:-put(Name(loopVar), SVal(rFromExp), 'loopVarSet'=true);
-        
+
             mkDriver := thunk -> MForFromDriver(thunk, below, loopVar, rByExp, rToExp, whileExp);
             handleStaticLoop(whileExp, statseq, mkDriver);
         else
@@ -631,12 +631,12 @@ insertDriver := proc(statseq::mform(StatSeq), driver::mform({ForFromDriver, ForI
     flattened := M:-FlattenStatSeq(statseq);
     if nops(flattened) = 0 then
         MStatSeq(driver);
-    else        
+    else
         front := Front(flattened);
         last  := Last(flattened);
         if Header(last) = MIfThenElse then
-            MStatSeq(front, MIfThenElse(Cond(last), 
-                                        procname(Then(last), driver), 
+            MStatSeq(front, MIfThenElse(Cond(last),
+                                        procname(Then(last), driver),
                                         procname(Else(last), driver) ))
         elif Header(last) = MRef then
             MStatSeq(front, MRef('code'=procname(op(last):-code, driver)))
@@ -659,7 +659,7 @@ end proc;
 
 forFromTerminationTest := proc(byVal, toVal, val)
     (SVal(byVal) > 0 and val > SVal(toVal)) or
-    (SVal(byVal) < 0 and val < SVal(toVal)) 
+    (SVal(byVal) < 0 and val < SVal(toVal))
 end proc;
 
 
@@ -668,7 +668,7 @@ pe[MForFromDriver] := proc(thunk, below, loopVar, byVal, toVal, whileExp)
     env := callStack:-topEnv();
     val::integer := env:-get(Name(loopVar)) + SVal(byVal);
     env:-put(Name(loopVar), val, 'loopVarSet'=true);
-    
+
     if forFromTerminationTest(byVal, toVal, val) then
         peM(below);
     else
@@ -687,7 +687,7 @@ pe[MForInDriver] := proc(thunk, below, loopVar, indexVar, rInExp, whileExp)
     env := callStack:-topEnv();
     val::integer := env:-get(indexVar) + 1;
     env:-put(indexVar, val, 'loopVarSet'=true);
-    
+
     if val > nops(SVal(rInExp)) then
         peM(below);
     else
@@ -1034,7 +1034,7 @@ peFunction := proc(funRef,#::Dynamic,
         end if;
 	    peFunction_StaticFunction(funRef, ma, argExpSeq, gen("ma"), unfold, residualize, symbolic);
 
-    elif hasOption('builtin', sfun) then
+    elif type(sfun, `procedure`) and hasOption('builtin', sfun) then
         residualize(fun, MExpSeq(ReduceExp(argExpSeq)));
     else
         redargs := ReduceExp(argExpSeq);

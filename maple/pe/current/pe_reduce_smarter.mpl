@@ -30,7 +30,7 @@ SmartOps := module()
     functionHandler["nops"] := proc(expseq) local res, dyn;
         print("nops", args);
         dyn := substop(op(expseq));
-        if Header(dyn) = MList and andmap(x -> member(Header(x), {MParam, MLocal, MStatic}) , op(dyn)) then
+        if Header(dyn) = MList then #and andmap(x -> member(Header(x), {MParam, MLocal, MStatic, MList}) , op(dyn)) then
             nops(op(dyn))
         end if;
     end proc;
@@ -42,6 +42,7 @@ SmartOps := module()
             data := substop(op(2, expseq));
             if Header(data) = MList and num <= nops(op(data)) then
                 res := op(num, op(data));
+                print("res", res);
                 `if`(res::Static, op(res), res);
             elif Header(data) = MSum and num <= nops(data) then
                 res := op(num, data);

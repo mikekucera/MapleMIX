@@ -217,7 +217,7 @@ FromM := module()
     inrt[MAssignToFunction] := proc(n::mform, functioncall::mform) local fcn;
         if op(1, functioncall)::Static then
             fcn := op([1,1], functioncall);
-            if Builtins:-isOperator(fcn) then
+            if type(fcn, 'procedure') and Builtins:-isOperator(fcn) then
                 return inrt[MAssign](n, apply(Builtins:-getOperatorAsM(fcn), esop(op(2, functioncall))));
             end if;
         end if;
@@ -347,13 +347,13 @@ FromM := module()
 
 
     inrt[MIfThenElse] := proc(c, s1, s2)
-        #if IsNoOp(s1) and IsNoOp(s2) then
-        #    _Inert_EXPSEQ();
-        #elif IsNoOp(s2) then
-        #3    _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)));
-        #else
+        if IsNoOp(s1) and IsNoOp(s2) then
+            _Inert_EXPSEQ();
+        elif IsNoOp(s2) then
+            _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)));
+        else
             _Inert_IF(_Inert_CONDPAIR(mtoi(c), mtoi(s1)), condpair(s2))
-        #end if;
+        end if;
     end proc;
 
     condpair := proc(stmt) local mkpair;

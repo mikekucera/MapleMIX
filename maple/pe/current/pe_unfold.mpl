@@ -9,8 +9,10 @@ Unfold := module()
         rename := proc(f)
             proc(n) local newname;
                 if assigned(names[n]) then
+                    print("renamed", n , "to", names["n"]);
                     f(names[n]);
                 else
+                    print("its not assigned!", n);
                     newname := genVarName(n);
                     names[n] := newname;
                     f(newname);
@@ -23,7 +25,7 @@ Unfold := module()
                          # TODO; MSigngleUse = rename(MSingleUse)
                          #MSingleUse=rename(MGeneratedName)]); # ok because MSingleUse is removed by FromM
                          #MSingleUse=rename(MSingleUse)]);
-        return body, names;
+        return body, rename(MGeneratedName);
     end proc;
 
 
@@ -39,11 +41,11 @@ Unfold := module()
     # the static ones should have been removed.
     UnfoldStandalone := proc(specProc::mform(Proc), specCall::mform(ExpSeq),
                              fullCall::mform(ExpSeq), genVarName) :: mform(StatSeq);
-        local body, params, let, lets, i, header, paramName, letArgs, newNames,
+        local body, params, let, lets, i, header, paramName, letArgs, rename,
               letNargs, argsName, nargsName, argExpr;
         body := M:-TransformIf:-TransformToReturnNormalForm(ProcBody(specProc));;
         params := Params(specProc);
-        body, newNames := renameAllLocals(body, genVarName);
+        body, rename := renameAllLocals(body, genVarName);
         body := removeReturns(body);
 
         # let insert the variables
@@ -57,9 +59,11 @@ Unfold := module()
             # variables can be substituted directly without fear of duplication
             # TODO, this won't be needed if we go to a general purpose copy propagator
             if member(header, {MParam, MLocal, MSubst}) then
-                body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
+                body := subs(rename(paramName) = argExpr, body);
+                #body := subs(MGeneratedName(newNames[paramName]) = argExpr, body);
             else
-                let := MAssign(MGeneratedName(newNames[paramName]), argExpr);
+                let := MAssign(rename(paramName), argExpr);
+                #let := MAssign(MGeneratedName(newNames[paramName]), argExpr);
                 lets:-enqueue(let);
             end if;
             i := i + 1;
