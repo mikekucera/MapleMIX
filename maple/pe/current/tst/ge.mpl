@@ -20,7 +20,7 @@ rmar := min(n,m);
 s := 1;
 d := 1;
 r := 1;
-for k to m while r <= rmar do
+for k to min(m,rmar) while r <= n do
 
     # Search for a pivot element.  Choose the first
     pivot := -1;
