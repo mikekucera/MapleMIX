@@ -20,7 +20,7 @@ $include "access_header.mpl"
     peFunction_GenerateNewSpecializedProc,
     analyzeDynamicLoopBody, getCallSignature,
     replaceLocalsWithNewParams, extractBindingFromEquationConditional,
-    handleStaticLoop, handleDynamicLoop, forFromTerminationTest,
+    handleStaticLoop, handleDynamicLoop, forFromTerminationTest, insertDriver,
 
     # module local variables
     callStack,         # callStack grows by one OnENV for every function specialization
@@ -600,29 +600,40 @@ end proc;
 
 
 handleStaticLoop := proc(whileExp, statseq, mkDriver::procedure)
-    local rWhileExp, flattened, thunk, driver;
+    local rWhileExp, thunk, driver;
     rWhileExp := ReduceExp(whileExp);
     if rWhileExp::Dynamic then
         error "dynamic while condition not supported";
     end if;
-
     if SVal(rWhileExp) then
-        flattened := M:-FlattenStatSeq(statseq);
-        if M:-EndsWithIf(flattened) then
-            thunk := proc() local ifstmt, ifstmt2;
-                ifstmt := op(-1, flattened);
-                ifstmt2 := MIfThenElse(Cond(ifstmt), 
-                                  MStatSeq(ssop(Then(ifstmt)), driver), 
-                                  MStatSeq(ssop(Else(ifstmt)), driver));
-                peM(MStatSeq(op(1..-2, flattened), ifstmt2));
-            end proc;
-        else
-            thunk := () -> MStatSeq(ssop(statseq), driver);
-        end if;
+        # crazy circular reference!
+        thunk := () -> insertDriver(statseq, driver);
         driver := mkDriver(thunk);
         peM(thunk());
     else
         NULL
+    end if;
+end proc;
+
+
+# follows all paths and inserts drivers at the end
+insertDriver := proc(statseq::mform(StatSeq), driver::mform({ForFromDriver, ForInDriver}))
+    local flattened, front, last;
+    flattened := M:-FlattenStatSeq(statseq);
+    if nops(flattened) = 0 then
+        MStatSeq(driver);
+    else        
+        front := Front(flattened);
+        last  := Last(flattened);
+        if Header(last) = MIfThenElse then
+            MStatSeq(front, MIfThenElse(Cond(last), 
+                                        procname(Then(last), driver), 
+                                        procname(Else(last), driver) ))
+        elif Header(last) = MRef then
+            MStatSeq(front, MRef('code'=procname(op(last):-code, driver)))
+        else
+            MStatSeq(ssop(flattened), driver)
+        end if;
     end if;
 end proc;
 
