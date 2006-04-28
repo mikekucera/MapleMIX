@@ -2,7 +2,7 @@
 #
 # Purpose:	Reduce the matrix A to upper triangular form.
 #
-# Input:	Matrix, dimension n 
+# Input:	Matrix, dimension n
 # Output:	reduced matrix
 #
 
@@ -26,8 +26,8 @@ for k to m while r <= rmar do
     pivot := -1;
     for i from r to n do
         if (pivot = -1) then
-            if (B[i,k] <> 0) then 
-                pivot := i; 
+            if (B[i,k] <> 0) then
+                pivot := i;
             end if;
         end if;
     end do;
@@ -35,8 +35,8 @@ for k to m while r <= rmar do
 
     if pivot>-1 then
 		# interchange row i with row r is necessary
-		if pivot <> r then 
-            s := -s; 
+		if pivot <> r then
+            s := -s;
             for j from k to m do
 			   t := B[pivot,j]; B[pivot,j] := B[r,j]; B[r,j] := t
             end do;
@@ -106,8 +106,11 @@ print(res1:-ModuleApply);
 res1();
 
 print(res2:-ModuleApply);
-res2(a);
 
-res2b := OnPE(eval(res2:-ModuleApply)):
-print(res2b:-ModuleApply);
-res2b(a);
+Matrix(3,4, res2(a));
+
+Matrix(3,4, res2(0));
+
+Matrix(3,4, res2(-4));
+
+

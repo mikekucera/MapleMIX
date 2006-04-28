@@ -28,10 +28,12 @@ end proc:
 
 goal := proc(a, b, c) local p;
     p := a*x^2+b*x+c;
-    mydegree(p, x) 
+    mydegree(p, x)
 end proc;
 
-res1 := OnPE(goal): 
+opts := PEOptions();
+opts := opts:-setPropagateDynamic(true);
+res1 := OnPE(goal):
 print(res1:-ModuleApply);
 print(res1:-mydegree_1);
 

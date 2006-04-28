@@ -5,7 +5,8 @@ FromM := module()
     local
         inrt, mtoi, mtoi2, mapmtoi,
         createParamMap, createLocalMappingFunctions, replaceLexical,
-        singleAssigns, mapStack, inertNull, condpair;
+        singleAssigns, liftedAssigns, mapStack, inertNull, condpair,
+        removeEval, listCompare, getAssigns;
 
     inertNull := _Inert_ASSIGNEDNAME("NULL", "EXPSEQ", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected")))));
 
@@ -13,11 +14,14 @@ FromM := module()
     mtoi, mtoi2, mapmtoi := createTableProcs("FromM", inrt);
 
 
+
     ModuleApply := proc(code::mform) local res;
         singleAssigns := table();
+        liftedAssigns := SimpleQueue();
         mapStack := SimpleStack();
         res := mtoi(code);
         singleAssigns := 'singleAssigns';
+        liftedAssigns := 'liftedAssigns';
         mapStack := 'mapStack';
         res;
     end proc;
@@ -70,8 +74,47 @@ FromM := module()
         end if;
     end proc;
 
-    inrt[MBoth] := proc(s, d)
+    inrt[MBoth] := proc(s, d) local i, t, assign, inds;
+        if nops(s) = 1 and type(SVal(s), 'table') then
+            t := SVal(s);
+            try
+                inds := sort([indices(t)], listCompare);
+            catch :
+                inds := [indices(t)];
+            end try;
+
+            for i in inds do
+                if t[op(i)] <> OnPE:-OnENV:-DYN then
+                    assign := mtoi( MAssignTableIndex(MTableref(removeEval(d), MStatic(op(i))), MStatic(t[op(i)])) );
+                    #print("generating for ", t[op(index)], assign);
+                    liftedAssigns:-enqueue(assign);
+                end if;
+            end do;
+        end if;
         mtoi(d);
+    end proc;
+
+    removeEval := proc(f) local n;
+        if typematch(f, MFunction(identical(MStatic('eval')), MExpSeq(n::mname))) then
+            n
+        else
+            f
+        end if;
+    end proc;
+
+    listCompare := proc(a, b) local i;
+        if a::list and b::list and nops(a) = nops(b) then
+            for i from 1 to nops(a) do
+                if a[i] < b[i] then
+                    return true;
+                elif a[i] > b[i] then
+                    return false;
+                end if;
+            end do;
+            return false;
+        else
+            a < b
+        end if;
     end proc;
 
 
@@ -139,13 +182,26 @@ FromM := module()
     inrt[MEop]   := _Inert_EOP            @ mapmtoi;
     inrt[MFlags] := NULL;
 
-    inrt[MStandaloneExpr] := mapmtoi;
+
 
     inrt[MStatSeq]            := _Inert_STATSEQ  @ mapmtoi;
 
     inrt[MAssignTableIndex]   := _Inert_ASSIGN   @ mapmtoi;
     inrt[MAssignToTable]      := _Inert_ASSIGN   @ mapmtoi;
 
+    getAssigns := proc() local res;
+        res := op(liftedAssigns:-toList());
+        liftedAssigns := SimpleQueue();
+        res;
+    end proc;
+
+
+#    inrt[MStandaloneExpr] := mapmtoi;
+    inrt[MStandaloneExpr] := proc(e) local inert;
+        # TODO: add table lifting to all statement forms
+        inert := mtoi(e);
+        _Inert_STATSEQ(getAssigns(), inert);
+    end proc;
 
     inrt[MAssign] := proc(n::mform, e::mform)
         if n::mform(SingleUse) then
