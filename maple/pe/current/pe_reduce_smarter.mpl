@@ -20,9 +20,13 @@ SmartOps := module()
         res := syntaxHandler[Header(f)](op(f));
         `if`(res = NULL, f, res);
     end proc;
-    
-    
-    
+
+    syntaxHandler[MProd] := proc()
+        if ormap(curry(`=`, MStatic(0)), [args]) then
+            0
+        end if;
+    end proc;
+
     functionHandler["nops"] := proc(expseq) local res, dyn;
         print("nops", args);
         dyn := substop(op(expseq));
@@ -45,17 +49,17 @@ SmartOps := module()
             end if;
         end if;
     end proc;
-    
+
     syntaxHandler[MTableref] := proc(t, expseq) local es, i;
         if  typematch(t, MSubst(anything, MList('es'::mform(ExpSeq))))
         and typematch(expseq, MStatic('i'::integer))
-        and i <= nops(es) then 
+        and i <= nops(es) then
             op(i, es)
         end if;
     end proc;
-    
+
     functionHandler["degree"] := proc(expseq) local s, failed, handleProd, coeffs, x;
-        if typematch(expseq, MExpSeq('s'::specfunc(anything,MSum), MStatic('x'::anything))) 
+        if typematch(expseq, MExpSeq('s'::specfunc(anything,MSum), MStatic('x'::anything)))
         or typematch(expseq, MExpSeq(MSubst(anything, 's'::specfunc(anything,MSum)), MStatic('x'::anything))) then
             failed := false;
             handleProd := proc(prod) local i;
@@ -63,7 +67,7 @@ SmartOps := module()
                     degree(i, x)
                 elif member(Header(prod), {MParam, MLocal}) then
                     0
-                else 
+                else
                     failed := true;
                 end if;
             end proc;
@@ -83,9 +87,9 @@ SmartOps := module()
             end do;
         end if;
     end proc;
-    
+
     syntaxHandler[MList] := proc(expseq) local doOp;
-        
+
         doOp := proc(x) local es;
             if typematch(x, MFunction(MName("op"), MExpSeq(MSubst(anything, MList('es'::specfunc(anything,MExpSeq)))))) then
                 op(es);
@@ -93,7 +97,7 @@ SmartOps := module()
                 x
             end if;
         end proc;
-        
+
         MList(map(doOp, expseq));
     end proc;
 
