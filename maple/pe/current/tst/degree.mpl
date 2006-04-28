@@ -32,8 +32,7 @@ goal := proc(a, b, c) local p;
 end proc;
 
 opts := PEOptions();
-opts := opts:-setPropagateDynamic(true);
-res1 := OnPE(goal):
+opts:-setPropagateDynamic(true);
+res1 := OnPE(goal, opts):
 print(res1:-ModuleApply);
-print(res1:-mydegree_1);
 
