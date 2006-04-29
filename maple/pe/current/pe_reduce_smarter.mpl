@@ -28,7 +28,6 @@ SmartOps := module()
     end proc;
 
     functionHandler["nops"] := proc(expseq) local res, dyn;
-        print("nops", args);
         dyn := substop(op(expseq));
         if Header(dyn) = MList then #and andmap(x -> member(Header(x), {MParam, MLocal, MStatic, MList}) , op(dyn)) then
             nops(op(dyn))
@@ -42,20 +41,20 @@ SmartOps := module()
             data := substop(op(2, expseq));
             if Header(data) = MList and num <= nops(op(data)) then
                 res := op(num, op(data));
-                print("res", res);
                 `if`(res::Static, op(res), res);
-            elif Header(data) = MSum and num <= nops(data) then
+            elif member(Header(data), {MSum, MPower}) and num <= nops(data) then
                 res := op(num, data);
                 `if`(res::Static, op(res), res);
             end if;
         end if;
     end proc;
 
-    syntaxHandler[MTableref] := proc(t, expseq) local es, i;
+    syntaxHandler[MTableref] := proc(t, expseq) local es, i , res;
         if  typematch(t, MSubst(anything, MList('es'::mform(ExpSeq))))
         and typematch(expseq, MStatic('i'::integer))
         and i <= nops(es) then
-            op(i, es)
+            res := op(i, es);
+            `if`(res::Static, op(res), res);
         end if;
     end proc;
 

@@ -207,6 +207,7 @@ FromM := module()
         if n::mform(SingleUse) then
             singleAssigns[op(n)] := mtoi(e);
             NULL;
+            #_Inert_ASSIGN(mapmtoi(args));
         elif e = MExpSeq() then
             _Inert_ASSIGN(mtoi(n), inertNull);
         else

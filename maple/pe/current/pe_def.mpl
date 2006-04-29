@@ -785,13 +785,14 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
     local unfold, residualize, symbolic;
     unfold := proc(residualProcedure, redCall, fullCall)
         local res, flattened, assign, expr, env;
+        env := callStack:-topEnv(); 
+        env:-setValDynamic(Name(var)); # make it dynamic, will go back to static if possible
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         flattened := M:-RemoveUselessStandaloneExprs(res);
         #if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
-        env := callStack:-topEnv();
+        
         # TODO, rewrite this piece
         if nops(flattened) = 1 and member(op([1,0], flattened), {MAssign, MAssignToFunction}) then
-            print("here1");
             assign := op(flattened);
             expr := op(2, assign);
             if expr::Static then
@@ -803,11 +804,9 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
                 env:-put(Name(var), expr);
             end if;
         elif nops(flattened) >= 1 and op([-1,0], flattened) = MAssign then
-            print("here2");
             assign := op(-1, flattened);
             expr := op(2, assign);
             if expr::Dynamic and gopts:-getPropagateDynamic() then
-                print("expr", expr);
                 env:-put(Name(var), expr);
             end if;
         end if;
