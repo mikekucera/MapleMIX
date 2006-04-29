@@ -185,8 +185,58 @@ proc(x) local B1;
 end proc
 );
 
-Try(202, got, expected);
+Try(210, got, expected);
 
+#######################################################################
+
+
+int_pow := proc(i,var)
+    if op(1,i)=var then
+        if op(2,i)=-1 then
+            ln(var)
+        else
+            var^(op(2,i)+1)/(op(2,i)+1)
+        end if
+    else
+        int(i,var)
+    end if;
+end proc:
+
+int_sum := proc(l, var)
+    local res, x, i;
+    res := 0;
+    for i from 1 to nops(l) do
+        x := op(i, l);
+        res := res + x[1]*int_pow(x[2],var);
+    end do;
+    res;
+end proc:
+
+goal := proc(n)
+    local x;
+    int_sum([[5,x^2], [-7,x^n], [2,x^(-1)]], x);
+end proc:
+
+opts := PEOptions();
+opts:-setPropagateDynamic(true);
+opts:-addFunction(PEOptions:-INTRINSIC, ln);
+res1 := OnPE(goal, opts):
+
+got := ToInert(eval(res1:-ModuleApply));
+expected := ToInert(
+proc(n) local m1, res1;
+    if n = -1 then 
+        m1 := ln(x) 
+    else 
+        m1 := x^(n + 1)/(n + 1) 
+    end if;
+    res1 := 5 * x^3/3 - 7 * m1;
+    res1 := res1 + 2 * ln(x);
+    res1
+end proc
+);
+
+#Try(300, got, expected);
 
 #######################################################################
 #end test

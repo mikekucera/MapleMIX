@@ -4,12 +4,12 @@ kernelopts(opaquemodules=false):
 int_pow := proc(i,var)
     if op(1,i)=var then
         if op(2,i)=-1 then
-            LN(var)
+            ln(var)
         else
             var^(op(2,i)+1)/(op(2,i)+1)
         end if
     else
-        MYINT(i,var)
+        int(i,var)
     end if;
 end proc:
 
@@ -33,6 +33,8 @@ end proc:
 
 opts := PEOptions();
 opts:-setPropagateDynamic(true);
+opts:-addFunction(PEOptions:-INTRINSIC, ln);
+ 
 res1 := OnPE(goal, opts):
 
 print(res1:-ModuleApply);
