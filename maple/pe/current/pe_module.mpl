@@ -17,6 +17,9 @@ BuildModule := module()
             procName := lhs(eqn);
             p := rhs(eqn);
             p := CodeCleanup:-RemoveDeadCodeSimple(p);
+            if gopts:-getInlineAssigns() then
+                p := CodeCleanup:-InlineAssignsSimple(p);
+            end if;
             p := M:-FromM( p );
             procLocalIndex := procLocalIndex + `if`(procName = n, 0, 1);
 

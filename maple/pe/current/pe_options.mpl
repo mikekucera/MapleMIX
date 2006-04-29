@@ -17,10 +17,11 @@ PEOptions := module()
                 setConsiderExpseq,   getConsiderExpseq,
                 setIgnoreCommands,   getIgnoreCommands,
                 setShareFunctions,   getShareFunctions,
-                setPropagateDynamic, getPropagateDynamic;
+                setPropagateDynamic, getPropagateDynamic,
+                setInlineAssigns, getInlineAssigns;
             local
                 level, setLevel, getLevel, mutex,
-                considerExpseq, ignoreCommands,
+                considerExpseq, ignoreCommands, inlineAssigns,
                 functions, funcOpt, hasFuncOpt;
 
             level := infinity;
@@ -58,6 +59,14 @@ PEOptions := module()
             getPropagateDynamic := () -> not mutex;
             
 
+            inlineAssigns := false;
+            setInlineAssigns := proc(x::boolean := true)
+                inlineAssigns := x;
+                NULL:
+            end proc;
+            getInlineAssigns := () -> inlineAssigns;
+            
+            
             functions := table();
 
             addFunction := proc(typ :: {identical(PEOptions:-PURE),

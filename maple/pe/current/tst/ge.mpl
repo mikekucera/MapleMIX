@@ -98,9 +98,13 @@ goal2c := proc()
 end proc:
 Matrix(3, 4, goal2c());
 
-res1 := OnPE(goal1): # fully static, easy
+opts := PEOptions();
+opts:-setInlineAssigns();
 
-res2 := OnPE(goal2): # the one we really care about
+
+res1 := OnPE(goal1, opts): # fully static, easy
+
+res2 := OnPE(goal2, opts): # the one we really care about
 
 print(res1:-ModuleApply);
 res1();
