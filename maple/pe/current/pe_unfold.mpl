@@ -9,10 +9,8 @@ Unfold := module()
         rename := proc(f)
             proc(n) local newname;
                 if assigned(names[n]) then
-                    print("renamed", n , "to", names["n"]);
                     f(names[n]);
                 else
-                    print("its not assigned!", n);
                     newname := genVarName(n);
                     names[n] := newname;
                     f(newname);

@@ -791,6 +791,7 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
         env := callStack:-topEnv();
         # TODO, rewrite this piece
         if nops(flattened) = 1 and member(op([1,0], flattened), {MAssign, MAssignToFunction}) then
+            print("here1");
             assign := op(flattened);
             expr := op(2, assign);
             if expr::Static then
@@ -798,11 +799,15 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
                 return NULL;
             elif expr::Both then
                 env:-put(Name(var), SVal(StaticPart(expr)));
+            elif expr::Dynamic and gopts:-getPropagateDynamic() then
+                env:-put(Name(var), expr);
             end if;
         elif nops(flattened) >= 1 and op([-1,0], flattened) = MAssign then
+            print("here2");
             assign := op(-1, flattened);
             expr := op(2, assign);
             if expr::Dynamic and gopts:-getPropagateDynamic() then
+                print("expr", expr);
                 env:-put(Name(var), expr);
             end if;
         end if;

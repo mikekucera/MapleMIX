@@ -24,6 +24,10 @@ $include "pe_reduce_smarter.mpl"
     ModuleApply := proc(expr, reductionEnv := callStack:-topEnv())
         local reduced1, reduced2, res;
         env := reductionEnv;
+        
+        #print("reducing");
+        #print(expr);
+        
         PEDebug:-DisplayReduceStart(expr);
 
         treatAsDynamic := false;
@@ -44,8 +48,11 @@ $include "pe_reduce_smarter.mpl"
         end if;
         
         #M:-Print(expr); #, "reduced", res);
+        
         #print();
         #M:-Print(res);
+        #print(res);
+        #print();
         #print();
         
         env := 'env';
@@ -163,13 +170,21 @@ $include "pe_reduce_smarter.mpl"
 
     red[MExpSeq] := proc() local rs;
         rs := map(reduce, [args]);
-        `if`(rs::list(Static), op(rs), MExpSeq(op(map(embed, rs))))
+        if rs::list(Static) then
+            op(rs)
+        elif type(rs, [mform(ExpSeq)]) then #Header(rs) = MExpSeq then
+            op(rs)
+        else
+            MExpSeq(op(map(embed, rs)));
+        end if;
+        
+        #`if`(rs::list(Static), op(rs), ))
     end proc;
 
 
     red[MList] := proc(eseq) local r;
         r := [reduce(eseq)];
-        `if`(r::list(Static), r, MList(op(r)))
+        `if`(r::list(Static), r, MList(op(r)));        
     end proc;
 
     red[MSet] := proc(eseq) local r;
@@ -231,12 +246,33 @@ $include "pe_reduce_smarter.mpl"
     end proc;
 
 
-    specFunc["seq"] := proc(expseq) local m;
-        m := MFunction( M:-ProtectedForm("seq"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
-        # eval(FromInert(M:-FromM(m)));
-        FromInert(M:-FromM(m));
-    end proc;
+    specFunc["seq"] := proc(expseq) local r, m, s, e, x, i, q, n, result;
+        if nops(expseq) = 2 then
+            r := [reduce(op(2,expseq))];
+            if typematch(r, ['x'::symbol=('s'::integer)..('e'::integer)] ) then
+                env:-grow();
+                q := SimpleQueue();
+                n := convert(x,string);
+                for i from s to e do
+                    env:-put(n, i);
+                    r := [reduce(op(1,expseq))];
+                    if nops(r) > 0 then
+                        q:-enqueue(op(r));
+                    end if;
+                end do;
+                env:-pop();
+                result := q:-toList();
+                if result::list(Static) then
+                    return result;
+                else
+                    return MExpSeq(op(map(embed, result)));
+                end if;                
+            end if;  
+        end if;
 
+        MFunction( M:-ProtectedForm("seq"), MExpSeq(op(map(embed, [reduce(expseq)]))) )
+    end proc;
+    
     specFunc["if"] := proc(expseq) local m;
         m := MFunction( M:-ProtectedForm("if"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
         # eval(FromInert(M:-FromM(m)));
