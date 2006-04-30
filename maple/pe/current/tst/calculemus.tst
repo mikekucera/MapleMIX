@@ -48,7 +48,68 @@ proc(a, b, c)
 end proc
 );
 
-Try(100, got, expected);
+Try(101, got, expected);
+
+
+goal2a := proc(a,b) local p; 
+    p := a*x^17+b*x^12;
+    mydegree(p, x);
+end proc;
+
+res2 := OnPE(goal2a, opts):
+got := ToInert(eval(res2:-ModuleApply));
+
+expected := ToInert(
+proc(a, b)
+    if a <> 0 then 17 
+    elif b <> 0 then 12 
+    else -infinity 
+    end if
+end proc
+);
+
+Try(102, got, expected);
+
+
+
+goal2b := proc(a,b) local p; 
+    p := a*x^17+b*x^12+3*x;
+    mydegree(p, x);
+end proc;
+
+res3 := OnPE(goal2b, opts):
+got := ToInert(eval(res3:-ModuleApply));
+
+expected := ToInert(
+proc(a, b) 
+    if a <> 0 then 17 
+    elif b <> 0 then 12 
+    else 1 
+    end if 
+end proc
+);
+
+Try(103, got, expected);
+
+
+goal2c := proc(a) local p; 
+    p := (a-5)*x^17+(a^2-1)*x^12+3*x;
+    mydegree(p, x);
+end proc;
+
+res4 := OnPE(goal2c, opts):
+got := ToInert(eval(res4:-ModuleApply));
+
+expected := ToInert(
+proc(a)
+    if a - 5 <> 0 then 17 
+    elif a^2 - 1 <> 0 then 12 
+    else 1 
+    end if
+end proc
+);
+
+Try(104, got, expected);
 
 #######################################################################
 

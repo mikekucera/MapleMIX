@@ -67,6 +67,8 @@ SmartOps := module()
                     degree(i, x)
                 elif member(Header(prod), {MParam, MLocal}) then
                     0
+                elif typematch(prod, MStatic('i'::algebraic)) then
+                    degree(i, x);
                 else
                     failed := true;
                 end if;
@@ -83,8 +85,11 @@ SmartOps := module()
                     return n;
                 elif member(Header(term), {MParam, MLocal}) and i = 0 then
                     return term;
+                elif typematch(term, MStatic('y'::algebraic)) then
+                    return coeff(y, x, i);
                 end if;
             end do;
+            return 0;
         end if;
     end proc;
 
