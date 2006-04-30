@@ -32,14 +32,37 @@ goal := proc(a, b, c) local p;
     mydegree(p, x)
 end proc;
 
+############################
 
-M:-Print(M:-ToM(ToInert(eval(coefflist))));
+goal2a := proc(a,b) local p; 
+    p := a*x^17+b*x^12;
+    mydegree(p, x);
+end proc;
+
+goal2b := proc(a,b) local p; 
+    p := a*x^17+b*x^12+3*x;
+    mydegree(p, x);
+end proc;
+
+goal2c := proc(a) local p; 
+    p := (a-5)*x^17+(a^2-1)*x^12+3*x;
+    mydegree(p, x);
+end proc;
+
+############################
+
+# M:-Print(M:-ToM(ToInert(eval(coefflist))));
 
 opts := PEOptions();
 opts:-setPropagateDynamic(true);
 res1 := OnPE(goal, opts):
+print(res1:-ModuleApply);
 
-tracelast;
+res2 := OnPE(goal2a, opts):
+print(res2:-ModuleApply);
 
-printmod(res1);
+res2 := OnPE(goal2b, opts):
+print(res2:-ModuleApply);
 
+res2 := OnPE(goal2c, opts):
+print(res2:-ModuleApply);

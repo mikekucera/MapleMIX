@@ -9,13 +9,12 @@ libname := libname, "../lib":
 #######################################################################
 
 
-coefflist := proc(p) local l, i, cof, d;
+coefflist := proc(p) local d, i;
     d := degree(p,x);
     return  [seq(coeff(p, x, d-i), i=0..d)];
 end proc:
 
-mydegree := proc(p, v)
-    local lst, i, s;
+mydegree := proc(p, v) local lst, i, s;
     lst := coefflist(p, v);
     s := nops(lst);
     for i from 1 to s do
@@ -66,7 +65,6 @@ s := 1;
 d := 1;
 r := 1;
 for k to min(m,rmar) while r <= n do
-
     # Search for a pivot element.  Choose the first
     pivot := -1;
     for i from r to n do
