@@ -53,38 +53,27 @@ Try(100, got, expected);
 #######################################################################
 
 
-GE := proc(AA, n, m)
-local B,i,j,k,r,d,s,t,rmar,pivot,ii;
-
-# make a copy
-B := table();
+GE := proc(AA, n, m) local B,i,j,k,r,d,s,t,rmar,pivot,ii;
+B := table(); # make a copy
 for ii to n do for j to m do B[ii,j] := AA[ii,j] end do end do;
 
-rmar := min(n,m);
-s := 1;
-d := 1;
-r := 1;
+rmar := min(n,m); s := 1; d := 1; r := 1;
 for k to min(m,rmar) while r <= n do
     # Search for a pivot element.  Choose the first
     pivot := -1;
     for i from r to n do
         if (pivot = -1) then
-            if (B[i,k] <> 0) then
-                pivot := i;
-            end if;
+            if (B[i,k] <> 0) then pivot := i; end if;
         end if;
     end do;
-    # for i from r to n while B[i,k] = 0 do end do;
 
-    if pivot>-1 then
-		# interchange row i with row r is necessary
+    if pivot>-1 then # interchange row i with row r is necessary
 		if pivot <> r then
             s := -s;
             for j from k to m do
 			   t := B[pivot,j]; B[pivot,j] := B[r,j]; B[r,j] := t
             end do;
 		end if;
-
 		for i from r+1 to n do
 			for j from k+1 to m do
                 B[i,j] := (B[i,j]*B[r,k]- B[r,j]*B[i,k])/ d;
@@ -92,22 +81,19 @@ for k to min(m,rmar) while r <= n do
 			B[i,k] := 0;
 		end do;
         d := B[r,k];
-        r := r + 1      	# go to next row
+        r := r + 1   # go to next row
     end if;
-end do;			  # go to next column
-
+end do;			     # go to next column
 eval(B);
 end proc:
 
-goal1 := proc()
-    local A;
+goal1 := proc() local A;
     A := table([(1,1)=1, (1,2)=2, (2,1)=-5, (2,2)=6]);
     GE(A, 2, 2);
 end proc:
 goal1();
 
-goal2 := proc(x)
-    local A;
+goal2 := proc(x) local A;
     A := table([
         (1,1) = 1, (1, 2)=-2, (1,3)=3, (1,4)=1,
         (2,1) = 2, (2, 2)=x,  (2,3)=6, (2,4)=6,
@@ -210,10 +196,7 @@ int_sum := proc(l, var)
     res;
 end proc:
 
-goal := proc(n)
-    local x;
-    int_sum([[5,x^2], [-7,x^n], [2,x^(-1)]], x);
-end proc:
+goal := proc(n) local x; int_sum([[5,x^2], [-7,x^n], [2,x^(-1)]], x); end proc:
 
 opts := PEOptions();
 opts:-setPropagateDynamic(true);
