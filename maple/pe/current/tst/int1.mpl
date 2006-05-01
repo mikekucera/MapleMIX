@@ -34,8 +34,12 @@ end proc:
 opts := PEOptions();
 opts:-setPropagateDynamic(true);
 opts:-addFunction(PEOptions:-INTRINSIC, ln);
- 
+
 res1 := OnPE(goal, opts):
 
 print(res1:-ModuleApply);
 res1(m);
+
+res1(-1);
+
+res1(1);
