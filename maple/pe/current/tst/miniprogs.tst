@@ -68,4 +68,55 @@ Try(103, ps(3), 243);
 
 #######################################################################
 
+goal2 := proc(x, n) local t;  # fully dynamic
+    t := table();
+    t["x"] := x;
+    t["n"] := n;
+    MiniMapleInterpreter(power, t);
+end proc;
+
+p := module()
+    ModuleApply := proc(x, n) local t; 
+        t["x"] := x; 
+        t["n"] := n; 
+        evalStat_1(t) 
+    end proc;
+    
+    evalStat_1 := proc(env) local e12, c, e16, newEnv1, e14, e22;
+        e12 := env["n"];
+        c := evalb(e12 = 0);
+        if c then 1
+        else
+            e16 := env["x"];
+            newEnv1["x"] := env["x"];
+            e14 := env["n"];
+            newEnv1["n"] := e14 - 1;
+            e22 := evalStat_1(newEnv1);
+            e16*e22
+        end if
+    end proc
+end module;
+
+opts := PEOptions():
+opts:-setConsiderExpseq(false):
+
+ps := OnPE(goal2, opts);
+printmod(ps);
+
+got := op(5, ToInert(eval(ps:-ModuleApply)));
+expected := op(5, ToInert(eval(p:-ModuleApply)));
+
+Try(201, got, expected);
+
+
+
+got := op(5, ToInert(eval(ps:-evalStat_1)));
+expected := op(5, ToInert(eval(p:-evalStat_1)));
+
+Try(202, got, expected);
+
+
+#######################################################################
+
+
 #end test

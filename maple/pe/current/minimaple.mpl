@@ -20,25 +20,24 @@ MiniMapleInterpreter := module() option package;
         if h = mmAssign then
             &onpe("lprint", "evalStat", "mmAssign");
             env[op(1,s)] := evalExpr(op(2,s), env, defs);
-            &onpe("displaynames");
         elif h = mmTableAssign then
             &onpe("lprint", "evalStat", "mmTableAssign");
-            &onpe("lprint", "display 1");
-            &onpe("displaynames");
             i := evalExpr(op(2,s), env, defs);
             t := env[op(1,s)];
             t[i] := evalExpr(op(3,s), env, defs);
-            &onpe("lprint", "display 2");
-            &onpe("displaynames");
         elif h = mmIfElse then
             &onpe("lprint", "evalStat", "mmIfElse");
             c := evalExpr(op(1,s), env, defs);
+            &onpe("lprint", "conditional evaluated");
             if c then
-                i := 2
+                #i := 2
+                evalStat(op(2,s), env, defs);
             else
-                i := 3
+                #i := 3
+                evalStat(op(3,s), env, defs);
             end if;
-            evalStat(op(i,s), env, defs);
+            #&onpe("lprint", "evalStat", "mmIfElse", "branch");
+            #evalStat(op(i,s), env, defs);
         elif h = mmBlock then
             &onpe("lprint", "evalStat", "mmBlock");
             for i in s do
@@ -48,8 +47,6 @@ MiniMapleInterpreter := module() option package;
             &onpe("lprint", "evalStat", "mmForeach");
             var := op(1,s);
             e1 := evalExpr(op(2,s), env, defs);
-            &onpe("lprint", "display 3");
-            &onpe("displaynames");
             for i in e1 do
                 env[var] := i;
                 evalStat(op(3,s), env, defs);

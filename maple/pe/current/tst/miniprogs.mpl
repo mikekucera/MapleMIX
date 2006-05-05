@@ -23,14 +23,14 @@ power := mmProgram(
 );
 
 
-goal := proc(x) local t;
+goal := proc(x, n) local t;
     t := table();
     t["x"] := x;
-    t["n"] := 5;
+    t["n"] := n;
     MiniMapleInterpreter(power, t);
 end proc;
 
-goal(3);
+goal(3, 3);
 
 opts := PEOptions():
 opts:-setConsiderExpseq(false):
@@ -38,4 +38,24 @@ opts:-setConsiderExpseq(false):
 ps := OnPE(goal, opts);
 printmod(ps);
 
-ps(3);
+ps(3, 3);
+
+
+goal2 := proc(x) local t;
+    t := table();
+    t["x"] := x;
+    t["n"] := 5;
+    &onpe("display");
+    MiniMapleInterpreter(power, t);
+end proc; 
+
+goal2(3, 3);
+
+opts := PEOptions():
+opts:-setConsiderExpseq(false):
+
+ps2 := OnPE(goal2, opts);
+printmod(ps2);
+
+#ps2(3);
+

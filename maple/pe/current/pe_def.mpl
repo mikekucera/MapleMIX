@@ -18,7 +18,7 @@ $include "access_header.mpl"
     peFunction, peFunction_StaticFunction,
     peFunction_SpecializeThenDecideToUnfold,
     peFunction_GenerateNewSpecializedProc,
-    analyzeDynamicLoopBody, getCallSignature,
+    analyzeDynamicLoopBody, transformForCallSig,
     replaceLocalsWithNewParams,
     extractBindingFromEquationConditional, extractBinding,
     handleStaticLoop, handleDynamicLoop, forFromTerminationTest, insertDriver,
@@ -788,6 +788,7 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
         env := callStack:-topEnv(); 
         env:-setValDynamic(Name(var)); # make it dynamic, will go back to static if possible
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
+        
         flattened := M:-RemoveUselessStandaloneExprs(res);
         #if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
         
@@ -875,19 +876,33 @@ replaceLocalsWithNewParams := proc(replacements, expr::Dynamic) local loc;
 end proc;
 
 
+transformForCallSig := proc(x) local tbl;
+    if x::Dynamic then
+        DYN
+    elif x::Both then
+        MTable(op(op(StaticPart(x))))
+    elif typematch(x, MStatic(tbl::'table')) then
+        MTable(op(eval(tbl)))
+    else
+        x
+    end if;
+end proc;
+    
+    
 # returns an environment where static parameters are mapped to their static values
 # as well as the static calls that will be residualized if the function is not unfolded
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
     local env, fullCall, redCall, numParams, equationArgs, toRemove, i, t, f,
           reduced, staticPart, val, toEnqueue, paramName, paramVal, paramSpec, reducedArgs, eqn,
           reducedArg, arg, tmp, shouldResidualize, matchedEquations,
-          locals, params, toExpSeq, loc, newParams;
+          locals, params, toExpSeq, loc, newParams, signature;
 
     env := OnENV(); # new env for function call
     env:-setLink(callStack:-topEnv());
 
-   	fullCall := SimpleQueue(); # residual function call including statics
-   	redCall  := SimpleQueue(); # residual function call without statics
+   	fullCall  := SimpleQueue(); # residual function call including statics
+   	redCall   := SimpleQueue(); # residual function call without statics
+   	signature := SimpleQueue();
    	numParams := nops(paramSeq);
    	#possibleExpSeqSeen := false;
    	# table that remembers if an argument expression was a MEquation
@@ -912,9 +927,12 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	        for val in map(() -> [args], staticPart) do
    	            toEnqueue := `if`(reduced::Both, DynamicPart(reduced), embed(op(val)));
    	            fullCall:-enqueue(toEnqueue);
+   	            signature:-enqueue(transformForCallSig(reduced));
    	            if reduced::Both then
    	                redCall:-enqueue(toEnqueue);
    	            end if;
+   	                
+
                 # remember if this arg was coded directly as an equation
                 equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
                 if i <= numParams then
@@ -932,6 +950,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
    	    else # dynamic
    	        fullCall:-enqueue(reduced);
             redCall:-enqueue(reduced);
+            signature:-enqueue(transformForCallSig(reduced));
             equationArgs := equationArgs union `if`(Header(arg)=MEquation, {i}, {});
 
             if gopts:-getPropagateDynamic() then
@@ -971,6 +990,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
             matchedEquations := matchedEquations union {Name(op(1,reducedArg))};
             fullCall:-enqueue(reducedArg);
             redCall:-enqueue(reducedArg);
+            signature:-enqueue(transformForCallSig(reducedArg));
         end if;
     end do;
 
@@ -998,6 +1018,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
            'reducedCall'=toExpSeq(redCall),  # the reduced call to be residualized if the proc is not unfolded
            'allCall'=toExpSeq(fullCall), # the call but with static arguments still in their place
            'addParams'=[qtoseq(params)],
+           'callSignature'=[qtoseq(signature)],
            'removeParams'=toRemove); # parameters to remove from the parameter sequence
 end proc;
 
@@ -1082,11 +1103,6 @@ peFunction_StaticFunction := proc(funRef::Dynamic,
     end if;
 end proc;
 
-# returns a list of the arguments used to specialize a procedure
-# with the special value DYN substituted for dynamic arguments
-getCallSignature := proc(argExpSeq::mform(ExpSeq))
-    [op(map(x -> `if`(x::Dynamic, DYN, x), argExpSeq))];
-end proc;
 
 # specialize the function
 peFunction_SpecializeThenDecideToUnfold :=
@@ -1097,7 +1113,7 @@ peFunction_SpecializeThenDecideToUnfold :=
     newName := generatedName;
 
     argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
-    signature := fun, getCallSignature(argListInfo:-allCall);
+    signature := fun, argListInfo:-callSignature;
 
     # handle sharing issues
     if not gopts:-getShareFunctions() # turns function sharing off, signatures are still stored but never used

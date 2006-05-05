@@ -98,12 +98,15 @@ Unfold := module()
     UnfoldIntoAssign := proc(specProc::mform(Proc), specCall::mform(ExpSeq), fullCall::mform(ExpSeq),
                              genVarName, assignTo::mform({Local, SingleUse})) ::mform(StatSeq);
         local newbody, last;
+        
         newbody := UnfoldStandalone(specProc, specCall, fullCall, genVarName);
         newbody := M:-FlattenStatSeq(newbody);
         last  := Last(newbody);
-        #if Header(last) = MStandaloneExpr then
-        if member(Header(last), {MStandaloneExpr, MStandaloneFunction}) then
+
+        if Header(last) = MStandaloneExpr then
             MStatSeq(Front(newbody), MAssign(assignTo, op(last)));
+        elif Header(last) = MStandaloneFunction then
+            MStatSeq(Front(newbody), MAssign(assignTo, MFunction(op(last))));
         else
             if assignTo::mform(SingleUse) then
                 # conservative
