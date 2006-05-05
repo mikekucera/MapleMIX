@@ -17,46 +17,23 @@ MiniMapleInterpreter := module() option package;
     
     evalStat := proc(s, env, defs) local h, i, t, c, var, e1;
         h := op(0, s);
-        if h = mmAssign then
-            &onpe("lprint", "evalStat", "mmAssign");
-            env[op(1,s)] := evalExpr(op(2,s), env, defs);
-        elif h = mmTableAssign then
-            &onpe("lprint", "evalStat", "mmTableAssign");
-            i := evalExpr(op(2,s), env, defs);
-            t := env[op(1,s)];
-            t[i] := evalExpr(op(3,s), env, defs);
-        elif h = mmIfElse then
+        if h = mmIfElse then
             &onpe("lprint", "evalStat", "mmIfElse");
             c := evalExpr(op(1,s), env, defs);
             &onpe("lprint", "conditional evaluated");
             if c then
-                #i := 2
                 evalStat(op(2,s), env, defs);
             else
-                #i := 3
                 evalStat(op(3,s), env, defs);
             end if;
-            #&onpe("lprint", "evalStat", "mmIfElse", "branch");
-            #evalStat(op(i,s), env, defs);
         elif h = mmBlock then
             &onpe("lprint", "evalStat", "mmBlock");
             for i in s do
                 evalStat(i, env, defs);
             end do;
-        elif h = mmForeach then
-            &onpe("lprint", "evalStat", "mmForeach");
-            var := op(1,s);
-            e1 := evalExpr(op(2,s), env, defs);
-            for i in e1 do
-                env[var] := i;
-                evalStat(op(3,s), env, defs);
-            end do;
         elif h = mmExpr then
             &onpe("lprint", "evalStat", "mmExpr");
             evalExpr(op(1,s), env, defs);
-        elif h = mmError then
-            &onpe("lprint", "evalStat", "mmError");
-            error op(1,s);
         else
             &onpe("lprint", "evalStat", "else");
             error "unknown statement form: %1", h;
@@ -69,26 +46,9 @@ MiniMapleInterpreter := module() option package;
         if h = mmInt or h = mmString or h = mmName then
             &onpe("lprint", "evalExpr", "mmInt");
             op(1,e);
-        elif h = mmTable then
-            &onpe("lprint", "evalExpr", "mmTable");
-            table();
         elif h = mmVar then
             &onpe("lprint", "evalExpr", "mmVar");
-            #if assigned(env[op(1,e)]) then
-                env[op(1,e)]
-            #else
-            #    error "variable has no value: %1", e;
-            #end if;
-        elif h = mmLookup then
-            &onpe("lprint", "evalExpr", "mmLookup");
-            e1 := evalExpr(op(1,e), env, defs);
-            e2 := evalExpr(op(2,e), env, defs);
-            e1[e2];
-        elif h = mmOp then
-            &onpe("lprint", "evalExpr", "mmOp");
-            e1 := evalExpr(op(1,e), env, defs);
-            e2 := evalExpr(op(2,e), env, defs);
-            op(e1, e2);
+            env[op(1,e)]
         elif h = mmBin then
             &onpe("lprint", "evalExpr", "mmBin");
             o := op(1,e);
@@ -120,30 +80,20 @@ MiniMapleInterpreter := module() option package;
     end proc;
     
     evalBin := proc(mm, e1, e2)
-        if mm = mmEq then 
-            evalb(e1 = e2)
-        elif mm = mmPlus then 
-            e1 + e2
-        elif mm = mmMinus then
-            e1 - e2
-        elif mm = mmTimes then
-            e1 * e2
-        elif mm = mmAnd then
-            e1 and e2
-        elif mm = mmOr then
-            e1 or e2
-        else
-            error "unknown binary operator: %1", mm;
+        if mm = mmEq      then evalb(e1 = e2)
+        elif mm = mmPlus  then e1 + e2
+        elif mm = mmMinus then e1 - e2
+        elif mm = mmTimes then e1 * e2
+        elif mm = mmAnd   then e1 and e2
+        elif mm = mmOr    then e1 or e2
+        else error "unknown binary operator: %1", mm;
         end if;
     end proc;
     
     evalUn := proc(mm, e1)
-        if mm = mmNot then
-            not e1
-        elif mm = mmNeg then
-            -e1
-        else
-            error "unknown unary operator: %1", mm;
+        if mm = mmNot   then not e1
+        elif mm = mmNeg then -e1
+        else error "unknown unary operator: %1", mm;
         end if;
     end proc;
 
