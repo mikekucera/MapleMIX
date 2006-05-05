@@ -23,9 +23,7 @@ power := mmProgram(
 
 
 goal := proc(x) local t;
-    t := table();
-    t["x"] := x;
-    t["n"] := 5;
+    t := table(["x" = x, "n" = 5]);
     MiniMapleInterpreter(power, t);
 end proc;
 
@@ -69,9 +67,7 @@ Try(103, ps(3), 243);
 #######################################################################
 
 goal2 := proc(x, n) local t;  # fully dynamic
-    t := table();
-    t["x"] := x;
-    t["n"] := n;
+    t := table(["x" = x, "n" = n]);
     MiniMapleInterpreter(power, t);
 end proc;
 
