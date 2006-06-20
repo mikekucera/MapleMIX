@@ -1,4 +1,6 @@
-#!/cygdrive/e/Programs/TeXLive/bin/win32/perl
+#!/usr/bin/perl
+#
+# -- weird place for perl!/cygdrive/e/Programs/TeXLive/bin/win32/perl
 
 use Getopt::Long;
 use File::Basename;
