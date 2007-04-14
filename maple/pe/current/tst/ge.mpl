@@ -6,7 +6,7 @@
 # Output:	reduced matrix
 #
 
-libname := libname, "lib":
+libname := libname, "../lib":
 kernelopts(opaquemodules=false):
 
 GE := proc(AA, n, m)

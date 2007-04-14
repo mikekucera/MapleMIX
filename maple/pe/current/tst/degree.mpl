@@ -1,5 +1,5 @@
 
-libname := libname, "lib":
+libname := libname, "../lib":
 kernelopts(opaquemodules=false):
 
 coefflist := proc(p) local l, i, cof, d;

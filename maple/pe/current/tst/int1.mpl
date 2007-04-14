@@ -1,4 +1,4 @@
-libname := libname, "lib":
+libname := libname, "../lib":
 kernelopts(opaquemodules=false):
 
 int_pow := proc(i,var)
@@ -20,8 +20,8 @@ int_sum := proc(l, var)
     for i from 1 to nops(l) do
         x := op(i, l);
         res := res + x[1]*int_pow(x[2],var);
-        &onpe("print", "----------------------------------------------");
-        &onpe("display");
+        #&onpe("print", "----------------------------------------------");
+        #&onpe("display");
     end do;
     res;
 end proc:

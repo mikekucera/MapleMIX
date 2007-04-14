@@ -1,3 +1,4 @@
+libname := libname, "../lib": 
 
 mminterp := mmProgram(
 
@@ -194,7 +195,6 @@ goal := proc(x) local m, t;
     
     MiniMapleInterpreter(mminterp, t);
 end proc:
-
 
 opts := PEOptions();
 opts:-setConsiderExpseq(false);
