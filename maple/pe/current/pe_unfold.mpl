@@ -26,13 +26,11 @@ Unfold := module()
         return body, rename(MGeneratedName);
     end proc;
 
-
     # Naively removes return statments and replaces them with the expression that was in the return.
     # This will be unsound if the proc is not in if-normal form with code below a return removed.
     removeReturns := proc(m::mform(StatSeq)) option inline;
         eval(m, [MReturn = MStandaloneExpr]);
     end proc;
-
 
     # TODO: Will be unsound if the procedure contains a return within a dynamic if within a loop.
     # specCall must be the residual call to the specialized procedure, consisting of only dynamic argument expressions,
@@ -90,10 +88,8 @@ Unfold := module()
             body := subs(MArgs() = MGeneratedName(argsName), body);
         end if;
 
-        return MStatSeq(op(lets:-toList()), letArgs, letNargs, op(body));
+        MStatSeq(op(lets:-toList()), letArgs, letNargs, op(body));
     end proc;
-
-
 
     UnfoldIntoAssign := proc(specProc::mform(Proc), specCall::mform(ExpSeq), fullCall::mform(ExpSeq),
                              genVarName, assignTo::mform({Local, SingleUse})) ::mform(StatSeq);
@@ -128,31 +124,24 @@ Unfold := module()
 	        if h = MStatSeq then
 	            flat := M:-FlattenStatSeq(c);
 	            if flat = MStatSeq() then
-	                return MStatSeq();
+	                MStatSeq();
+                else
+	                MStatSeq(Front(flat), procname(Last(flat)));
 	            end if;
-	            MStatSeq(Front(flat), procname(Last(flat)));
-
 	        elif h = MIfThenElse then
 	            MIfThenElse(Cond(c), procname(Then(c)), procname(Else(c)));
-
 	        elif h = MAssign then # shouldn't need this
 	            MStatSeq(c, MAssign(var, op(1, c)));
-
 	        elif h = MStandaloneExpr then
 	            MAssign(var, op(c));
-
 	        elif h = MStandaloneFunction then
 	            MAssignToFunction(var, MFunction(op(c)));
-
             elif typematch(c, MTry('t'::anything, 'cs'::anything, 'f'::anything)) then
                 MTry(procname(t), procname(cs), MFinally(procname(op(f))));
-
             elif typematch(c, MTry('t'::anything, 'cs'::anything)) then
                 MTry(procname(t), procname(cs));
-
             elif h = MCatchSeq then
                 map(mc -> MCatch(CatchString(mc), doAdd(CatchBody(mc))), c);
-
             elif h = MError then
                 c;
 	        else
@@ -160,8 +149,7 @@ Unfold := module()
 	        end if;
         end proc;
 
-        return doAdd(code);
+        doAdd(code);
     end proc;
-
 
 end module;

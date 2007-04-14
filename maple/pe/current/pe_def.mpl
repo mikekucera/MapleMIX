@@ -198,8 +198,6 @@ end proc;
 pe[MReturn] := curry(peResidualizeStatement, MReturn);
 pe[MError]  := curry(peResidualizeStatement, MError);
 
-
-
 pe[MStatSeq] := proc() :: mform(StatSeq);
     local q, i, j, h, stmt, residual, statseq, size, stmtsAfterIf, below;
 
@@ -263,21 +261,17 @@ pe[MCommand] := proc(command)
     NULL;
 end proc;
 
-
-
-
 extractBindingFromEquationConditional := proc(rcond, {neg:=false})
     extractBinding(rcond, `if`(neg, MInequat, MEquation));
 end proc;
 
-extractBinding := proc(rcond, equattype)
+extractBinding := proc(rcond, equattype) local n, v, i;
     if typematch(rcond, equattype('n'::mname, 'v'::Static)) then
         getEnv(n):-put(Name(n), SVal(v));
     elif typematch(rcond, equattype(MTableref('n'::mname, 'i'::Static), 'v'::Static)) then
         getEnv(n):-putTblVal(Name(n), i, SVal(v));
     end if;
 end proc;
-
 
 pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
     local rcond, env, C1, C2, S, S1, S2, prevTopLocal, prevTopGlobal,
@@ -344,8 +338,6 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
     end if
 end proc;
 
-
-
 pe[MAssign] := proc(n::mname, expr::mform)
     local reduced, env, var, shouldResidualize;
     userinfo(8, PE, "MAssign:", expr);
@@ -384,10 +376,7 @@ pe[MAssign] := proc(n::mname, expr::mform)
         env:-put(var, SVal(StaticPart(reduced)));
         MAssign(n, DynamicPart(reduced));
     end if;
-
 end proc;
-
-
 
 pe[MAssignToTable] := proc(n::mname, expr::mform(Tableref)) local tblVar, rindex, env;
     rindex := ReduceExp(IndexExp(expr));
@@ -401,7 +390,6 @@ pe[MAssignToTable] := proc(n::mname, expr::mform(Tableref)) local tblVar, rindex
     pe[MAssign](n, expr); # TODO, this would have to change if PE was run as a fixed point
 end proc;
 
-
 pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
     local rindex, rexpr, env, var;
     rindex := ReduceExp(IndexExp(tr));
@@ -413,13 +401,14 @@ pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
         callStack:-setGlobalEnvUpdated(true);
     end if;
 
+    # print("MATI pe", [rindex,rexpr]);
     if [rindex,rexpr]::[Static,Static] then
         env:-putTblVal(var, rindex, SVal(rexpr));
         NULL;
 
     elif [rindex,rexpr]::[Static,Both] then
         env:-putTblVal(var, rindex, SVal(StaticPart(rexpr)));
-        MAssignTableIndex(subsop(2=rindex, tr), SVal(StaticPart(rexpr)));
+        MAssignTableIndex(subsop(2=rindex, tr), rexpr);
 
     elif [rindex,rexpr]::[Static,Dynamic] then
         env:-setTblValDynamic(var, rindex);
@@ -430,10 +419,6 @@ pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
         MAssignTableIndex(subsop(2=rindex, tr), rexpr);
     end if;
 end proc;
-
-
-
-
 
 # very conservative approach to dynamic loops
 # will simply residualize the entire loop, but must analyze to determine

@@ -17,7 +17,15 @@ MiniMapleInterpreter := module() option package;
     
     evalStat := proc(s, env, defs) local h, i, t, c, var, e1;
         h := op(0, s);
-        if h = mmIfElse then
+        if h = mmAssign then
+            &onpe("lprint", "evalStat", "mmAssign");
+            env[op(1,s)] := evalExpr(op(2,s), env, defs);
+        elif h = mmTableAssign then 
+            &onpe("lprint", "evalStat", "mmTableAssign");
+            i := evalExpr(op(2,s), env, defs);
+            t := env[op(1,s)];
+            t[op(3,s)] := evalExpr(op(3,s), env, defs);
+        elif h = mmIfElse then
             &onpe("lprint", "evalStat", "mmIfElse");
             c := evalExpr(op(1,s), env, defs);
             &onpe("lprint", "conditional evaluated");
@@ -26,6 +34,13 @@ MiniMapleInterpreter := module() option package;
             else
                 evalStat(op(3,s), env, defs);
             end if;
+        elif h = mmForeach then
+            &onpe("lprint", "evalStat", "mmForeach");
+            var := op(1,s);
+			e1 := evalExpr(op(2,s), env, defs);
+			for i in e1 do
+			    env[var, i] := evalStat(op(3,s), env, defs);
+		    end do;
         elif h = mmBlock then
             &onpe("lprint", "evalStat", "mmBlock");
             for i in s do
@@ -49,6 +64,16 @@ MiniMapleInterpreter := module() option package;
         elif h = mmVar then
             &onpe("lprint", "evalExpr", "mmVar");
             env[op(1,e)]
+		elif h = mmLookup then
+            &onpe("lprint", "evalExpr", "mmLookup");
+			e1 := evalExpr(op(1,e), env, defs);
+			e2 := evalExpr(op(2,e), env, defs);
+			e1[e2];
+		elif h = mmOp then
+            &onpe("lprint", "evalExpr", "mmOp");
+			e1 := evalExpr(op(1,e), env, defs);
+			e2 := evalExpr(op(2,e), env, defs);
+			op(e1, e2);
         elif h = mmBin then
             &onpe("lprint", "evalExpr", "mmBin");
             o := op(1,e);
@@ -73,9 +98,12 @@ MiniMapleInterpreter := module() option package;
             end do;
             &onpe("lprint", "end of mmcall");
             evalStat(op(3,def), newEnv, defs);
+        elif h = mmTable then # only implement empty table creation
+            &onpe("lprint", "evalExpr", "mmTable");
+            table();
         else
             &onpe("lprint", "evalExpr", "else");
-            error "unknown expression form: %1", h;
+            error "unknown expression form: %1 (%2)", h, e;
         end if;
     end proc;
     

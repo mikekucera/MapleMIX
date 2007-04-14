@@ -69,10 +69,9 @@ $include "access.mpl"
                     cpair(names union findNames(e), m);
                 end if;
     
-            elif typematch(m, MAssignTableIndex(MTableref('n'::mname, 'c'::mform), 'e'::mform)) then
+            elif typematch(m, MAssignTableIndex(MTableref('n'::mname, 'c'::mform), 'e'::anything)) then
                 #print("here", m);
                 print(names);
-                print();
                 names := names union `if`(loop, {n}, {});
                 if not hasName(n, names) then
                     cpair(names, NULL);
