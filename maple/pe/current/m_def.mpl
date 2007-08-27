@@ -9,7 +9,7 @@ M := module()
     local
 $include "access_header.mpl"
           intrinsic, isIntrinsic, variables, inertTrue, inertDollar,
-          createTableProcs, createMap, usesFlag, endsWith;
+          createTableProcs, createMap, usesFlag, endsWith, loc_id;
 
 $include "access.mpl"
 
@@ -65,10 +65,10 @@ $include "access.mpl"
         tbl;
     end proc;
 
-
+    loc_id := () -> args:  # this is to pacify aggressive error checking in 11
     # Takes a lexical sequence and create a table mapping the name of
     # each lexical to f(lexpair)
-    CreateLexNameMap := proc(lexicalseq::mform(LexicalSeq), f := (()->args))
+    CreateLexNameMap := proc(lexicalseq::mform(LexicalSeq), f := loc_id)
         createMap(lexicalseq,
             proc(tbl, i, lexpair)
                 tbl[op([1,1],lexpair)] := f(lexpair);
