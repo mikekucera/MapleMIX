@@ -5,7 +5,7 @@ Builtins := module() option package;
         getName, isBuiltin, getNum, isOperator, getOperatorAsM;
 
     builtinNames := {anames(builtin)};
-    numToName := table(map(x -> op([5,1,1], ToInert(eval(x))) = x, builtinNames));
+    numToName := table(map(x -> getNum(x) = x, builtinNames));
     
     getName := proc(x::Or(procedure,posint))
         if x::posint then
@@ -22,7 +22,8 @@ Builtins := module() option package;
 
     getNum := proc(p::procedure)
         ASSERT(isBuiltin(p), "procedure must be builtin");
-        op([5,1,1], ToInert(eval(p)));
+        op([5.1.1],ToInert(eval(p)));
+        #op([3,1,2,1], ToInert(eval(p))); # this has changed in 11 !
     end proc;
     
     isOperator := proc(n::procedure)
