@@ -25,8 +25,7 @@ $include "pe_reduce_smarter.mpl"
         local reduced1, reduced2, res;
         env := reductionEnv;
         
-        #print("reducing");
-        #print(expr);
+        print("reducing", expr);
         
         PEDebug:-DisplayReduceStart(expr);
 
@@ -47,12 +46,14 @@ $include "pe_reduce_smarter.mpl"
             res := reduced1;
         end if;
         
-        #M:-Print(expr); #, "reduced", res);
+        #M:-Print(expr, "reduced", res);
         
+        print("reduced");
         #print();
         #M:-Print(res);
-        #print(res);
-        #print();
+        print(res);
+        print(``);
+        
         #print();
         
         env := 'env';
@@ -368,8 +369,10 @@ $include "pe_reduce_smarter.mpl"
         #print("here11");
     end proc;
 
+    
 
     reduceName := proc(n) local hasDyn, cc, expr;
+        print("reduceName", args);
         if not assigned(genv) or not genv:-isGettable(n) then
             (c-> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
         elif hasDyn and treatAsDynamic then
@@ -386,7 +389,14 @@ $include "pe_reduce_smarter.mpl"
 
     red[MName] := subs(__F=MName, eval(reduceName));
     red[MAssignedName] := subs(__F=MAssignedName, eval(reduceName));
-
+    
+	red[MProcname] := proc()
+		if not env:-isGettable("procname") then
+			error("procname not set in environment");
+		end if;
+		env:-get("procname");
+	end proc;
+	
     reduceVar := proc(x) local hasDyn, expr;
         if env:-isGettable(x) then
             expr := [env:-get(x, 'hasDyn')];
@@ -492,6 +502,5 @@ $include "pe_reduce_smarter.mpl"
             MUneval(embed(e));
         end if;
     end proc;
-
 
 end module;

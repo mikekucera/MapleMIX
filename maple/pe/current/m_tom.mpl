@@ -102,7 +102,7 @@ ToM := module()
              _Inert_INTNEG, _Inert_FLOAT, _Inert_STRING, _Inert_COMPLEX,
              _Inert_RATIONAL, _Inert_EXPSEQ, _Inert_LIST, _Inert_SET,
              _Inert_PARAM, _Inert_LOCAL, _Inert_NAME,
-             _Inert_ASSIGNEDNAME, _Inert_TABLEREF,
+             _Inert_ASSIGNEDNAME, _Inert_TABLEREF, _Inert_PROCNAME,
              _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS, _Inert_UNEVAL, _Inert_TABLE});
     end proc;
 
@@ -112,7 +112,7 @@ ToM := module()
         q := SimpleQueue();
 
         examineFunc := proc(f) local newvar;
-            if isIntrinsic(Name(f)) then
+            if nops(f) > 0 and isIntrinsic(Name(f)) then
                 MFunction(mapitom(args));
             else
                 newvar := gen();
@@ -192,6 +192,7 @@ ToM := module()
 
     m[_Inert_ARGS]  := MArgs;
     m[_Inert_NARGS] := MNargs;
+    m[_Inert_PROCNAME] := MProcname;
 
     m[_Inert_EQUATION] := MEquation @ itom2;
     m[_Inert_INEQUAT]  := MInequat  @ itom2;

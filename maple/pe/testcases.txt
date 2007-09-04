@@ -1,3 +1,49 @@
+Well, here are some test cases, to try to see what can be done.  For 
+now, just figure out how hard/easy each is:
+
+1)
+proc(a::integer, b::integer, c::integer) 
+`rtable/Product`(Vector(2,[b,c],datatype=anything),a) end
+
+2)
+The attached .mpl file which "builds" 4 procedures -- the 4 calls to 
+BuildWeierstrass should be partially evaluated.
+
+3)
+test3:=proc(N,n)
+    local i,a,X;
+    use Statistics in
+    X := RandomVariable(Normal(0,1)):
+    for i from 1 to N do
+        a:=Sample(X,n):
+    end do:
+    end use;
+end proc:
+
+4)
+See if something can be done with the ListBuffer code attached.
+
+There are other things that I can think of, but they seem to all be 
+Maple 11 specific.
+
+5)
+GenericLA (see attached)
+
+Here is where things should be much easier than with Domains!  The 
+ideas 
+are similar, but the code is very much simpler.
+See the comments in the code for obvious test cases.  Things like
+MatrixInverse[GF27](A);
+with A *dynamic* should greatly reduce.  In a way, one ought to be able 
+to 'compile' (by instantiation) most of the routines of GLA given a 
+domain.
+
+Jacques
+
+
+
+
+
 Here are some test cases.  They are not easy test cases.  But I did *try* to order them by increasing difficulty
 
 0?)

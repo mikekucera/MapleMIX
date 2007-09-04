@@ -884,7 +884,7 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
 
     env := OnENV(); # new env for function call
     env:-setLink(callStack:-topEnv());
-
+    
    	fullCall  := SimpleQueue(); # residual function call including statics
    	redCall   := SimpleQueue(); # residual function call without statics
    	signature := SimpleQueue();
@@ -1019,7 +1019,7 @@ peFunction := proc(funRef,#::Dynamic,
     userinfo(10, PE, "Reducing function call", funRef);
 
     fun := ReduceExp(funRef);
-
+    
     if fun::Dynamic then
         # don't know what function was called, residualize call
         res := residualize(fun, ReduceExp(argExpSeq));
@@ -1028,12 +1028,26 @@ peFunction := proc(funRef,#::Dynamic,
     end if;
 
     sfun := SVal(fun);
+   
 
+    # TODO: add case for 'indexed'
     if type(sfun, `procedure`) and not ormap(hasOption, ['builtin','pe_thunk'], sfun) then
         # if the procedure is builtin then do what the else clause does
-        newName := gen(cat(op(1,funRef),"_"));
-        peFunction_StaticFunction(funRef, sfun, argExpSeq, newName, unfold, residualize, symbolic);
+        if type(funRef, mform(Procname)) then
+        	newName := gen("procname_");
+        elif nops(funRef) > 0 then
+        	newName := gen(cat(op(1,funRef),"_"));
+        else
+        	newName := gen("unknownFunction_");
+        end if;
+        
+        peFunction_StaticFunction(funRef, sfun, sfun, argExpSeq, newName, unfold, residualize, symbolic);
 
+    elif type(sfun, `indexed`) and type(op(0,sfun), `procedure`) then
+    	newName := gen(cat(op([1,1], funRef), "_"));
+        
+    	peFunction_StaticFunction(funRef, op(0,sfun), sfun, argExpSeq, newName, unfold, residualize, symbolic);
+    
 	elif type(sfun, `module`) then
 	    if member(convert("ModuleApply",name), sfun) then
 	        ma := sfun:-ModuleApply;
@@ -1042,7 +1056,7 @@ peFunction := proc(funRef,#::Dynamic,
             ma := op(select(x->evalb(convert(x,string)="ModuleApply"), [op(3,eval(sfun))]));
             if ma = NULL then error "package does not contain ModuleApply" end if;
         end if;
-	    peFunction_StaticFunction(funRef, ma, argExpSeq, gen("ma"), unfold, residualize, symbolic);
+	    peFunction_StaticFunction(funRef, ma, sfun, argExpSeq, gen("ma"), unfold, residualize, symbolic);
 
     elif type(sfun, `procedure`) and hasOption('builtin', sfun) then
         residualize(fun, MExpSeq(ReduceExp(argExpSeq)));
@@ -1061,6 +1075,7 @@ end proc;
 # partial evaluation of a known procedure, when the function is static
 peFunction_StaticFunction := proc(funRef::Dynamic,
                                   fun::procedure,
+                                  funName, # procname must be bound to the name used to invoke the procedure
                                   argExpSeq::mform(ExpSeq),
                                   newName, unfold, residualize, symbolic)
     local funOption, rcall, s, r, tmp;
@@ -1091,7 +1106,7 @@ end proc;
 
 # specialize the function
 peFunction_SpecializeThenDecideToUnfold :=
-    proc(fun::procedure, argExpSeq::mform(ExpSeq), generatedName, unfold, residualize, symbolic)
+    proc(fun::procedure, funName, argExpSeq::mform(ExpSeq), generatedName, unfold, residualize, symbolic)
     local m, argListInfo, newProc, newName, rec, signature, call;
 
 	m := getMCode(eval(fun));
@@ -1109,6 +1124,9 @@ peFunction_SpecializeThenDecideToUnfold :=
         rec:-finished  := false;
         share[signature] := rec;
 
+        # bind procname
+    	argListInfo:-newEnv:-put("procname", funName);
+    
         callStack:-push(argListInfo:-newEnv);
         # at this point rec:-finished is false
         newProc := peFunction_GenerateNewSpecializedProc(m, newName, argListInfo);
@@ -1165,7 +1183,7 @@ peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argList
         lexMap := M:-CreateLexNameMap(LexSeq(m), curry(op,2));
         env:-attachLex(lexMap);
     end if;
-
+    
     # create static locals
     for loc in Locals(m) do
         varName := Var(loc);

@@ -246,4 +246,34 @@ Try(902, ped(false), p(false));
 
 #######################################################################
 
+p := proc(x, n) if n = 0 then 1 else x * procname(x, n-1) end if end proc;
+
+goal := proc(x)
+   	p(x,3);
+end proc;
+
+ped := OnPE(goal);
+
+got := ToInert(eval(ped[ModuleApply])):
+expected := ToInert(proc(x) x * x * x end proc);
+
+Try(1001, got, expected);
+
+#######################################################################
+
+getIndex := proc(fun) op(1,fun) end proc;
+
+p := proc() getIndex(procname) end proc;
+
+goal := proc() p[12](); end proc;
+
+
+ped := OnPE(goal);
+
+got := ToInert(eval(ped[ModuleApply])):
+expected := ToInert(proc() 12 end proc);
+
+Try(1001, got, expected);
+
+
 #end test

@@ -164,6 +164,7 @@ FromM := module()
 
     inrt[MArgs]     := _Inert_ARGS     @ mapmtoi;
     inrt[MNargs]    := _Inert_NARGS    @ mapmtoi;
+    inrt[MProcname] := _Inert_PROCNAME @ mapmtoi;
 
     inrt[MReturn]  := _Inert_RETURN  @ mapmtoi;
     inrt[MError]   := _Inert_ERROR   @ mapmtoi;
