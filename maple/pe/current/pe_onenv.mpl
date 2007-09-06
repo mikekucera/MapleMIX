@@ -319,6 +319,7 @@ OnENV := module()
                 local setting, foundsetting, rec, newRec, addr;
                 ASSERT( nargs = 3, cat("putTblVal expecting 3 args but received ", nargs) );
                 
+                userinfo(7, PE, "putting value in table [putTblVal]");
                 setting:=ss:-top();
                 
                 if assigned(setting:-tbls[tableName]) then # its at the top
@@ -566,6 +567,7 @@ OnENV := module()
                 if assigned(setting:-tbls[tableName]) then # its at the top
                     rec := setting:-tbls[tableName];
                 else
+                    userinfo(7, PE, "about to create new table [setTblValDynamic]");
                     try # to find another setting with the same name and link it
                         foundsetting := ss:-find( fr -> assigned(fr:-tbls[tableName]) );
                         rec := newTableRecord(tableName);
