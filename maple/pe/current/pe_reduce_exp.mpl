@@ -25,7 +25,7 @@ $include "pe_reduce_smarter.mpl"
         local reduced1, reduced2, res;
         env := reductionEnv;
         
-        print("reducing", expr);
+        userinfo(2, PE, sprintf("reducing %a", expr));
         
         PEDebug:-DisplayReduceStart(expr);
 
@@ -48,13 +48,7 @@ $include "pe_reduce_smarter.mpl"
         
         #M:-Print(expr, "reduced", res);
         
-        print("reduced");
-        #print();
-        #M:-Print(res);
-        print(res);
-        print(``);
-        
-        #print();
+        userinfo(2, PE, sprintf("reduced to %a",res));
         
         env := 'env';
         PEDebug:-DisplayReduceEnd(res);
@@ -330,19 +324,14 @@ $include "pe_reduce_smarter.mpl"
 
         # aviod evaluating the entire table if possible
         if re::list(Static) and tbl::mname then
-            #print("here1");
             ASSERT( not tbl::mform(Catenate), "can't use MCatenate to lookup into environment" );
             if tbl::Local then
                 try
-                    #print("here2");
                     return env:-getTblVal(Name(tbl), MStatic(op(re)));
                 catch "table value is dynamic" :
-                    #print("here3");
                     if env:-isStaticTable(Name(tbl)) then
-                        #print("here4");
                         return MTableref(tbl, embed(op(re)));
                     end if;
-                    #print("here5");
                 end try;
             elif tbl::Global then
                 try
@@ -352,29 +341,23 @@ $include "pe_reduce_smarter.mpl"
             end if;
         end if;
         
-        #print("here6");
         rt := [reduce(tbl)];
         if rt::list(Static) and re::list(Static) then
-            #print("here7");
             val := [op(rt)[op(re)]];
-            #print("tableref val", val);
             if val = [OnENV:-DYN] then
-                print("here8");
                 error "lookup of dynamic value in table, table expressions must be names";
             end if;
-            #print("here9");
             op(val);
         else
-            #print("here10");
             MTableref(embed(op(rt)), embed(op(re)));
         end if;
-        #print("here11");
     end proc;
 
     
 
     reduceName := proc(n) local hasDyn, cc, expr;
-        print("reduceName", args);
+        userinfo(2, 'PE', args);
+        # print("reduceName", args);
         if not assigned(genv) or not genv:-isGettable(n) then
             (c-> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
         elif hasDyn and treatAsDynamic then
