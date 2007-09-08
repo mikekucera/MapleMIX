@@ -76,11 +76,13 @@ $include "pe_reduce_smarter.mpl"
     end proc;
 
 
-    binOp := (f, oper) -> proc(x, y) local rx, ry;
+    binOp := (f, oper) -> proc(x, y) local rx, ry,a,b;
         rx := [reduce(x)];
         ry := [reduce(y)];
         if rx::list(Static) and ry::list(Static) then
-            oper(op(rx),op(ry));
+            # this does not allow x or y to be an expseq...
+            # oper(op(rx),op(ry));
+            subs(a=op(rx),b=op(ry),oper('a','b'));
         else
             f(embed(op(rx)), embed(op(ry)));
         end if;
