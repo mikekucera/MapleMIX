@@ -34,7 +34,7 @@ $include "pe_reduce_smarter.mpl"
 
         reduced1 := embed(reduce(expr));
 
-        if reducedTable and res::Static then
+        if reducedTable and reduced1::Static then
             treatAsDynamic := true;
             reduced2 := embed(reduce(expr));
             if reduced2::Dynamic then
