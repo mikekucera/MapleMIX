@@ -451,7 +451,7 @@ ToM := module()
             else
                 MStatSeq(op(assigns), split(expr, curry(MAssignTableIndex, splitTarget)));
             end if;
-        elif Header(expr) = _Inert_FUNCTION 
+        elif false and Header(expr) = _Inert_FUNCTION 
         and  op(1, expr) = _Inert_ASSIGNEDNAME("table", "PROC", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected"))))) 
         and  nops(op(2,expr))>0 and Header(op([2,1], expr)) = _Inert_LIST then
             assigns, splitExp := splitReturn(expr);
