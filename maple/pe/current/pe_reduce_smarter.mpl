@@ -11,8 +11,8 @@ SmartOps := module()
 
     InvokeFunctionHandler := proc(n::string, expseq::mform(ExpSeq)) local res;
         ASSERT( assigned(functionHandler[n]) );
-        res := functionHandler[n](expseq);
-        `if`(res = NULL, MFunction(MName(n), expseq), res);
+        res := [functionHandler[n](expseq)];
+        `if`(res = [], MFunction(MName(n), expseq), op(res));
     end proc;
 
     InvokeSyntaxHandler := proc(f) local res;
@@ -105,5 +105,17 @@ SmartOps := module()
 
         MList(map(doOp, expseq));
     end proc;
+
+#    functionHandler["table"] := proc(expseq) local lst_stat,rest;
+#        userinfo(6, PE, sprintf("table initializer with args %a", expseq));
+#        if type(expseq, MExpSeq(MList(specfunc(Or(MStatic, MEquation(MStatic, anything)),MExpSeq)))) then
+#            (lst_stat, rest) := selectremove(type,[op(op([1,1],expseq))],MStatic);
+#            # MBoth(table(lst), MFunction(MName("table"), embed(op(expseq))));
+#            reducedTable := true;
+#            table(map(op,lst_stat));
+#        else
+#            MFunction(MName("table"), embed(op(expseq)));
+#        end if;
+#    end proc;
 
 end module:
