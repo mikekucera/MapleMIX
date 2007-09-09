@@ -313,6 +313,11 @@ FromM := module()
 				index := mapStack:-top()['locals'](n);
                 mapStack:-push(temp);
                 lexpair := _Inert_LEXICALPAIR(_Inert_NAME(n), _Inert_LOCAL(index));
+            elif mapStack:-depth() > 1 and f = _Inert_PARAM then
+                temp := mapStack:-pop();
+				index := mapStack:-top()['params'](n);
+                mapStack:-push(temp);
+                lexpair := _Inert_LEXICALPAIR(_Inert_NAME(n), _Inert_PARAM(index));
             else
                 if not assigned(maps['lexseq'][n]) then
                     error "lexical not found in lexical sequence", args;
