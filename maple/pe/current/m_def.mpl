@@ -62,7 +62,7 @@ $include "access.mpl"
             yield(tbl, i, x);
             i := i + 1;
         end do;
-        tbl;
+        eval(tbl);
     end proc;
 
     loc_id := () -> args:  # this is to pacify aggressive error checking in 11
