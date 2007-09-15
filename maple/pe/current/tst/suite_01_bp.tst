@@ -36,7 +36,7 @@ ped := OnPE(goal):
 
 got := ToInert(eval(ped[ModuleApply])):
 
-expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")),_Inert_LOCALSEQ(),_Inert_OPTIONSEQ(),_Inert_EXPSEQ(),_Inert_STATSEQ(_Inert_PROD(_Inert_PARAM(1),_Inert_PARAM(1),_Inert_PARAM(1))),_Inert_DESCRIPTIONSEQ(),_Inert_GLOBALSEQ(),_Inert_LEXICALSEQ(),_Inert_EOP(_Inert_EXPSEQ())):
+expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")),_Inert_LOCALSEQ(),_Inert_OPTIONSEQ(),_Inert_EXPSEQ(),_Inert_STATSEQ(_Inert_PROD(_Inert_PARAM(1),_Inert_PARAM(1),_Inert_PARAM(1))),_Inert_DESCRIPTIONSEQ(),_Inert_GLOBALSEQ(),_Inert_LEXICALSEQ(),_Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1)))):
 
 Try(100, got, expected);
 
@@ -50,7 +50,7 @@ end proc:
 ped := OnPE(goal):
 
 got := ToInert(eval(ped:-ModuleApply)):
-expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")),_Inert_LOCALSEQ(),_Inert_OPTIONSEQ(),_Inert_EXPSEQ(),_Inert_STATSEQ(_Inert_PARAM(1)),_Inert_DESCRIPTIONSEQ(),_Inert_GLOBALSEQ(),_Inert_LEXICALSEQ(),_Inert_EOP(_Inert_EXPSEQ())):
+expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")),_Inert_LOCALSEQ(),_Inert_OPTIONSEQ(),_Inert_EXPSEQ(),_Inert_STATSEQ(_Inert_PARAM(1)),_Inert_DESCRIPTIONSEQ(),_Inert_GLOBALSEQ(),_Inert_LEXICALSEQ(),_Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1)))):
 
 Try(200, got, expected);
 
@@ -64,7 +64,7 @@ end proc:
 ped := OnPE(goal):
 
 got := ToInert(eval(ped:-ModuleApply)):
-expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")),_Inert_LOCALSEQ(),_Inert_OPTIONSEQ(),_Inert_EXPSEQ(),_Inert_STATSEQ(_Inert_INTPOS(1)),_Inert_DESCRIPTIONSEQ(),_Inert_GLOBALSEQ(),_Inert_LEXICALSEQ(),_Inert_EOP(_Inert_EXPSEQ())):
+expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")),_Inert_LOCALSEQ(),_Inert_OPTIONSEQ(),_Inert_EXPSEQ(),_Inert_STATSEQ(_Inert_INTPOS(1)),_Inert_DESCRIPTIONSEQ(),_Inert_GLOBALSEQ(),_Inert_LEXICALSEQ(),_Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1)))):
 
 Try(300, got, expected);
 
@@ -77,7 +77,7 @@ end proc:
 ped := OnPE(goal):
 
 got := ToInert(eval(ped:-ModuleApply)):
-expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")), _Inert_LOCALSEQ(_Inert_NAME("y1"), _Inert_NAME("y2")), _Inert_OPTIONSEQ(), _Inert_EXPSEQ(), _Inert_STATSEQ(_Inert_ASSIGN(_Inert_LOCAL(1), _Inert_PARAM(1)), _Inert_ASSIGN(_Inert_LOCAL(2), _Inert_PROD(_Inert_PARAM(1), _Inert_LOCAL(1), _Inert_LOCAL(1))), _Inert_PROD(_Inert_LOCAL(2), _Inert_LOCAL(2))), _Inert_DESCRIPTIONSEQ(), _Inert_GLOBALSEQ(), _Inert_LEXICALSEQ(), _Inert_EOP(_Inert_EXPSEQ())):
+expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")), _Inert_LOCALSEQ(_Inert_NAME("y1"), _Inert_NAME("y2")), _Inert_OPTIONSEQ(), _Inert_EXPSEQ(), _Inert_STATSEQ(_Inert_ASSIGN(_Inert_LOCAL(1), _Inert_PARAM(1)), _Inert_ASSIGN(_Inert_LOCAL(2), _Inert_PROD(_Inert_PARAM(1), _Inert_LOCAL(1), _Inert_LOCAL(1))), _Inert_PROD(_Inert_LOCAL(2), _Inert_LOCAL(2))), _Inert_DESCRIPTIONSEQ(), _Inert_GLOBALSEQ(), _Inert_LEXICALSEQ(), _Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1)))):
 
 Try(400, got, expected);
 
