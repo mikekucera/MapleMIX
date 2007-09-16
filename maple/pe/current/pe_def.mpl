@@ -10,7 +10,7 @@ local
 $include "access_header.mpl"
     CallStack, PEDebug, Lifter, BuildModule, OnENV,
     ReduceExp, Unfold,
-    getMCode, getMCodeFromCache, embed, getEnv,
+    getMCode, getMCodeFromCache, embed, getEnv, updateVar,
     pe, peM, peResidualizeStatement, peIF,
     StaticLoopUnroller,
     checkParameterTypeAssertion, getParameterDefault,
@@ -184,7 +184,7 @@ peM := proc(m::mform) local h;
     if assigned(pe[h]) then
         return pe[h](op(m));
     end if;
-    error "(peM) not supported yet: %1", h;
+    error "(peM) not supported: %1", h;
 end proc;
 
 
@@ -338,45 +338,62 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
     end if
 end proc;
 
-pe[MAssign] := proc(n::mname, expr::mform)
-    local reduced, env, var, shouldResidualize;
+
+pe[MAssign] := proc(n::Or(mname,specfunc(mname,MExpSeq)), expr::mform)
+    local reduced, reducedName, env, var, vars, shouldResidualize;
     userinfo(8, PE, "MAssign:", expr);
-    env := getEnv(n);
 
+    # first collect the names
     if Header(n) = MCatenate then
-        var := ReduceExp(n);
-        if var::Dynamic then
+        reducedName := ReduceExp(n);
+        if reducedName::Dynamic then
             return MAssign(n, ReduceExp(expr)); # TODO, maybe don't use n
-        elif nops([SVal(var)]) <> 1 then
-            error "multiple assignment not supported"
         else
-            var := convert(SVal(var), string);
+            vars := [op(map(MName, map((x)->convert(x,string),reducedName)))]; 
         end if
+    elif Header(n) = MExpSeq then
+        vars := [op(n)];
     else
-        var := Name(n);
+        vars := [n];
     end if;
-
-    # not using end configuration stores, therefore if the global env has been
-    # updated then a function won't be shared
-    # TODO, make sure this is true
-    if n::Global then # very conservative
-        callStack:-setGlobalEnvUpdated(true);
-    end if;
-
+    
     reduced := ReduceExp(expr);
 
-    if reduced::Static then
-        env:-put(var, SVal(reduced));
-        NULL;
+	if nops(vars) = 1 then
+	    updateVar(op(vars), reduced);
+	else
+		if nops(reduced) <> nops(vars) then
+	    	error "unmatched multiple assignment";
+	    end if;
+	    if reduced::Static then # something like MStatic(1,2,3);
+	    	exprList := [op(map(MStatic,reduced))];
+	    else # its mixed
+	    	exprList := [op(reduced)];
+	    end if;
+	    MStatSeq(op(zip(updateVar, vars, exprList)));
+	end if;
+end proc;
+
+
+updateVar := proc(var::mform, reduced) local env, str;
+	if var::Global then # very conservative
+	    callStack:-setGlobalEnvUpdated(true);
+	end if;
+	
+	env := getEnv(var);
+	str := op(var);
+	if reduced::Static then
+	    env:-put(str, SVal(reduced));
+	    NULL;
     elif reduced::Dynamic then
-        env:-put(var, reduced);
-        #env:-setValDynamic(var);
-        MAssign(n, reduced);
+        env:-put(str, reduced);
+        MAssign(var, reduced);
     else # Both
-        env:-put(var, SVal(StaticPart(reduced)));
-        MAssign(n, DynamicPart(reduced));
+        env:-put(str, SVal(StaticPart(reduced)));
+        MAssign(var, DynamicPart(reduced));
     end if;
 end proc;
+
 
 pe[MAssignToTable] := proc(n::mname, expr::mform(Tableref)) local tblVar, rindex, env;
     rindex := ReduceExp(IndexExp(expr));
