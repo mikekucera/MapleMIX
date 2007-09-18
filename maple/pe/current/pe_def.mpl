@@ -340,7 +340,7 @@ end proc;
 
 
 pe[MAssign] := proc(n::Or(mname,specfunc(mname,MExpSeq)), expr::mform)
-    local reduced, reducedName, env, var, vars, shouldResidualize;
+    local reduced, reducedName, env, var, vars, shouldResidualize, exprList;
     userinfo(8, PE, "MAssign:", expr);
 
     # first collect the names
