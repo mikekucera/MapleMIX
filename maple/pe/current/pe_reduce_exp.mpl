@@ -10,8 +10,8 @@ ReduceExp := module()
         ModuleApply, Reduce;
     local
         SmartOps,
-        reduce, binOp, unOp, naryOp, red, isProtectedProc, specFunc,
-        reduceName, reduceVar, reduceLex, replaceClosureLexical,
+        reduce, binOp, mcarthyOp, unOp, naryOp, red, isProtectedProc, specFunc,
+        reduceName, reduceVar, reduceLex, replaceClosureLexical, evalBinOpAfterReduce,
         env, treatAsDynamic, reducedTable;
 
 $include "pe_reduce_smarter.mpl"
@@ -73,15 +73,31 @@ $include "pe_reduce_smarter.mpl"
     binOp := (f, oper) -> proc(x, y) local rx, ry,a,b;
         rx := [reduce(x)];
         ry := [reduce(y)];
-        if rx::list(Static) and ry::list(Static) then
-            # this does not allow x or y to be an expseq...
-            # oper(op(rx),op(ry));
-            subs(a=op(rx),b=op(ry),oper('a','b'));
-        else
-            f(embed(op(rx)), embed(op(ry)));
-        end if;
+        evalBinOpAfterReduce(f, oper, rx,ry);
     end proc;
+    
 
+    # short circut semantics for boolean operators
+    mcarthyOp := (f, oper, shortCircutTest, shortCircutResult) -> proc(x,y) local rx, ry;
+    	rx := [reduce(x)];
+    	if rx::list(Static) and nops(rx) = 1 and evalb(op(rx)) = shortCircutTest then
+    		shortCircutResult;
+    	else
+    		ry := [reduce(y)];
+    		evalBinOpAfterReduce(f, oper, rx,ry);
+    	end if;
+    end proc;
+    
+    
+    evalBinOpAfterReduce := proc(f, oper, rx, ry) local a, b;
+    	if rx::list(Static) and ry::list(Static) then
+    		# this does not allow x or y to be an expseq...
+            # oper(op(rx),op(ry));
+    		subs(a=op(rx), b=op(ry), oper('a','b'));
+    	else
+    		f(embed(op(rx)), embed(op(ry)));
+    	end if;
+    end proc;
 
     unOp := (f, oper) -> proc(x) local rx;
         rx := [reduce(x)];
@@ -110,19 +126,15 @@ $include "pe_reduce_smarter.mpl"
         `if`(q:-empty(), op(rt1), f(qtoseq(q)));
     end proc;
 
-
     red[MRational] := binOp(MRational, `/`);
     red[MPower]    := binOp(MPower,    `^`);
     red[MEquation] := binOp(MEquation, `=`);
     red[MInequat]  := binOp(MInequat,  `<>`);
     red[MLesseq]   := binOp(MLesseq,   `<=`);
     red[MLessThan] := binOp(MLessThan, `<`);
-    red[MImplies]  := binOp(MImplies,  `implies`);
-    red[MAnd]      := binOp(MAnd,      `and`);
-    red[MOr]       := binOp(MOr,       `or`);
-    red[MXor]      := binOp(MXor,      `xor`);
     red[MRange]    := binOp(MRange,    `..`);
-
+    red[MXor]      := binOp(MXor,     `xor`);
+    
     red[MNot] := unOp(MNot, `not`);
 
     red[MSum]  := naryOp(MSum,  `+`);
@@ -143,6 +155,11 @@ $include "pe_reduce_smarter.mpl"
     red[MNargs]   := () -> `if`(env:-hasNargs(), env:-getNargs(), MNargs());
     red[MArgs]    := () -> `if`(env:-hasNargs(), env:-getArgs(), MArgs());
 
+    red[MImplies]  := mcarthyOp(MImplies, `implies`, false, true  );
+    red[MAnd]      := mcarthyOp(MAnd,     `and`,     false, false );
+    red[MOr]       := mcarthyOp(MOr,      `or`,      true,  true  );
+    
+   
 
     red[MCatenate] := proc(x,y) local r, h, n;
         r := [reduce(y)];
