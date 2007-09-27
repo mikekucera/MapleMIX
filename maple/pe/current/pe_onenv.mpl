@@ -156,7 +156,8 @@ OnENV := module()
                     end if;
                 elif assigned(setting:-vals[key]) then
                     tmp := setting:-vals[key];
-                    `if`(type(tmp, 'last_name_eval'), eval(tmp,2), tmp);
+                    `if`(type(tmp, 'last_name_eval'), 
+                        `if`(tmp::builtin, tmp, eval(tmp,2)), tmp);
                 elif assigned(setting:-dyn[key]) then
                     setting:-dyn[key];
                 else
