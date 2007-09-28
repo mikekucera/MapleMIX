@@ -217,6 +217,8 @@ ToM := module()
     m[_Inert_TABLEREF]  := MTableref @ mapitom;
     m[_Inert_UNEVAL]    := MUneval   @ mapitom;
 
+    m[_Inert_DCOLON]    := MDColon   @ mapitom;
+
     m[_Inert_MEMBER]    := MMember    @ mapitom;
     m[_Inert_ATTRIBUTE] := MAttribute @ mapitom; # TODO
 

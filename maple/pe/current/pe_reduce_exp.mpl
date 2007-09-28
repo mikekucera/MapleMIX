@@ -78,10 +78,10 @@ $include "pe_reduce_smarter.mpl"
     
 
     # short circut semantics for boolean operators
-    mcarthyOp := (f, oper, shortCircutTest, shortCircutResult) -> proc(x,y) local rx, ry;
+    mcarthyOp := (f, oper, shortCircuitTest, shortCircuitResult) -> proc(x,y) local rx, ry;
     	rx := [reduce(x)];
-    	if rx::list(Static) and nops(rx) = 1 and evalb(op(rx)) = shortCircutTest then
-    		shortCircutResult;
+    	if rx::list(Static) and nops(rx) = 1 and evalb(op(rx)) = shortCircuitTest then
+    		shortCircuitResult;
     	else
     		ry := [reduce(y)];
     		evalBinOpAfterReduce(f, oper, rx,ry);
@@ -135,6 +135,8 @@ $include "pe_reduce_smarter.mpl"
     red[MRange]    := binOp(MRange,    `..`);
     red[MXor]      := binOp(MXor,     `xor`);
     
+    red[MDColon]   := binOp(MDColon,  `::`);
+
     red[MNot] := unOp(MNot, `not`);
 
     red[MSum]  := naryOp(MSum,  `+`);
