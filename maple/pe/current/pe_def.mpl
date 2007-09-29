@@ -340,7 +340,7 @@ end proc;
 
 
 pe[MAssign] := proc(n::Or(mname,specfunc(mname,MExpSeq)), expr::mform)
-    local reduced, reducedName, env, var, vars, shouldResidualize, exprList;
+    local reduced, reducedName, env, v, var, vars, shouldResidualize, exprList;
     userinfo(8, PE, "MAssign:", expr);
 
     # first collect the names
@@ -367,10 +367,17 @@ pe[MAssign] := proc(n::Or(mname,specfunc(mname,MExpSeq)), expr::mform)
 	    end if;
 	    if reduced::Static then # something like MStatic(1,2,3);
 	    	exprList := [op(map(MStatic,reduced))];
-	    else # its mixed
+	    	MStatSeq(op(zip(updateVar, vars, exprList)));
+	    elif Header(reduced) = MExpSeq then # its dynamic but we can still match them up, I don't think this is fully sound
 	    	exprList := [op(reduced)];
+	        MStatSeq(op(zip(updateVar, vars, exprList)));
+	    else # its dynamic
+	    	for v in vars do
+	    		env := getEnv(v);
+	    		env:-setValDynamic(op(v));
+	    	end do;
+	    	MAssign(n, reduced);
 	    end if;
-	    MStatSeq(op(zip(updateVar, vars, exprList)));
 	end if;
 end proc;
 
@@ -442,8 +449,8 @@ end proc;
 # variables that have become dynamic
 analyzeDynamicLoopBody := proc(body::mform)
     local notImplemented, readVar, readLocal, readGlobal, readTableref, writeVar, writeTable, q;
-
-    q := SimpleQueue();
+   	
+    q := SimpleQueue(); # assignment statements that will be residualized above the loop
 
     notImplemented := () -> ERROR("non-intrinsic call in dynamic loop not supported");
     #readVar := proc(n::string, env)
@@ -454,6 +461,7 @@ analyzeDynamicLoopBody := proc(body::mform)
     #readLocal  := n -> readVar(n, callStack:-topEnv());
     #readGlobal := n -> readVar(n, genv);
     readTableref := proc(var)
+    	print("readTableRef", args);
         if not getEnv(var):-isDynamic(Name(var)) then # the entire table must be dynamic
             error "possibly static table lookup in dynamic loop, not supported yet";
         end if;
@@ -475,8 +483,8 @@ analyzeDynamicLoopBody := proc(body::mform)
                 #MStandaloneFunction = notImplemented,
                 MAssign = writeVar,
                 MAssignToTable = writeVar,
-                MAssignTableIndex = writeTable,
-                MTableref = readTableref
+                MAssignTableIndex = writeTable
+                #MTableref = readTableref
                 #MName = readGlobal,
                 #MLocal = readLocal,
                 #MParam = readLocal,

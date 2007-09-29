@@ -26,7 +26,7 @@ $include "access.mpl"
     
     
         simpleAlg := proc(m::mform, ns::set := {}, {loop := false})
-            local h, names, q, n, c, t, e, i, res, res1, res2;
+            local h, names, q, n, c, t, e, i, x, res, res1, res2, hasN;
     
             names := ns;
             h := Header(m);
@@ -56,12 +56,6 @@ $include "access.mpl"
             elif typematch(m, MAssign('n'::mname, 'e'::mform))
             or   typematch(m, MAssignToTable('n'::mname, 'e'::mform))
             or   typematch(m, MAssignToFunction('n'::mname, 'e'::mform)) then
-    
-    
-                if n= MGeneratedName("m4") then
-                   print("found it", names);
-                end if;
-    
                 names := names union `if`(loop, {n}, {});
                 if not hasName(n, names) then
                     cpair(names, NULL);
@@ -69,6 +63,19 @@ $include "access.mpl"
                     cpair(names union findNames(e), m);
                 end if;
     
+            elif typematch(m, MAssign('n'::mform(ExpSeq), 'e'::mform)) then
+            	hasN := ormap(x -> hasName(x,names), n);
+            	
+            	for x in n do
+	            	names := names union `if`(loop, {x}, {});
+	            end do;
+            	
+	            if hasN then
+	            	cpair(names union findNames(e), m);
+	            else
+	                cpair(names, NULL);
+	            end if;
+            
             elif typematch(m, MAssignTableIndex(MTableref('n'::mname, 'c'::mform), 'e'::anything)) then
                 names := names union `if`(loop, {n}, {});
                 if not hasName(n, names) then

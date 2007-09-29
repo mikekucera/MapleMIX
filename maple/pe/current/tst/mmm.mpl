@@ -21,6 +21,7 @@ HasOperation := proc(D,f)
     od;
     D
   end: 
+  
 MatrixMatrixMultiply := proc(A::Matrix,B::Matrix) local D,n,p,m,C,i,j,k;
   D := GenericCheck( procname, MatrixMatrixMultiplyOperations );
   if op(1,A)[2]<>op(1,B)[1] then error 
@@ -28,7 +29,11 @@ MatrixMatrixMultiply := proc(A::Matrix,B::Matrix) local D,n,p,m,C,i,j,k;
   n,p := op(1,A);
   m := op(1,B)[2];
   C := Matrix(n,m);
-  for i to n do for j to m do C[i,j] := D[`+`](seq(D[`*`](A[i,k],B[k,j]),k=1..p)) od od;
+  for i to n do 
+     for j to m do 
+        C[i,j] := D[`+`](seq(D[`*`](A[i,k],B[k,j]),k=1..p)) 
+     od
+  od;
   C
 end:
 (Z[`0`],Z[`1`],Z[`+`],Z[`-`],Z[`*`],Z[`=`]) := (0,1,`+`,`-`,`*`,`=`);
