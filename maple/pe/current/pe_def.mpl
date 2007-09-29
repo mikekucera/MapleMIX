@@ -425,7 +425,6 @@ pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
         callStack:-setGlobalEnvUpdated(true);
     end if;
 
-    # print("MATI pe", [rindex,rexpr]);
     if [rindex,rexpr]::[Static,Static] then
         env:-putTblVal(var, rindex, SVal(rexpr));
         NULL;
@@ -461,7 +460,6 @@ analyzeDynamicLoopBody := proc(body::mform)
     #readLocal  := n -> readVar(n, callStack:-topEnv());
     #readGlobal := n -> readVar(n, genv);
     readTableref := proc(var)
-    	print("readTableRef", args);
         if not getEnv(var):-isDynamic(Name(var)) then # the entire table must be dynamic
             error "possibly static table lookup in dynamic loop, not supported yet";
         end if;
@@ -1053,7 +1051,6 @@ peFunction := proc(funRef,#::Dynamic,
     end if;
 
     sfun := SVal(fun);
-   
 
     # TODO: add case for 'indexed'
     if type(sfun, `procedure`) and not ormap(hasOption, ['builtin','pe_thunk'], sfun) then

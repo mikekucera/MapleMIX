@@ -3,12 +3,12 @@ M := module()
     export Print,
            HasVariable, CreateLexNameMap,
            SetArgsFlags, UsesArgsOrNargs, UsesArgs, UsesNargs,
-           ProtectedForm, EndsWithErrorOrReturn, EndsWithIf, FlattenStatSeq,
+           ProtectedForm, EndsWithErrorOrReturn, EndsWithIf, FlattenStatSeq, FlattenExpSeq,
            IsNoOp, RemoveUselessStandaloneExprs, AddImplicitReturns,
            ToM, FromM, TransformIf;
     local
 $include "access_header.mpl"
-          intrinsic, isIntrinsic, variables, inertTrue, inertDollar,
+          intrinsic, isIntrinsic, variables, inertTrue, inertDollar, FlattenSeq,
           createTableProcs, createMap, usesFlag, endsWith, loc_id;
 
 $include "access.mpl"
@@ -159,14 +159,21 @@ $include "access.mpl"
     EndsWithIf := curry(endsWith, {MIfThenElse});
 
     # Only flattens the outermost statment sequence, does not recurse into structures such as ifs and loops
-    FlattenStatSeq := proc(statseq::mform(StatSeq)) ::mform(StatSeq);
+    FlattenSeq := proc(seq, F)
         local flatten;
         flatten := proc(m)
-            `if`(Header(m)=MStatSeq, op(map(flatten,m)), m);
+            `if`(Header(m)=F, op(map(flatten,m)), m);
         end proc;
-        map(flatten, statseq);
+        map(flatten, seq);
     end proc:
 
+    FlattenStatSeq := proc(statseq::mform(StatSeq)) ::mform(StatSeq);
+    	FlattenSeq(statseq, MStatSeq);
+    end proc;
+    
+    FlattenExpSeq  := proc(statseq::mform(ExpSeq)) ::mform(ExpSeq);
+    	FlattenSeq(statseq, MExpSeq);
+    end proc;
 
     IsNoOp := proc(m::mform)
         m = MStatSeq() or 

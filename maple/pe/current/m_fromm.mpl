@@ -24,6 +24,7 @@ FromM := module()
         liftedAssigns := 'liftedAssigns';
         mapStack := 'mapStack';
         res;
+        
     end proc;
 
 
@@ -86,7 +87,6 @@ FromM := module()
             for i in inds do
                 if t[op(i)] <> OnPE:-OnENV:-DYN then
                     assign := mtoi( MAssignTableIndex(MTableref(removeEval(d), MStatic(op(i))), MStatic(t[op(i)])) );
-                    #print("generating for ", t[op(index)], assign);
                     liftedAssigns:-enqueue(assign);
                 end if;
             end do;
@@ -216,15 +216,18 @@ FromM := module()
         end if;
     end proc;
 
-    inrt[MAssignToFunction] := proc(n::mform, functioncall::mform) local fcn;
+    inrt[MAssignToFunction] := proc(n::mform, functioncall::mform) local fcn, expseq;
         if op(1, functioncall)::Static then
             fcn := op([1,1], functioncall);
-            if type(fcn, 'procedure') and Builtins:-isOperator(fcn) then
+            expseq := op(2, functioncall);
+            if type(fcn, 'procedure')  and Builtins:-isOperator(fcn) and nops(M:-FlattenExpSeq(expseq)) > 1 then
                 return inrt[MAssign](n, apply(Builtins:-getOperatorAsM(fcn), esop(op(2, functioncall))));
             end if;
         end if;
         inrt[MAssign](args);
     end proc;
+    
+    
 
     inrt[MWhileForIn]   := _Inert_FORIN   @ mapmtoi;
     inrt[MWhileForFrom] := _Inert_FORFROM @ mapmtoi;

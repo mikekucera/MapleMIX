@@ -26,7 +26,7 @@ $include "pe_reduce_smarter.mpl"
         env := reductionEnv;
         
         userinfo(2, PE, sprintf("reducing %a", expr));
-        
+
         PEDebug:-DisplayReduceStart(expr);
 
         treatAsDynamic := false;
@@ -45,8 +45,6 @@ $include "pe_reduce_smarter.mpl"
         else
             res := reduced1;
         end if;
-        
-        #M:-Print(expr, "reduced", res);
         
         userinfo(2, PE, sprintf("reduced to %a",res));
         
@@ -376,7 +374,6 @@ $include "pe_reduce_smarter.mpl"
 
     reduceName := proc(n) local hasDyn, cc, expr;
         userinfo(2, 'PE', args);
-        # print("reduceName", args);
         if not assigned(genv) or not genv:-isGettable(n) then
             (c-> `if`(type(c, 'last_name_eval'), c, eval(c)))(convert(n,'name'));
         elif hasDyn and treatAsDynamic then
