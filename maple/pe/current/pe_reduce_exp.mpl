@@ -452,6 +452,7 @@ $include "pe_reduce_smarter.mpl"
             FromInert(M:-FromM(p));
         else
             lexMap := M:-CreateLexNameMap(LexSeq(p), curry(op, 2));
+            # closureEnv := callStack:-topEnv();
             newBody := eval(ProcBody(p), MLexicalLocal = curry(replaceClosureLexical, lexMap));
             newProc := subsop(5=newBody, 8=MLexicalSeq(), p);
             FromInert(M:-FromM(newProc));
@@ -466,18 +467,20 @@ $include "pe_reduce_smarter.mpl"
             if closureEnv:-isStatic(s) then
                 # TODO, pass hasDyn to getVal?
                 closureEnv:-get(s);
-            elif assigned(lexMap[s]) then
-                if closureEnv:-hasLex() then
-                    lex := closureEnv:-getLex();
-                    lexName := op(lexMap[s]);
-                    if assigned(lex[lexName]) then
-                        FromInert(M:-FromM(lex[lexName]));
-                    else
-                        error "invalid lexical name: %1", s;
-                    end if;
-                else
-                    error "can't find lexical: %1", s;
-                end if;
+            # the code below never actually gets triggered successfully
+            # in any test, so comment it out
+            # elif assigned(lexMap[s]) then
+            #     if closureEnv:-hasLex() then
+            #         lex := closureEnv:-getLex();
+            #         lexName := op(lexMap[s]);
+            #         if assigned(lex[lexName]) then
+            #             FromInert(M:-FromM(lex[lexName]));
+            #         else
+            #             error "invalid lexical name: %1", s;
+            #         end if;
+            #     else
+            #         error "can't find lexical: %1", s;
+            #     end if;
             else
                 error "dynamic lexicals in closure is not supported: %1", s;
             end if;
