@@ -72,6 +72,7 @@ goal2 := proc(x, n) local t;  # fully dynamic
 end proc;
 
 p := module()
+    export ModuleApply, evalStat_1;
     ModuleApply := proc(x, n) local t; 
         t["x"] := x; 
         t["n"] := n; 
@@ -104,15 +105,11 @@ expected := op(5, ToInert(eval(p:-ModuleApply)));
 
 Try(201, got, expected);
 
-
-
 got := op(5, ToInert(eval(ps:-evalStat_1)));
 expected := op(5, ToInert(eval(p:-evalStat_1)));
 
 Try(202, got, expected);
 
-
 #######################################################################
-
 
 #end test

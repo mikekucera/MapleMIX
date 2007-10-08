@@ -1,3 +1,4 @@
+libname := libname, "../lib":
 
 simple := mmProgram(
     mmDef("f", mmParams("x","y"),
@@ -22,11 +23,9 @@ power := mmProgram(
     )
 );
 
-
+# fully dynamic
 goal := proc(x, n) local t;
-    t := table();
-    t["x"] := x;
-    t["n"] := n;
+    t := table(["x" = x, "n" = n]);
     MiniMapleInterpreter(power, t);
 end proc;
 
@@ -42,9 +41,7 @@ ps(3, 3);
 
 
 goal2 := proc(x) local t;
-    t := table();
-    t["x"] := x;
-    t["n"] := 5;
+    t := table(["x" = x, "n" = 5]);
     &onpe("display");
     MiniMapleInterpreter(power, t);
 end proc; 
@@ -58,4 +55,3 @@ ps2 := OnPE(goal2, opts);
 printmod(ps2);
 
 #ps2(3);
-
