@@ -6,6 +6,7 @@ ToM := module()
         createExportMap,
         getVar, getLexVar, isStandalone,
         splitAssigns, split, splitReturn, splitReturnMany, splitTableRef,
+        nameGen,
         paramSpec, removeNext;
 
     m := table();
@@ -14,7 +15,6 @@ ToM := module()
 
     gen := NameGenerator("m");
     lamGen := NameGenerator("lambda");
-
 
     ModuleApply := proc(x::inert) local res, names;
     	mapStack := SimpleStack();
@@ -26,14 +26,12 @@ ToM := module()
 		res, names;
     end proc;
 
-
     addName := proc(n)
         if assigned(knownNames) then
             knownNames[n] := NULL;
         end if;
         NULL;
     end proc;
-
 
     createParamMap := proc(varSeq) local mapParam;
         mapParam := proc(tbl,i,var) local properOp;
@@ -58,7 +56,6 @@ ToM := module()
             end proc)
     end proc;
 
-
     createLocalMap := proc(varSeq)
         createMap(varSeq,
             proc(tbl, i, var)
@@ -67,7 +64,6 @@ ToM := module()
             end proc)
     end proc;
 
-
     # maps lexical indicies to their names
     createLexIndexMap := proc(lexicalseq)
         createMap(lexicalseq,
@@ -75,7 +71,6 @@ ToM := module()
                 tbl[i] := op([1,1], lexpair)
             end proc)
     end proc;
-
 
     # completely copied on createLocalMap
     createExportMap := proc(varSeq)
@@ -86,13 +81,11 @@ ToM := module()
             end proc)
     end proc;
 
-
     getVar := proc(mapname, x)
         mapStack:-top()[mapname][x];
     end proc;
 
     getLexVar := x -> getVar('lex', x);
-
 
     isStandalone := proc(x) option inline;
         member(op(0,x),
@@ -103,20 +96,56 @@ ToM := module()
              _Inert_RATIONAL, _Inert_EXPSEQ, _Inert_LIST, _Inert_SET,
              _Inert_PARAM, _Inert_LOCAL, _Inert_NAME,
              _Inert_ASSIGNEDNAME, _Inert_TABLEREF, _Inert_PROCNAME,
-             _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS, _Inert_UNEVAL, _Inert_TABLE});
+             _Inert_MEMBER, _Inert_ARGS, _Inert_NARGS, _Inert_UNEVAL, 
+             _Inert_TABLE});
     end proc;
 
+    # default name generator
+    nameGen := proc() local newvar;
+        newvar := gen();
+        addName(newvar);
+        newvar;
+    end proc;
 
     # takes an inert expression and splits it
-    splitAssigns := proc(e::inert) local q, examineFunc, doIt, res;
+    splitAssigns := proc(e::inert, target)
+        local q, post, examineFunc, doIt, res, ngen;
         q := SimpleQueue();
+        post := SimpleQueue();
+        ngen := `if`(nargs>1,()->target,NULL);
 
-        examineFunc := proc(f) local newvar;
+        examineFunc := proc(f,x) 
+            local newvar, eqnToAssign, ee, resid, ff;
             if nops(f) > 0 and isIntrinsic(Name(f)) then
-                MFunction(mapitom(args));
+                # catch a call to 'table' here
+                if Name(f) = "table" and nargs>1 and
+                    typematch(x, _Inert_EXPSEQ(_Inert_LIST('ee'::anything))) then
+                    print(sprintf("table called with %a", x));
+                    # at this point, x is a list initializer, ee its contents
+                    # we still need to map itom onto that
+                    #assigns, splitExp := splitReturn(expr);
+                    newvar := ngen();
+                    ff := itom(ee);
+                    if andmap(x -> evalb(Header(x) = MEquation), ff) then
+                        eqnToAssign := proc(eqn)
+                            if Snd(eqn)::Dynamic then
+                                post:-enqueue(MAssignTableIndex(MTableref(newvar, Fst(eqn)), Snd(eqn)));
+                                NULL;
+                            else
+                                eqn
+                            end if
+                        end proc;
+                        resid := map(eqnToAssign, ff);
+                        q:-enqueue(MAssign(newvar, MFunction(itom(f),resid)));
+                        MFunction(MAssignedName("eval", "PROC"), MExpSeq(newvar,MInt(2)));
+                    else
+                        MFunction(mapitom(args));
+                    end if;
+                else
+                    MFunction(mapitom(args));
+                end if;
             else
-                newvar := gen();
-                addName(newvar);
+                newvar := nameGen();
                 q:-enqueue(MAssignToFunction(MSingleUse(newvar), MFunction(mapitom(args))));
                 MSingleUse(newvar);
             end if;
@@ -135,33 +164,41 @@ ToM := module()
         # generation of assigns is a side effect of nested proc
 
         res := doIt(e);
-        return q:-toList(), itom(res);
+        return q:-toList(), itom(res), post:-toList();
     end proc;
 
-
-    # splits the given expression, then applies the continuation k to the stripped expression
-    split := proc(expr, k) local assigns, reduced;
-        assigns, reduced := splitAssigns(expr);
-        if nops(assigns) = 0 then
+    # splits the given expression, then applies the continuation k to 
+    # the stripped expression.  Passes any extra parameters on to
+    # splitAssigns
+    # Note that this should ONLY ever be called in a 'statement'
+    # context, ie expr is top-level so that returning a MStatSeq is
+    # always OK
+    split := proc(expr, k) local pre_assigns, post_assigns, reduced;
+        pre_assigns, reduced, post_assigns := splitAssigns(expr, args[3..-1]);
+        if nops(pre_assigns) + nops(post_assigns) = 0 then
         	k(reduced);
         else
-        	MStatSeq(op(assigns), k(reduced));
+        	MStatSeq(op(pre_assigns), k(reduced), op(post_assigns));
         end if;
     end proc;
 
-
     # version of split that returns the results instead of applying a continuation
-    splitReturn := proc(expr) local assigns, reduced;
-        assigns, reduced := splitAssigns(expr);
-        return MStatSeq(op(assigns)), reduced;
+    splitReturn := proc(expr) local pre_assigns, post_assigns, reduced;
+        pre_assigns, reduced, post_assigns := splitAssigns(expr);
+        return MStatSeq(op(pre_assigns)), reduced, MStatSeq(op(post_assigns));
     end proc;
 
-
-    # calls splitReturn on each argument, returns a single MStatSeq of all
+    # calls splitReturn on each argument, which returns a single MStatSeq of all
     # the assigns and an array of all the expressions
-    splitReturnMany := proc() local assigns, exprs;
-        assigns, exprs := selectremove(x -> evalb(Header(x) = MStatSeq), map(splitReturn, [args]));
-        Array(assigns), Array(exprs);
+    splitReturnMany := proc() local pre_assigns, post_assigns, exprs, n, i;
+        n := nargs;
+        (pre_assigns, exprs, post_assigns) := (Array(1..n), Array(1..n), Array(1..n));
+        for i from 1 to n do
+            pre_assigns[i], exprs[i], post_assigns[i] := 
+                splitReturn(args[i]);
+        end do;
+        # assigns, exprs := selectremove(x -> evalb(Header(x) = MStatSeq), map(splitReturn, [args]));
+        pre_assigns, exprs, post_assigns;
     end proc;
     
     
@@ -283,7 +320,9 @@ ToM := module()
         MParamSpec(n, t, d)
     end proc;
 
-    # remember tables are not considered
+    # "remember tables" are not dealt with at all
+    # note that this might change the semantics, so this might need to 
+    # change [ie throw an error instead of silently make it go away]
     m[_Inert_HASHTAB] := () -> MExpSeq();
 
 
@@ -302,9 +341,12 @@ ToM := module()
 
 
     m[_Inert_FORFROM] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
-        local assigns, exprs, body, loop, i;
-        assigns, exprs := splitReturnMany(loopVar, fromExp, byExp, toExp, whileExp);
-        body := MStatSeq(itom(removeNext(statseq)), ssop(assigns[5]));
+        local pre_assigns, post_assigns, exprs, body, loop, i;
+        pre_assigns, exprs, post_assigns := splitReturnMany(loopVar, fromExp, byExp, toExp, whileExp);
+        if post_assigns[5] <> MStatSeq() then
+            error "cannot handle post-assignments in while condition";
+        end if;
+        body := MStatSeq(itom(removeNext(statseq)), ssop(pre_assigns[5]));
 
         if loopVar = _Inert_EXPSEQ() then
             exprs[1] := MLoopVar(gen("loopVar"));
@@ -318,23 +360,23 @@ ToM := module()
             loop := MWhileForFrom(seq(exprs[i], i=1..5), body);
         end if;
 
-        MStatSeq(seq(ssop(assigns[i]), i=1..5), loop);
+        MStatSeq(seq(ssop(pre_assigns[i]), i=1..5), loop, seq(ssop(post_assigns[i]),i=1..5));
     end proc;
 
 
     m[_Inert_FORIN] := proc(loopVar, inExp, whileExp, statseq)
-        local assigns, exprs, body, loop, e3;
+        local pre_assigns, post_assigns, exprs, body, loop, e3;
         
-        assigns, exprs := splitReturnMany(loopVar, inExp, whileExp);
+        pre_assigns, exprs, post_assigns := splitReturnMany(loopVar, inExp, whileExp);
         
         if loopVar = _Inert_EXPSEQ() then
             exprs[1] := MLoopVar(gen("loopVar"));
         end if;
         
-        body := MStatSeq(itom(removeNext(statseq)), ssop(assigns[3]));
+        body := MStatSeq(itom(removeNext(statseq)), ssop(pre_assigns[3]), ssop(post_assigns[3]));
         e3 := `if`(whileExp = inertTrue, MStatic(true), exprs[3]);
         loop := MWhileForIn(exprs[1], exprs[2], e3, body);
-        MStatSeq(seq(ssop(assigns[i]), i=1..3), loop);
+        MStatSeq(seq(ssop(pre_assigns[i]), i=1..3), loop, seq(ssop(post_assigns[i]), i=1..3));
     end proc;
     
     # removes a common usage of next in loops
@@ -404,7 +446,7 @@ ToM := module()
 
 
     m[_Inert_FUNCTION] := proc(n, expseq)
-        local ss1, ss2, r1, r2;
+        local ss1, ss2, ss3, ss4, r1, r2;
         if Name(n) = "&onpe" then
             if nops(expseq) = 0 then
                 error "not enought arguments to command";
@@ -414,10 +456,11 @@ ToM := module()
             split(expseq, x -> MStandaloneExpr(MFunction(itom(n), x)));
         else
             #split(_Inert_FUNCTION(n, expseq), MStandaloneExpr);
-            ss1, r1 := splitReturn(n);
-            ss2, r2 := splitReturn(expseq);
+            ss1, r1, ss3 := splitReturn(n);
+            ss2, r2, ss4 := splitReturn(expseq);
 
-            MStatSeq(ssop(ss1), ssop(ss2), MStandaloneFunction(r1, r2));
+            MStatSeq(ssop(ss1), ssop(ss2), MStandaloneFunction(r1, r2),
+                     ssop(ss3), ssop(ss4));
         end if;
     end proc;
 
@@ -441,33 +484,33 @@ ToM := module()
 
 
     m[_Inert_ASSIGN] := proc(target, expr) 
-        local assigns, splitTarget, moreAssigns, newName, splitExp, expseq, eqnToAssign;
+        local pre_assigns, post_assigns, splitTarget, moreAssigns, newName, splitExp, expseq, eqnToAssign;
         #in this case the assignment has multiple table refs on the left side that
-        # must be split outp
+        # must be split up
         if Header(target) = _Inert_TABLEREF then
-            assigns, splitTarget := splitReturn(target);
+            pre_assigns, splitTarget, post_assigns := splitReturn(target);
             if Header(Tbl(splitTarget)) = MTableref then
                 moreAssigns, newName := splitTableRef(Tbl(splitTarget));
-                MStatSeq(op(assigns), op(moreAssigns),
-                         split(expr, curry(MAssignTableIndex, MTableref(newName, IndexExp(splitTarget)))));
+                MStatSeq(op(pre_assigns), op(moreAssigns),
+                         split(expr, curry(MAssignTableIndex, MTableref(newName, IndexExp(splitTarget)))), post_assigns);
             else
-                MStatSeq(op(assigns), split(expr, curry(MAssignTableIndex, splitTarget)));
+                MStatSeq(op(pre_assigns), split(expr, curry(MAssignTableIndex, splitTarget)), op(post_assigns));
             end if;
         elif false and Header(expr) = _Inert_FUNCTION 
         and  op(1, expr) = _Inert_ASSIGNEDNAME("table", "PROC", _Inert_ATTRIBUTE(_Inert_NAME("protected", _Inert_ATTRIBUTE(_Inert_NAME("protected"))))) 
         and  nops(op(2,expr))>0 and Header(op([2,1], expr)) = _Inert_LIST then
-            assigns, splitExp := splitReturn(expr);
+            pre_assigns, splitExp, post_assigns := splitReturn(expr);
             expseq := op([2,1,1], splitExp);
             if andmap(x -> evalb(Header(x) = MEquation), expseq) then
                 eqnToAssign := proc(eqn)
                     MAssignTableIndex(MTableref(itom(target), Fst(eqn)), Snd(eqn));
                 end proc;
-                MStatSeq(assigns, op(map(eqnToAssign, expseq)), MStandaloneExpr(itom(target)));
+                MStatSeq(op(pre_assigns), op(map(eqnToAssign, expseq)), MStandaloneExpr(itom(target)), op(post_assigns));
             else
                 split(expr, curry(MAssign, itom(target)))
             end if;
         else
-            split(expr, curry(MAssign, itom(target)))
+            split(expr, curry(MAssign, itom(target)), itom(target) )
         end if;
     end proc;
 
