@@ -108,38 +108,62 @@ ToM := module()
     end proc;
 
     # takes an inert expression and splits it
-    splitAssigns := proc(e::inert, target)
-        local q, post, examineFunc, doIt, res, ngen;
+    # nam is an (optional) assignable object which we use as a name if present
+    splitAssigns := proc(e::inert, nam := false )
+        local q, post, examineFunc, doIt, res;
         q := SimpleQueue();
         post := SimpleQueue();
-        ngen := `if`(nargs>1,()->target,NULL);
 
         examineFunc := proc(f,x) 
-            local newvar, eqnToAssign, ee, resid, ff;
+            local newvar, eqnToAssign, ee, resid, stat, ff;
             if nops(f) > 0 and isIntrinsic(Name(f)) then
                 # catch a call to 'table' here
                 if Name(f) = "table" and nargs>1 and
                     typematch(x, _Inert_EXPSEQ(_Inert_LIST('ee'::anything))) then
-                    print(sprintf("table called with %a", x));
                     # at this point, x is a list initializer, ee its contents
                     # we still need to map itom onto that
-                    #assigns, splitExp := splitReturn(expr);
-                    newvar := ngen();
-                    ff := itom(ee);
-                    if andmap(x -> evalb(Header(x) = MEquation), ff) then
-                        eqnToAssign := proc(eqn)
-                            if Snd(eqn)::Dynamic then
-                                post:-enqueue(MAssignTableIndex(MTableref(newvar, Fst(eqn)), Snd(eqn)));
-                                NULL;
-                            else
-                                eqn
-                            end if
-                        end proc;
-                        resid := map(eqnToAssign, ff);
-                        q:-enqueue(MAssign(newvar, MFunction(itom(f),resid)));
-                        MFunction(MAssignedName("eval", "PROC"), MExpSeq(newvar,MInt(2)));
-                    else
-                        MFunction(mapitom(args));
+
+                    # two different cases depending on whether we have
+                    # a name or we're not at the top.  
+                    # First, we have no good name
+                    if nam::truefalse or not _EnvSplitAssignsTop then
+                        ff := itom(ee);
+                        if andmap(x -> evalb(Header(x) = MEquation), ff) then
+                            # algo:
+                            # 1. create a new name
+                            # 2. associate it (first) to a table newvar 
+                            #    [with static entries filled-in]
+                            # 3. return eval(newvar,2)
+                            # 4. after that, assign the dynamic entries
+                            newvar := MLocal(nameGen());
+                            resid, stat := selectremove(x->type(Snd(x),Dynamic),ff);
+                            eqnToAssign := proc(eqn)
+                                    post:-enqueue(MAssignTableIndex(MTableref(newvar, Fst(eqn)), Snd(eqn)));
+                            end proc;
+                            q:-enqueue(MAssign(newvar, MFunction(itom(f),stat)));
+                            map(eqnToAssign, resid);
+                            MFunction(MAssignedName("eval", "PROC"), MExpSeq(newvar,MInt(2)));
+                        else
+                            MFunction(mapitom(args));
+                        end if;
+                    else # and now we do have a name, and we are at the top
+                        ff := itom(ee);
+                        if andmap(x -> evalb(Header(x) = MEquation), ff) then
+                            # algo:
+                            # 1. use the already known name
+                            # 2. associate to it the static entries
+                            # 3. return that table
+                            # 4. after that, assign the dynamic entries
+                            newvar := nam;
+                            resid, stat := selectremove(x->type(Snd(x),Dynamic),ff);
+                            eqnToAssign := proc(eqn)
+                                    post:-enqueue(MAssignTableIndex(MTableref(newvar, Fst(eqn)), Snd(eqn)));
+                            end proc;
+                            map(eqnToAssign, resid);
+                            MFunction(itom(f),stat);
+                        else
+                            MFunction(mapitom(args));
+                        end if;
                     end if;
                 else
                     MFunction(mapitom(args));
@@ -151,18 +175,24 @@ ToM := module()
             end if;
         end proc;
 
-        doIt := proc(expr) local h;
+        doIt := proc(expr) local h, t, o;
             h := Header(expr);
             if not type(expr, inert) or h = _Inert_PROC then
                 expr;
             elif h = _Inert_FUNCTION then
-                examineFunc(op(map(procname,expr)))
+                o := _EnvSplitAssignsTop;
+                _EnvSplitAssignsTop := false;
+                t := map(procname,expr);
+                _EnvSplitAssignsTop := o;
+                examineFunc(op(t));
             else
-                map(procname, expr);
+                _EnvSplitAssignsTop := false;
+                map(procname, expr, false);
             end if;
         end proc;
         # generation of assigns is a side effect of nested proc
 
+        _EnvSplitAssignsTop := true; # used to know if at stat level
         res := doIt(e);
         return q:-toList(), itom(res), post:-toList();
     end proc;
@@ -207,6 +237,7 @@ ToM := module()
     m[MSingleUse] := MSingleUse;
     m[MProc] := MProc;
     m[MFunction] := MFunction;
+    m[MLocal] := MLocal;
 
     m[_Inert_NAME]     := MName @ mapitom;
     m[_Inert_LOCAL]    := x -> MLocal(getVar('locals', x));
@@ -510,7 +541,7 @@ ToM := module()
                 split(expr, curry(MAssign, itom(target)))
             end if;
         else
-            split(expr, curry(MAssign, itom(target)), itom(target) )
+            split(expr, curry(MAssign, itom(target)), itom(target))
         end if;
     end proc;
 
