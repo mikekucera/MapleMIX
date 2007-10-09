@@ -227,4 +227,55 @@ Test(902, got, expected);
 
 ####################################################################
 
+
+opts := PEOptions();
+opts:-setInlineAssigns();
+
+f := proc(A) local i, B;
+    B := table();
+    B[1] := A[1,1];
+    B[2] := A[1,2];
+    B;
+end;
+
+goal1 := proc() local A;
+    A := table([ (1,1) = 4, (1, 2)=5 ]);
+    f(A);
+end proc:
+
+res1 := OnPE(goal1, opts); # the easy one
+got := ToInert(eval(res1:-ModuleApply));
+expected := ToInert(proc() table([(1)=4, (2)=5]) end proc);
+Test(1001, got, expected);
+
+goal2 := proc(x) local A;
+    A := table([ (1,1) = 1, (1, 2)=x ]);
+    f(A);
+end proc:
+
+res2 := OnPE(goal2, opts); # the one we really care about
+got := ToInert(eval(res2:-ModuleApply));
+expected := ToInert(proc(x) local B1; B1[2] := x; B1[1] := 1; B1 end proc);
+Test(1002, got, expected);
+
+
+f := proc(t) t[1,2] end;
+
+goal3 := proc() local A;
+    A := [table([(1,1)=1, (1,2)=2, (2,1)=-5, (2,2)=6])];
+    f(A[1]);
+end proc:
+
+res1 := OnPE(goal3, opts); # the easy one
+got := ToInert(eval(res1:-ModuleApply));
+expected := ToInert(proc() 2 end);
+Test(1003, got, expected);
+
+
+#######################################################################
+#end test
+#######################################################################
+#end test
+####################################################################
+
 #end test
