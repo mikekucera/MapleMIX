@@ -402,7 +402,9 @@ updateVar := proc(var::mform, reduced) local env, str;
 end proc;
 
 
-pe[MAssignToTable] := proc(n::mname, expr::mform(Tableref)) local tblVar, rindex, env;
+pe[MAssignToTable] := proc(n::mname, expr::mform(Tableref)) 
+    local tblVar, rindex, env;
+    userinfo(8, PE, "MAssignToTable:", expr);
     rindex := ReduceExp(IndexExp(expr));
     tblVar := Var(expr);
     env := getEnv(tblVar);
@@ -416,10 +418,16 @@ end proc;
 
 pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
     local rindex, rexpr, env, var;
+    userinfo(8, PE, "MAssignTableIndex: expr", expr);
+    userinfo(8, PE, "MAssignTableIndex: tr", tr);
     rindex := ReduceExp(IndexExp(tr));
     rexpr  := ReduceExp(expr);
     env := getEnv(Var(tr));
     var := Name(Var(tr)); # ToM will ensure that tableref will be a name
+
+    userinfo(10, PE, "MAssignTableIndex: rindex", rindex);
+    userinfo(10, PE, "MAssignTableIndex: rexpr", rexpr);
+    userinfo(10, PE, "MAssignTableIndex: var", var);
 
     if Var(tr)::Global then # very conservative
         callStack:-setGlobalEnvUpdated(true);
@@ -564,8 +572,6 @@ end proc;
 #    end if;
 #end proc;
 
-
-
 pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq, below)
     local rInExp, env, indexVar, mkDriver, mkDynamicLoop;
     rInExp := ReduceExp(inExp);
@@ -590,8 +596,6 @@ pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq, below)
     end if;
 end proc;
 
-
-
 pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq, below)
     local rFromExp, rByExp, rToExp, env, mkDriver, mkDynamicLoop;
     rFromExp  := ReduceExp(fromExp);
@@ -615,7 +619,6 @@ pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq, bel
     end if;
 end proc;
 
-
 handleStaticLoop := proc(whileExp, statseq, mkDriver::procedure)
     local rWhileExp, thunk, driver;
     rWhileExp := ReduceExp(whileExp);
@@ -631,7 +634,6 @@ handleStaticLoop := proc(whileExp, statseq, mkDriver::procedure)
         NULL
     end if;
 end proc;
-
 
 # follows all paths and inserts drivers at the end
 insertDriver := proc(statseq::mform(StatSeq), driver::mform({ForFromDriver, ForInDriver}))
@@ -653,7 +655,6 @@ insertDriver := proc(statseq::mform(StatSeq), driver::mform({ForFromDriver, ForI
         end if;
     end if;
 end proc;
-
 
 handleDynamicLoop := proc(loopVar, statseq, whileExp, below, mkDynamicLoop)
     local assigns, stmt;
@@ -728,7 +729,6 @@ end proc;
 #        `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
 #    end if;
 #end proc;
-
 
 
 pe[MWhile] := proc()
