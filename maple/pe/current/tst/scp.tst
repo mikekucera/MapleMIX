@@ -1,7 +1,5 @@
 #test
 
-# TEST SUITE 1: BINARY POWERING #######################################
-
 with(TestTools):
 kernelopts(opaquemodules=false):
 
@@ -43,8 +41,6 @@ eval(B);
 end proc:
 
 goal1 := proc() local A;
-    # A := table([(1,1)=1, (1,2)=2, (2,1)=-5, (2,2)=6]);
-    # A := Matrix(2,2,[[1,2],[-5,6]]);
     A := rtable(1..2,1..2,[[1,2],[-5,6]]);
     GE(A, 2, 2);
 end proc:
@@ -127,49 +123,6 @@ end proc
 );
 
 # Try(210, got, expected);
-
-#######################################################################
-
-
-int_pow := proc(i,var)
-    if op(1,i)=var then
-        if op(2,i)=-1 then
-            ln(var)
-        else
-            var^(op(2,i)+1)/(op(2,i)+1)
-        end if
-    else
-        int(i,var)
-    end if;
-end proc:
-
-int_sum := proc(l, var)
-    local x;
-    add(x[1]*int_pow(x[2],var),x=l);
-end proc:
-
-goal := proc(n) local x; int_sum([[5,x^2], [-7,x^n], [2,x^(-1)]], x); end proc:
-
-opts := PEOptions();
-opts:-setPropagateDynamic(true);
-opts:-addFunction(PEOptions:-INTRINSIC, ln);
-# res1 := OnPE(goal, opts):
-
-got := ToInert(eval(res1:-ModuleApply));
-expected := ToInert(
-proc(n) local m1, res1;
-    if n = -1 then 
-        m1 := ln(x) 
-    else 
-        m1 := x^(n + 1)/(n + 1) 
-    end if;
-    res1 := 5 * x^3/3 - 7 * m1;
-    res1 := res1 + 2 * ln(x);
-    res1
-end proc
-);
-
-#Try(300, got, expected);
 
 #######################################################################
 #end test
