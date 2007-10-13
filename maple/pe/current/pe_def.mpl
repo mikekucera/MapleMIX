@@ -649,7 +649,7 @@ insertDriver := proc(statseq::mform(StatSeq), driver::mform({ForFromDriver, ForI
                                         procname(Then(last), driver),
                                         procname(Else(last), driver) ))
         elif Header(last) = MRef then
-            MStatSeq(front, MRef('code'=procname(op(last):-code, driver)))
+            MStatSeq(front, MRef(Record('code'=procname(op(last):-code, driver))))
         else
             MStatSeq(ssop(flattened), driver)
         end if;
