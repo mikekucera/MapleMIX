@@ -242,6 +242,11 @@ $include "access.mpl"
             NULL; 
         end proc;
         
+        count[MError] := proc(e)
+            countExpr(e);
+            NULL;
+        end proc;
+
         count[MStatSeq] := proc()
             map(countStmt, [args]);
             NULL; 
@@ -311,8 +316,9 @@ $include "access.mpl"
             MStatSeq(op(map(cleanStmt, [args])));
         end proc;
         
-        
-        
+        clean[MError] := proc(e)
+            MError(cleanExpr(e));
+        end proc;
             
     end module;
     
