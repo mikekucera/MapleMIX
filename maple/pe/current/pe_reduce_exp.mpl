@@ -11,7 +11,7 @@ ReduceExp := module()
     local
         SmartOps,
         reduce, binOp, mcarthyOp, unOp, naryOp, red, isProtectedProc, specFunc,
-        reduceName, reduceVar, reduceLex, replaceClosureLexical, evalBinOpAfterReduce,
+        reduceName, reduceVar, reduceLex, evalBinOpAfterReduce,
         env, treatAsDynamic, reducedTable;
 
 $include "pe_reduce_smarter.mpl"
@@ -293,6 +293,12 @@ $include "pe_reduce_smarter.mpl"
         FromInert(M:-FromM(m));
     end proc;
 
+    specFunc["assign"] := proc(expseq)
+        userinfo(8, PE, "reducing a call to assign");
+        if nops(expseq) <> 2 then error "invalid call to assign"; end if;
+        MAssign(op(map(reduce, expseq)));
+    end proc;
+
     # TODO, what to do about this?
     # specFunc_eval := n -> proc(expseq)
     #     MFunction(M:-ProtectedForm(n), MExpSeq(op(map(embed, [reduce(expseq)]))));
@@ -410,6 +416,9 @@ $include "pe_reduce_smarter.mpl"
                     reducedTable := true;
                 end if;
                 op(expr);
+            # in the PseudoStatic case, reduce it now
+            elif expr :: list(PseudoStatic) then
+                reduce(op(expr))
             else
                 MSubst(__F(x), op(expr));
             end if;
@@ -444,53 +453,28 @@ $include "pe_reduce_smarter.mpl"
     red[MAssignedLocalName] := () -> FromInert(M:-FromM(MAssignedLocalName(args)));
     red[MLocalName] := () -> FromInert(M:-FromM(MLocalName(args)));
 
-
     # a closure is created
-    red[MProc] := proc() local p, lexMap, newBody, newProc;
+    red[MProc] := proc() local p, l, newBody, newProc;
         p := MProc(args);
-        if ormap(curry(`=`, MName("pe_thunk")), OptionSeq(p)) then
-            FromInert(M:-FromM(p));
+        l := LexSeq(p);
+        if nops(l) = 0 then # completely static
+            return FromInert(M:-FromM(p));
         else
-            lexMap := M:-CreateLexNameMap(LexSeq(p), curry(op, 2));
-            # closureEnv := callStack:-topEnv();
-            newBody := eval(ProcBody(p), MLexicalLocal = curry(replaceClosureLexical, lexMap));
-            newProc := subsop(5=newBody, 8=MLexicalSeq(), p);
-            FromInert(M:-FromM(newProc));
+            # take care of things later
+            return MPseudoStatic(MProc(args));
         end if;
     end proc;
 
 
-    replaceClosureLexical := proc(lexMap, n) local closureEnv, s, lookup;
-        closureEnv := callStack:-topEnv();
-        s := op(n);
-        lookup := proc() local lex, lexName;
-            if closureEnv:-isStatic(s) then
-                # TODO, pass hasDyn to getVal?
-                closureEnv:-get(s);
-            # the code below never actually gets triggered successfully
-            # in any test, so comment it out
-            # elif assigned(lexMap[s]) then
-            #     if closureEnv:-hasLex() then
-            #         lex := closureEnv:-getLex();
-            #         lexName := op(lexMap[s]);
-            #         if assigned(lex[lexName]) then
-            #             FromInert(M:-FromM(lex[lexName]));
-            #         else
-            #             error "invalid lexical name: %1", s;
-            #         end if;
-            #     else
-            #         error "can't find lexical: %1", s;
-            #     end if;
-            else
-                error "dynamic lexicals in closure is not supported: %1", s;
-            end if;
-        end proc;
+    red[MPseudoStatic] := proc(p) 
+        local valmap, lexMap, newBody, newProc;
 
-        lookup := setattribute(eval(lookup,2), 'pe_thunk'); # used to identify these thunks later
-
-        MFunction(MStatic(lookup), MExpSeq());
+        valmap := x -> embed(reduce(op(2,x)));
+        lexMap := M:-CreateLexNameMap(LexSeq(p), valmap);
+        newBody := eval(ProcBody(p), MLexicalLocal=(x->lexMap[x]));
+        newProc := subsop(5=newBody, 8=MLexicalSeq(), p);
+        FromInert(M:-FromM(newProc));
     end proc;
-
 
     red[MUneval] := proc(e)
         if member(Header(e), {MName, MAssignedName}) then

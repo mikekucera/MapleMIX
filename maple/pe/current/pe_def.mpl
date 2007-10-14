@@ -1042,7 +1042,8 @@ peFunction := proc(funRef,#::Dynamic,
                    unfold::procedure,
                    residualize::procedure,
                    symbolic::procedure)
-    local fun, sfun, newName, ma, redargs, res;
+    local fun, sfun, newName, ma, redargs, res, valmap, lexMap,
+          newBody, newProc;
     PEDebug:-FunctionStart(funRef);
     userinfo(10, PE, "Reducing function call", funRef);
 
@@ -1050,19 +1051,19 @@ peFunction := proc(funRef,#::Dynamic,
     
     if typematch(fun, 'MSubst'(anything, sfun::PseudoStatic)) then
         # need to look up all the names in the environment, put
-        # them in, and Reduce that.
-        error "PseudoStatic call not done yet";
+        # them in, and Reduce that.  This is done by ReduceExp!
+        sfun := ReduceExp(sfun);
     elif fun::Dynamic then
         # don't know what function was called, residualize call
         res := residualize(fun, ReduceExp(argExpSeq));
         PEDebug:-FunctionEnd();
         return res;
+    else
+        sfun := SVal(fun);
     end if;
 
-    sfun := SVal(fun);
-
     # TODO: add case for 'indexed'
-    if type(sfun, `procedure`) and not ormap(hasOption, ['builtin','pe_thunk'], sfun) then
+    if type(sfun, `procedure`) and not ormap(hasOption, ['builtin'], sfun) then
         # if the procedure is builtin then do what the else clause does
         if type(funRef, mform(Procname)) then
         	newName := gen("procname_");
@@ -1192,7 +1193,7 @@ end proc;
 
 isUnfoldable := proc(p) local unfold, hasReturn;
     #return false;
-    # a funciton cannot be unfolded if there is a return inside a loop
+    # a function cannot be unfolded if there is a return inside a loop
     unfold := true;
     hasReturn := proc()
         if hasfun([args], MReturn) then
