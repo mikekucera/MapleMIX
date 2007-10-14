@@ -195,7 +195,7 @@ opts:-setConsiderExpseq(false):
 pe_qs3 := OnPE(qs3, opts):
 
 got := ToInert(eval(pe_qs3:-ModuleApply));
-expected := ToInert(proc(A) end proc);
+expected := ToInert(proc(A) NULL end proc);
 
 Try(300, got, expected);
 
