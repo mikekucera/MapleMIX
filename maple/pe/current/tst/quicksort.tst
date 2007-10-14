@@ -86,6 +86,7 @@ end proc;
 # TODO, need to unfold the call into ModuleApply
 
 mm := module()
+    export quicksort_1;
     quicksort_1 := proc(A, m, n)
         local midindex1, x1, y3, z3, m4, pivotIndex1, pivotValue1, temp1,
             storeIndex1, i1, temp2, temp3, p;
@@ -128,9 +129,9 @@ end module;
 opts := PEOptions():
 opts:-setConsiderExpseq(false):
 
-pe_qs2 := OnPE(qs2, opts):
+pe_qs2 := OnPE(qs2, opts);
 
-got1 := op(5, ToInert(eval(pe_qs2:-quicksort_2)));
+got1 := op(5, ToInert(eval(pe_qs2:-quicksort_1)));
 
 expected1 := op(5, ToInert(eval(mm:-quicksort_1)));
 
@@ -194,7 +195,7 @@ opts:-setConsiderExpseq(false):
 pe_qs3 := OnPE(qs3, opts):
 
 got := ToInert(eval(pe_qs3:-ModuleApply));
-expected := ToInert(proc(A) NULL end proc);
+expected := ToInert(proc(A) end proc);
 
 Try(300, got, expected);
 
