@@ -145,7 +145,8 @@ $include "pe_reduce_smarter.mpl"
     red['symbol']  := () -> args;
 
     red[MStatic] := () -> args;
-    red[MBoth]   := (s, d) -> `if`(treatAsDynamic, d, SVal(s));
+#    red[MBoth]   := (s, d) -> `if`(treatAsDynamic, d, SVal(s));
+    red[MBoth]   := MBoth;
 
     red[MInt]    := () -> args;
     red[MString] := () -> args;
@@ -501,4 +502,7 @@ $include "pe_reduce_smarter.mpl"
         end if;
     end proc;
 
+    red[MSubst] := proc(n, e)
+        MSubst(n, reduce(e))
+    end proc;
 end module;
