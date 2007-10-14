@@ -71,7 +71,7 @@ FromM := module()
         elif nargs = 1 then
             _Inert_VERBATIM(args);
         else
-            _Inert_EXPSEQ();
+            inertNull; # prevents unwanted expression sequence flattening
         end if;
     end proc;
 

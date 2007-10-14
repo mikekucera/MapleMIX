@@ -287,10 +287,20 @@ $include "pe_reduce_smarter.mpl"
         MFunction( M:-ProtectedForm("seq"), MExpSeq(op(map(embed, [reduce(expseq)]))) )
     end proc;
     
-    specFunc["if"] := proc(expseq) local m;
-        m := MFunction( M:-ProtectedForm("if"), MExpSeq(op(map(embed, [reduce(expseq)]))) );
-        # eval(FromInert(M:-FromM(m)));
-        FromInert(M:-FromM(m));
+    specFunc["if"] := proc(expseq) local c, x, y, rc, rx, ry, place;
+    	if typematch(expseq, MExpSeq('c'::mform, 'x'::mform, 'y'::mform)) then
+    		rc, rx, ry := [reduce(c)], [reduce(x)], [reduce(y)];
+    		if rc = [true] then
+    		    op(rx);
+    		elif rc = [false] then
+    		    op(ry);
+    		else # its dynamic or its a type error, residualize in either case
+    		    place := (expr) -> `if`(expr::list(Static), embed(op(expr)), expr);
+    		    MFunction(M:-ProtectedForm("if"), MExpSeq(place(rc), place(rx), place(ry)));
+    		end if;
+    	else
+    	    error "wrong number of arguments to `if`";
+    	end if;
     end proc;
 
     specFunc["assign"] := proc(expseq)
