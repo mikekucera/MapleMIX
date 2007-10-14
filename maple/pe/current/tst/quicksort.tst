@@ -130,8 +130,7 @@ opts:-setConsiderExpseq(false):
 
 pe_qs2 := OnPE(qs2, opts):
 
-
-got1 := op(5, ToInert(eval(pe_qs2:-quicksort_1)));
+got1 := op(5, ToInert(eval(pe_qs2:-quicksort_2)));
 
 expected1 := op(5, ToInert(eval(mm:-quicksort_1)));
 
@@ -142,6 +141,7 @@ Try(201, got1, expected1);
 # TODO, need to unfold the call into ModuleApply
 
 mm := module()
+    export quicksort_1;
     quicksort_1 := proc(A, m, n)
         local pivotIndex1, pivotValue1, temp1, storeIndex1, i1, temp2, temp3, p;
         if m < n then
