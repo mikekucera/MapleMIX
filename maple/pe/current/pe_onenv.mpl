@@ -12,7 +12,7 @@ OnENV := module()
                 newSetting, doPutVal, rebuildTable, newTableRecord,
                 lex, nargsVal, isTblVal, isSetting,
                 hasDynamicPart, isAlreadyDynamic,
-                putStatic, putDynamic, putTable,
+                putStatic, putDynamic, putTable, putPseudoStatic,
                 doMerge, createAssign, addToMask;
             export 
                 setLink, grow, pop, equalsTop, merge,
@@ -155,9 +155,11 @@ OnENV := module()
                         rebuildTable(setting:-tbls[key]);
                     end if;
                 elif assigned(setting:-vals[key]) then
-                    tmp := setting:-vals[key];
-                    `if`(type(tmp, 'last_name_eval'), 
-                        `if`(tmp::builtin, tmp, eval(tmp,2)), tmp);
+                    tmp := [setting:-vals[key]];
+                    `if`(type(tmp[1], 'last_name_eval'), 
+                        `if`(tmp[1]::builtin, tmp[1], 
+                        `if`(tmp[1]::table,eval(tmp[1],2), eval(tmp[1],1))), 
+                        tmp[1]);
                 elif assigned(setting:-dyn[key]) then
                     setting:-dyn[key];
                 else
@@ -235,6 +237,8 @@ OnENV := module()
                     putTable(key, x)
                 elif x::Dynamic then
                     putDynamic(key, x)
+                elif x::PseudoStatic then
+                    putPseudoStatic(key, x)
                 elif x::Static then
                     putStatic(key, x)
                 else 
@@ -252,6 +256,13 @@ OnENV := module()
                 setting:-vals[key] := x;
             end proc;
             
+            putPseudoStatic := proc(key, x) local setting;
+                setting := ss:-top();
+                setting:-tbls[key] := 'setting:-tbls[key]'; #unassign
+                setting:-dyn[key]  := 'setting:-dyn[key]';  #unassign
+                setting:-mask := setting:-mask minus {key};
+                setting:-vals[key] := x;
+            end proc;
             
             putTable := proc(key, x) local setting, addr, rec;
                 setting := ss:-top();
@@ -284,7 +295,6 @@ OnENV := module()
             
             
             putDynamic := proc(key, x) local setting, r, refreshSubst;
-                #error "putDynamic: not yet!";
                 if not gopts:-getPropagateDynamic() then
                     setValDynamic(key);
                     return;
@@ -296,7 +306,7 @@ OnENV := module()
                 setting:-mask := setting:-mask minus {key};
                 
                 # If the dynamic expression being put back into the environmet
-                # has an MSubst then repalce it with its corresponding value.
+                # has an MSubst then replace it with its corresponding value.
                 refreshSubst := proc(n, expr)
                     if member(Header(n), {MLocal, MSingleUse}) then
                         get(op(n));
@@ -312,9 +322,6 @@ OnENV := module()
                     setting:-mask := setting:-mask union {key};
                 end try
             end proc;
-            
-            
-            
             
             putTblVal := proc(tableName::Not(mform), index::MStatic, x) 
                 local setting, foundsetting, rec, newRec, addr;

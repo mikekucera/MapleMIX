@@ -44,6 +44,7 @@ Save('`type/mform`');
 Save('`type/onenv`');
 Save('`type/Static`');
 Save('`type/MStatic`');
+Save('`type/PseudoStatic`');
 Save('`type/Both`');
 Save('`type/Dynamic`');
 Save('`type/Global`');
@@ -58,6 +59,7 @@ Save('`type/envname`');
 $include "ss.mpl"
 
 Save(SuperStack);
+Save(SuperQueue);
 
 $include "m_def.mpl"
 

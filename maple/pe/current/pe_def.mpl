@@ -157,6 +157,8 @@ embed := proc(e)
         MStatic()
     elif nargs = 1 and e::Static then
         MStatic(e)
+    elif nargs = 1 and e::PseudoStatic then
+        e
     elif nargs = 1 and e::Dynamic then
         e
     elif [args] :: list(Static) then
@@ -204,7 +206,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
     statseq := M:-FlattenStatSeq(MStatSeq(args));
     size := nops(statseq);
 
-    q := SimpleQueue();
+    q := SuperQueue();
 
     for i from 1 to size do
         stmt := op(i, statseq);
@@ -392,6 +394,9 @@ updateVar := proc(var::mform, reduced) local env, str;
 	if reduced::Static then
 	    env:-put(str, SVal(reduced));
 	    NULL;
+    elif reduced::PseudoStatic then
+        env:-put(str, reduced);
+        NULL;
     elif reduced::Dynamic then
         env:-put(str, reduced);
         MAssign(var, reduced);
@@ -457,7 +462,7 @@ end proc;
 analyzeDynamicLoopBody := proc(body::mform)
     local notImplemented, readVar, readLocal, readGlobal, readTableref, writeVar, writeTable, q;
    	
-    q := SimpleQueue(); # assignment statements that will be residualized above the loop
+    q := SuperQueue(); # assignment statements that will be residualized above the loop
 
     notImplemented := () -> ERROR("non-intrinsic call in dynamic loop not supported");
     #readVar := proc(n::string, env)
@@ -510,7 +515,7 @@ end proc;
 #        env:-setLoopVar(loopVarName);
 #    end if;#
 #
-#    q := SimpleQueue();
+#    q := SuperQueue();
 #
 #    return module()
 #        local lastStmt;
@@ -749,7 +754,7 @@ pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
         end if;
     end if;
 
-    q := SimpleQueue();
+    q := SuperQueue();
 
     for c in catchSeq do
         callStack:-push();
@@ -908,9 +913,9 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
     env := OnENV(); # new env for function call
     env:-setLink(callStack:-topEnv());
     
-   	fullCall  := SimpleQueue(); # residual function call including statics
-   	redCall   := SimpleQueue(); # residual function call without statics
-   	signature := SimpleQueue();
+   	fullCall  := SuperQueue(); # residual function call including statics
+   	redCall   := SuperQueue(); # residual function call without statics
+   	signature := SuperQueue();
    	numParams := nops(paramSeq);
    	#possibleExpSeqSeen := false;
    	# table that remembers if an argument expression was a MEquation
@@ -1010,8 +1015,8 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
         end if;
     end do;
 
-    locals := SimpleQueue();
-    params := SimpleQueue();
+    locals := SuperQueue();
+    params := SuperQueue();
     for loc in keys(newParams) do
         locals:-enqueue(loc);
         params:-enqueue(newParams[loc]);
@@ -1043,7 +1048,11 @@ peFunction := proc(funRef,#::Dynamic,
 
     fun := ReduceExp(funRef);
     
-    if fun::Dynamic then
+    if typematch(fun, 'MSubst'(anything, sfun::PseudoStatic)) then
+        # need to look up all the names in the environment, put
+        # them in, and Reduce that.
+        error "PseudoStatic call not done yet";
+    elif fun::Dynamic then
         # don't know what function was called, residualize call
         res := residualize(fun, ReduceExp(argExpSeq));
         PEDebug:-FunctionEnd();
@@ -1135,7 +1144,7 @@ peFunction_SpecializeThenDecideToUnfold :=
     newName := generatedName;
 
     argListInfo := peArgList(Params(m), Keywords(m), argExpSeq);
-    signature := fun, argListInfo:-callSignature;
+    signature := fun, eval(argListInfo:-callSignature,1);
 
     # handle sharing issues
     if not gopts:-getShareFunctions() # turns function sharing off, signatures are still stored but never used
@@ -1172,10 +1181,10 @@ peFunction_SpecializeThenDecideToUnfold :=
     end if;
 
     if not rec:-mustResid and isUnfoldable(newProc) then
-        unfold(newProc, argListInfo:-reducedCall, argListInfo:-allCall);
+        unfold(newProc, argListInfo:-reducedCall, eval(argListInfo:-allCall,1));
     else
         specializedProcs[newName] := newProc;
-        call := `if`(M:-UsesArgsOrNargs(newProc), argListInfo:-allCall, argListInfo:-reducedCall);
+        call := `if`(M:-UsesArgsOrNargs(newProc), eval(argListInfo:-allCall,1), argListInfo:-reducedCall);
         residualize(MString(newName), call)
     end if;
 end proc;

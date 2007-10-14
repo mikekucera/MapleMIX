@@ -39,7 +39,6 @@ CodeBelow := proc(branch)
     `if`(Header(Last(branch)) = MRef, Last(branch), NULL);
 end proc;
 
-
 # for MSubst
 DynExpr := proc(x) option inline; op(2,x) end proc;
 
