@@ -10,6 +10,8 @@ SVal := proc(x::specfunc(anything, MStatic)) op(x) end proc;
 # for MBoth
 StaticPart := proc(x::mform(Both)) option inline; op(1,x) end proc;
 DynamicPart := proc(x::mform(Both)) option inline; op(2,x) end proc;
+# for MPseudoStatic
+ProcPart := proc(x) option inline; op(1,x) end proc;
 
 # generally for working with MStatSeq
 Last     := proc(x) option inline; op(-1, x) end proc;
