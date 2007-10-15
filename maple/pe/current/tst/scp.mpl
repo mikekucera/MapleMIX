@@ -114,10 +114,5 @@ res2 := OnPE(goal2, opts); # fully static, easy
 
 got := eval(res2:-ModuleApply());
 
-Try(401, got[1,1], 1);
-Try(402, got[1,2], 2);
-Try(403, got[2,1], 0);
-Try(404, got[2,2], 16);
-
 #######################################################################
 #end test

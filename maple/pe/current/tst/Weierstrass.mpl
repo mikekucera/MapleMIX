@@ -1,4 +1,3 @@
-#$Source: /u/maple/research/lib/src/RCS/Weierstrass,v $ 
 ################################################################ 
 # 
 #      weier - Weierstrass Elliptic and Related Functions 
@@ -130,18 +129,37 @@ BuildWeierstrass := proc(a, zh, rh, dh)
 	protect(a);
 end:
 
+goal1 := proc()
 BuildWeierstrass('WeierstrassP', ZeroHandler, RootOfHandler,
 	(z,g2,g3) -> 'WeierstrassP'(`tools/sign`(z)*z, g2, g3) );
+end:
 #savelib( 'WeierstrassP' ):
 
+goal2 := proc()
 BuildWeierstrass('WeierstrassPPrime', ZeroHandler, RootOfHandlerWPP,
 	(z,g2,g3) -> `tools/sign`(z)*'WeierstrassPPrime'(`tools/sign`(z)*z, g2, g3) );
+end:
 #savelib( 'WeierstrassPPrime' ):
 
+goal3 := proc()
 BuildWeierstrass('WeierstrassZeta', ZeroHandler, RootOfHandler,
 	(z,g2,g3) -> `tools/sign`(z)*'WeierstrassZeta'(`tools/sign`(z)*z, g2, g3) );
+end:
 #savelib( 'WeierstrassZeta' ):
 
+goal4 := proc()
 BuildWeierstrass('WeierstrassSigma', 0, RootOfHandler,
 	(z,g2,g3) -> `tools/sign`(z)*'WeierstrassSigma'(`tools/sign`(z)*z, g2, g3) );
+end:
 #savelib( 'WeierstrassSigma' ):
+
+libname := libname, "../lib":
+
+kernelopts(opaquemodules=false):
+interface(verboseproc=3);
+opts := PEOptions():
+opts:-addFunction(PEOptions:-DYNAMIC, assign);
+
+infolevel[PE] := 10:
+res1 := OnPE(goal1, opts);
+got := eval(res1:-ModuleApply);
