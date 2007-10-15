@@ -296,7 +296,7 @@ $include "pe_reduce_smarter.mpl"
     		elif rc = [false] then
     		    op(ry);
     		else # its dynamic or its a type error, residualize in either case
-    		    place := (expr) -> `if`(expr::list(Static), embed(op(expr)), expr);
+    		    place := (expr) -> `if`(expr::list(Static), embed(op(expr)), op(expr));
     		    MFunction(M:-ProtectedForm("if"), MExpSeq(place(rc), place(rx), place(ry)));
     		end if;
     	else
@@ -479,7 +479,6 @@ $include "pe_reduce_smarter.mpl"
 
     red[MPseudoStatic] := proc(p) 
         local valmap, lexMap, newBody, newProc;
-
         valmap := x -> embed(reduce(op(2,x)));
         lexMap := M:-CreateLexNameMap(LexSeq(p), valmap);
         newBody := eval(ProcBody(p), MLexicalLocal=(x->lexMap[x]));
@@ -497,7 +496,7 @@ $include "pe_reduce_smarter.mpl"
         elif member(Header(e), {MGeneratedName, MSingleUse, MLocal}) then
             FromInert(_Inert_UNEVAL(ToInert(convert(Name(e), `local`))));
         else
-            error "dynamic uneval not supported";
+            #error "dynamic uneval not supported";
             MUneval(embed(e));
         end if;
     end proc;
