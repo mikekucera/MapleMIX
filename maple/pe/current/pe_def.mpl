@@ -71,7 +71,7 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     callStack:-push();
 
     try
-        specializedProcs["ModuleApply"] := peFunction_GenerateNewSpecializedProc(m, "ModuleApply");
+        specializedProcs["ModuleApply"] := peFunction_GenerateNewSpecializedProc(m);
         ##Lifter:-LiftPostProcess(specializedProcs);
         ##specializedProcs;
     catch "debug":
@@ -161,6 +161,8 @@ embed := proc(e)
         e
     elif nargs = 1 and e::Dynamic then
         e
+    elif nargs = 1 and e::Both then
+        e
     elif [args] :: list(Static) then
         MStatic(args);
     else
@@ -194,7 +196,8 @@ peResidualizeStatement := (f, e) -> f(ReduceExp(e));
 
 #pe[MStandaloneExpr] := curry(peResidualizeStatement, MStandaloneExpr);
 pe[MStandaloneExpr] := proc(e)
-    MStandaloneExpr(ReduceExp(e));
+    # double-reduction, to take care of MPseudoStatic
+    MStandaloneExpr(ReduceExp(ReduceExp(e)));
 end proc;
 
 pe[MReturn] := curry(peResidualizeStatement, MReturn);
@@ -785,7 +788,7 @@ end proc;
 ##########################################################################################
 
 
-pe[MStandaloneFunction] := proc(var) local unfold;
+pe[MStandaloneFunction] := proc() local unfold;
     unfold := proc(residualProcedure, redCall, fullCall)
         Unfold:-UnfoldStandalone(residualProcedure, redCall, fullCall, gen);
     end proc;
@@ -1114,7 +1117,7 @@ peFunction_StaticFunction := proc(funRef::Dynamic,
     if gopts:-hasFuncOpt(fun) then
         funOption := gopts:-funcOpt(fun);
         userinfo(5, PE, "StaticFunction: About to reduce", argExpSeq);
-        rcall := ReduceExp(argExpSeq);
+        rcall := ReduceExp(ReduceExp(argExpSeq));
         userinfo(5, PE, "StaticFunction: Arguments for call is", rcall);
 
         s := () -> (symbolic @ embed @ fun @ SVal)(rcall);
@@ -1161,7 +1164,7 @@ peFunction_SpecializeThenDecideToUnfold :=
     
         callStack:-push(argListInfo:-newEnv);
         # at this point rec:-finished is false
-        newProc := peFunction_GenerateNewSpecializedProc(m, newName, argListInfo);
+        newProc := peFunction_GenerateNewSpecializedProc(m, argListInfo);
         # if the global env was altered then we do not allow sharing
         if callStack:-wasGlobalEnvUpdated() then
             share[signature] := 'share[signature]';
@@ -1207,7 +1210,7 @@ end proc;
 
 # takes inert specializedProcs and assumes static variables are on top of callStack
 # called before unfold
-peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argListInfo) :: mform(Proc);
+peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), argListInfo) :: mform(Proc);
     local env, lexMap, loc, varName, body, newProc, p, newParams, newKeywords, toParamSpec;
     # attach lexical environment
     env := callStack:-topEnv();
@@ -1229,7 +1232,7 @@ peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argList
     newProc := M:-SetArgsFlags(newProc);
 
     # this doesn't need to be done for the goal function
-    if nargs > 2 and not M:-UsesArgsOrNargs(newProc) then
+    if nargs > 1 and not M:-UsesArgsOrNargs(newProc) then
         # This needs to be here because SetArgsFlags is called after partial evaluation of body of proc
         #p := x -> env:-isDynamic(Name(x));
         p := x -> member(Name(x), argListInfo:-removeParams);
@@ -1239,7 +1242,6 @@ peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), n::string, argList
         newProc := subsop(1=newParams, 11=newKeywords, newProc);
     end if;
 
-    #specializedProcs[n] := newProc;
     newProc;
 end proc;
 

@@ -124,7 +124,7 @@ OnENV := module()
             
             createAssign := proc(q, setting, key)
                 if assigned(setting:-vals[key]) then
-                    q:-enqueue( MAssign(MLocal(key), MStatic(setting:-vals[key])) );
+                    q:-enqueue( MAssign(MLocal(key), MStatic(op(1,setting:-vals[key]))) );
                 elif assigned(setting:-dyn[key]) then
                     q:-enqueue( MAssign(MLocak(key), MStatic(setting:-dyn[key])) );
                 end if;
@@ -155,7 +155,7 @@ OnENV := module()
                         rebuildTable(setting:-tbls[key]);
                     end if;
                 elif assigned(setting:-vals[key]) then
-                    tmp := [setting:-vals[key]];
+                    tmp := setting:-vals[key];
                     `if`(type(tmp[1], 'last_name_eval'), 
                         `if`(tmp[1]::builtin, tmp[1], 
                         `if`(tmp[1]::table,eval(tmp[1],2), eval(tmp[1],1))), 
@@ -233,7 +233,7 @@ OnENV := module()
                     error "assignement to for loop index variable not supported: %1", key;
                 end if;
                 
-                if type(x, 'table') then
+                if type(x, {'table','rtable'}) then
                     putTable(key, x)
                 elif x::Dynamic then
                     putDynamic(key, x)
@@ -253,7 +253,7 @@ OnENV := module()
                 setting:-tbls[key] := 'setting:-tbls[key]'; #unassign
                 setting:-dyn[key]  := 'setting:-dyn[key]';  #unassign
                 setting:-mask := setting:-mask minus {key};
-                setting:-vals[key] := x;
+                setting:-vals[key] := [x];
             end proc;
             
             putPseudoStatic := proc(key, x) local setting;
@@ -261,7 +261,7 @@ OnENV := module()
                 setting:-tbls[key] := 'setting:-tbls[key]'; #unassign
                 setting:-dyn[key]  := 'setting:-dyn[key]';  #unassign
                 setting:-mask := setting:-mask minus {key};
-                setting:-vals[key] := x;
+                setting:-vals[key] := [x];
             end proc;
             
             putTable := proc(key, x) local setting, addr, rec;
@@ -472,9 +472,11 @@ OnENV := module()
 
             # precondition, isStatic(table) = true
             rebuildTable := proc(chain::`record`(elts,link), hasDyn)
-                local tbl, rec, tmp, index;
+			local tbl, rec, tmp, index;
+
+            rec := chain;
+			if rec:-elts :: table then
                 tbl := table();
-                rec := chain;
                 
                 do
                     for index in indices(rec:-elts) do
@@ -509,6 +511,9 @@ OnENV := module()
                 end do;
                 mapAddressToTable[addressof(eval(tbl))] := chain;
                 eval(tbl,1);
+            else
+                rec:-elts;
+            end if;
             end proc;
             
             
@@ -524,7 +529,7 @@ OnENV := module()
                 rec:-dynCount := 0;
                 if nargs > 0 then
                     if nargs=2 and type(nam,'name(table)') then
-                        setting:-vals[tblName] := nam;
+                        setting:-vals[tblName] := [nam];
                         rec:-elts := nam;
                     else
                         rec:-elts := table();
