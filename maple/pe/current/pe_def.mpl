@@ -51,7 +51,8 @@ $include "pe_unfold.mpl"
 # The specializer
 ############################################################################
 
-# sets up the partial evaluation
+# calls the specializer on the given goal function
+# returns a Maple module containing the residual specialized functions
 PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     local before, m, inertModule, res;
     # need access to module locals
@@ -66,13 +67,15 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     share := table();
 
     userinfo(1, PE, "PE on ", eval(p));
+   	# convert goal function into M form
     m := getMCode(eval(p));
     userinfo(3, PE, "Successfully got MCode for", p);
     callStack:-push();
 
     try
+    	# Several functions may be generated in the processes, they are all stored in this table.
+    	# The specialized goal function will become the ModuleApply procedure of the returned module.
         specializedProcs["ModuleApply"] := peFunction_GenerateNewSpecializedProc(m);
-        ##Lifter:-LiftPostProcess(specializedProcs);
         ##specializedProcs;
     catch "debug":
         lprint("debug session exited");
@@ -91,6 +94,7 @@ PartiallyEvaluate := proc(p::`procedure`, opts::`module`:=PEOptions())
     end try;
 
     try
+    	# Try to transform the speclialized code into an active maple module.
         inertModule := BuildModule("ModuleApply", specializedProcs);
     catch:
         lprint("conversion to inert module failed", lastexception);
@@ -139,7 +143,6 @@ end proc;
 ######################################################################################
 
 # caches M code of procedures so don't need to call ToM unneccesarily
-
 getMCodeFromCache := proc(fun) option cache;
     local code, uniqueNames;
     code, uniqueNames := M:-ToM(ToInert(fun));
@@ -147,11 +150,18 @@ getMCodeFromCache := proc(fun) option cache;
     code;
 end proc;
 
+# After the initial M code is retrieved from the cache it still
+# needs to be further transformed into a DAG.
+# This transforms the code such that all if statement brances end 
+# with a pointer to the code that would execute after the if statment.
+# This makes specialization of if statements possible.
 getMCode := proc(fun)
     M:-TransformIf:-TransformToDAG(getMCodeFromCache(fun));
 end proc;
 
 
+# Takes any value(s) and wraps them in MStatic()
+# Static values must be embedded in MStatic() in M form.
 embed := proc(e)
     if nargs = 0 then
         MStatic()
@@ -170,6 +180,10 @@ embed := proc(e)
     end if;
 end proc;
 
+
+# Gets the environment associated with the given name.
+# Returns the global environment if the name is a global and the
+# environment at the top of the call stack if its a local name.
 getEnv := proc(var::mname)
     `if`(var::Local, callStack:-topEnv(), genv)
 end proc;
@@ -178,7 +192,8 @@ end proc;
 # Partial Evaluation of statements
 ############################################################################
 
-
+# Used to specialize a statements. 
+# Calls the appropriate function based on the statement form.
 peM := proc(m::mform) local h;
     if nargs = 0 then
         return NULL;
@@ -191,7 +206,8 @@ peM := proc(m::mform) local h;
     error "(peM) not supported: %1", h;
 end proc;
 
-
+# Used to build simple functions that just reduce their expression
+# and always residualize.
 peResidualizeStatement := (f, e) -> f(ReduceExp(e));
 
 #pe[MStandaloneExpr] := curry(peResidualizeStatement, MStandaloneExpr);
@@ -200,9 +216,13 @@ pe[MStandaloneExpr] := proc(e)
     MStandaloneExpr(ReduceExp(ReduceExp(e)));
 end proc;
 
+
+# return and error always residualize
 pe[MReturn] := curry(peResidualizeStatement, MReturn);
 pe[MError]  := curry(peResidualizeStatement, MError);
 
+
+# Specializes a sequence of statements.
 pe[MStatSeq] := proc() :: mform(StatSeq);
     local q, i, j, h, stmt, residual, statseq, size, stmtsAfterIf, below;
 
@@ -217,6 +237,8 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
 
         PEDebug:-StatementStart(stmt);
 
+        # Loop specialization functions must also be given the code
+        # that comes after the loop.
         if member(h, {MWhileForFrom, MWhileForIn}) then
             below := MStatSeq(op(i+1..size, statseq));
             residual := pe[h](op(stmt), below);
@@ -225,6 +247,7 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
             break;
         end if;
 
+        # Specialize the statement.
         residual := peM(stmt);
         PEDebug:-StatementEnd(residual);
 
@@ -233,18 +256,29 @@ pe[MStatSeq] := proc() :: mform(StatSeq);
                 error "code after a try/catch is not supported";
             end if;
             q:-enqueue(residual);
+            
+            # don't bother specializing unreachable code
             if M:-EndsWithErrorOrReturn(residual) then
                 break
             end if;
         end if;
     end do;
+    
+    # Sometimes specialization results in standalone expressions that have no side effects,
+    # these are removed.
     M:-RemoveUselessStandaloneExprs(MStatSeq(qtoseq(q)));
 end proc;
 
+
+# MRef is a special M-form statement that actually represents a pointer
+# to a block of code. These are inserted when the code is transformed into a DAG.
 pe[MRef] := proc(ref)
     peM(ref:-code); # this means the partial evaluator removes all references
 end proc;
 
+
+# Its possible to embed commands to MapleMIX in the subject code.
+# These commands are useful for debugging MapleMIX.
 pe[MCommand] := proc(command)
     if gopts:-getIgnoreCommands() then
         return NULL;
@@ -266,6 +300,14 @@ pe[MCommand] := proc(command)
     NULL;
 end proc;
 
+
+# This is used to propagate information from an if statement condition into the branches of the
+# statement. Currently it only works with simple equations.
+# For example: 
+#     if x = 0 then BODY end if; 
+# In this case we know that x should equal 0 inside of BODY,
+# this is very useful information that leads to much better specialization.
+# The value of the variable into the environment before the body is specialized.
 extractBindingFromEquationConditional := proc(rcond, {neg:=false})
     extractBinding(rcond, `if`(neg, MInequat, MEquation));
 end proc;
@@ -278,63 +320,81 @@ extractBinding := proc(rcond, equattype) local n, v, i;
     end if;
 end proc;
 
+# Specialization of if statements.
+# If the condition is dynamic then both branches of the statement
+# must be specialized. This is made possible by the fact that the code
+# is transformed into a DAG. 
 pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
     local rcond, env, C1, C2, S, S1, S2, prevTopLocal, prevTopGlobal,
-          stopAfterC1, stopAfterC2, result, a1, a2, a3, a4;
+          stopAfterC1, stopAfterC2, result, a1, a2, a3, a4, hasNestedIf;
     rcond := ReduceExp(cond);
-    if rcond::Static then
+    
+    if rcond::Static then # very simple when the condition is static
         peM(`if`(SVal(rcond), thenBranch, elseBranch));
     else
         env := callStack:-topEnv();
+        # Any modifications to the environment must be undone before the else
+        # branch is specialized. This is done by representing the environment as a stack.
         env:-grow();
         genv:-grow();
 
-        # extract data from conditional expression
+        # If the conditional expression is an equation then we can use that.
         extractBindingFromEquationConditional(rcond, neg=false);
 
+        # Specialize the first branch.
         C1 := peM(CodeUpToPointer(thenBranch));
 
+        # The first branch may have changed the state of the environment, so we need to 
+        # specialize the code below the if statement with respect to that environment,
+        # but not if the branch ends with a return because then it would be dead code.
         stopAfterC1 := M:-EndsWithErrorOrReturn(C1);
         S := CodeBelow(thenBranch);
 
         if not stopAfterC1 then
-            # grow the stack again for S1
+            # Grow the stack and specialize the rest of the program in the current environment.
             env:-grow();
             genv:-grow();
-            S1 := peM(S);
-            # pop the effects of S1, don't save
+            S1 := peM(S); # save the results
+            # Discard any changes that were made to the environment
             env:-pop();
             genv:-pop();
+            # At this point the environment has been restored to the state it was in after
+            # specializing just the code in the first branch of the if statement.
         end if;
 
-        # pop the effects of C1 and save
+        # Remember the changes that the first branch made to the environment.
         prevTopLocal := env:-pop();
         prevTopGlobal := genv:-pop();
-        # grow again for C2
+        
+        # Prepare to specialize the second branch
         env:-grow();
         genv:-grow();
 
+        # If the conditional was actually an inequation then we know the value
+        # can be set in the else branch.
         extractBindingFromEquationConditional(rcond, neg=true);
 
+        # Specialize the else branch
         C2 := peM(CodeUpToPointer(elseBranch));
+        
         S := CodeBelow(elseBranch);
-
         stopAfterC2 := M:-EndsWithErrorOrReturn(C2); # TODO, should not be needed
 
+        hasNestedIf := X -> hasfun(X, MIfThenElse); 
+        
         if stopAfterC1 and stopAfterC2 then
             result := MIfThenElse(rcond, C1, C2);
-        elif (not ormap(rcurry(hasfun, MIfThenElse), [C1, C2])) and
+        elif not (hasNestedIf(C1) or hasNestedIf(C2)) and 
             env:-equalsTop(prevTopLocal) and genv:-equalsTop(prevTopGlobal) then
-            S1 := `if`(stopAfterC1, peM(S), S1);
+            # If both branches made the same changes to the environment then we can share
+            # the specialized code that came after the first branch.
+            S1 := `if`(stopAfterC1, peM(S), S1); # But not if the first branch ends in a return.
             result := MStatSeq(MIfThenElse(rcond, C1, C2), ssop(S1));
         else
+            # Otherwise the code has to be specialized again with respect to the changes
+            # made by the second branch.
             S1 := `if`(stopAfterC1, MStatSeq(), S1);
             S2 := `if`(stopAfterC2, MStatSeq(), peM(S));
-            # TODO, get rid of merging
-            #a1, a2 := env:-merge(prevTopLocal);
-            #a3, a4 := genv:-merge(prevTopGlobal);
-            #result := MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1), ssop(a1), ssop(a3)),
-            #                             MStatSeq(ssop(C2), ssop(S2), ssop(a2), ssop(a4)));
             result := MIfThenElse(rcond, MStatSeq(ssop(C1), ssop(S1)), MStatSeq(ssop(C2), ssop(S2)));
         end if;
         env:-pop();
@@ -343,12 +403,16 @@ pe[MIfThenElse] := proc(cond, thenBranch, elseBranch)
     end if
 end proc;
 
-
+# Partial evaluation of assignment statments.
+# The general idea is to reduce the rvalue expression and if its static
+# then store the value in the environment, but muntiple assignment complicates
+# the logic.
 pe[MAssign] := proc(n::Or(mname,specfunc(mname,MExpSeq)), expr::mform)
     local reduced, reducedName, env, v, var, vars, shouldResidualize, exprList;
     userinfo(8, PE, "MAssign:", expr);
 
-    # first collect the names
+    # Special case when the lvalue is a catenation, need to compute the
+    # names that are being assigned to.
     if Header(n) = MCatenate then
         reducedName := ReduceExp(n);
         if reducedName::Dynamic then
@@ -356,7 +420,7 @@ pe[MAssign] := proc(n::Or(mname,specfunc(mname,MExpSeq)), expr::mform)
         else
             vars := [op(map(MName, map((x)->convert(x,string),reducedName)))]; 
         end if
-    elif Header(n) = MExpSeq then
+    elif Header(n) = MExpSeq then # multiple assignment
         vars := [op(n)];
     else
         vars := [n];
@@ -387,6 +451,10 @@ pe[MAssign] := proc(n::Or(mname,specfunc(mname,MExpSeq)), expr::mform)
 end proc;
 
 
+# Sets a value in the environment.
+# Useful to make this a separate funciton because it can be used in a zip()
+# This function is also called when specilization of an MAssignToFunction
+# results in a single assignment statement.
 updateVar := proc(var::mform, reduced) local env, str;
 	if var::Global then # very conservative
 	    callStack:-setGlobalEnvUpdated(true);
@@ -410,20 +478,7 @@ updateVar := proc(var::mform, reduced) local env, str;
 end proc;
 
 
-pe[MAssignToTable] := proc(n::mname, expr::mform(Tableref)) 
-    local tblVar, rindex, env;
-    userinfo(8, PE, "MAssignToTable:", expr);
-    rindex := ReduceExp(IndexExp(expr));
-    tblVar := Var(expr);
-    env := getEnv(tblVar);
-
-    if not env:-isTblValAssigned(Name(tblVar), rindex) then
-        env:-putTblVal(Name(tblVar), rindex, table());
-    end if;
-
-    pe[MAssign](n, expr); # TODO, this would have to change if PE was run as a fixed point
-end proc;
-
+# Assignment to a table cell.
 pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
     local rindex, rexpr, env, var;
     userinfo(8, PE, "MAssignTableIndex: expr", expr);
@@ -459,9 +514,35 @@ pe[MAssignTableIndex] := proc(tr::mform(Tableref), expr::mform)
     end if;
 end proc;
 
-# very conservative approach to dynamic loops
-# will simply residualize the entire loop, but must analyze to determine
-# variables that have become dynamic
+# Special M-form used to handle multi-dimensional tables.
+# For example
+#   T[1][2] := x;
+# becomes
+#   m1 := T[1];
+#   m1[2] := x
+# where the first assignment statement is an MAssignToTable.
+# This is a special case where m1 should be assigned to a table
+# thats already in the environment.
+pe[MAssignToTable] := proc(n::mname, expr::mform(Tableref)) 
+    local tblVar, rindex, env;
+    userinfo(8, PE, "MAssignToTable:", expr);
+    rindex := ReduceExp(IndexExp(expr));
+    tblVar := Var(expr);
+    env := getEnv(tblVar);
+
+    if not env:-isTblValAssigned(Name(tblVar), rindex) then
+        env:-putTblVal(Name(tblVar), rindex, table());
+    end if;
+
+    pe[MAssign](n, expr); # TODO, this would have to change if PE was run as a fixed point
+end proc;
+
+# Very conservative approach to dynamic loops.
+# Will simply residualize the entire loop, but must analyze to determine
+# variables that have become dynamic.
+# Any variable that is written to in the loop body should be considered dynamic,
+# but any static variables will have been removed from the program up to this point
+# so any static variables in the body of the loop must be residualized before the loop.
 analyzeDynamicLoopBody := proc(body::mform)
     local notImplemented, readVar, readLocal, readGlobal, readTableref, writeVar, writeTable, q;
    	
@@ -509,77 +590,11 @@ analyzeDynamicLoopBody := proc(body::mform)
     qtoseq(q);
 end proc;
 
-# returns an object that can be used to unroll the body of a loop
-#StaticLoopUnroller := proc(loopVar, statseq, whileExp) :: `module`;
-#    local env, loopVarName, q;
-#    env := callStack:-topEnv();
-#    if loopVar <> MExpSeq() then
-#        loopVarName := Name(loopVar);
-#        env:-setLoopVar(loopVarName);
-#    end if;#
-#
-#    q := SuperQueue();
-#
-#    return module()
-#        local lastStmt;
-#        export setVal, unrollOnce, result, isLastStmtReturn;
-#
-#        unrollOnce := proc(loopVarVal) local rWhileExp, res; # pass in the loop index
-#            # set the loop variable if it exists
-#            if assigned(loopVarName) then
-#                env:-put(loopVarName, msop(loopVarVal), 'loopVarSet'=true);
-#            end if;
-#            # reduce the while condition, it can't be dynamic
-#            rWhileExp := ReduceExp(whileExp);
-#            if rWhileExp::Or(Dynamic,Both) then
-#                error "dynamic while condition not supported: %1", rWhileExp;
-#            end if;
-#            # check the while condition
-#            if not SVal(rWhileExp) then
-#                return false;
-#            end if;
-#            # unroll loop once
-#            lastStmt := peM(statseq);
-#            if lastStmt <> NULL then
-#                q:-enqueue(lastStmt);
-#            end if;
-#            # stop if it ends with a return
-#            if assigned(lastStmt) and Header(op(-1, lastStmt)) = MReturn then
-#                return false
-#            end if;
-#            return true;
-#        end proc;
-#
-#        result := () -> MStatSeq(qtoseq(q));
-#    end module;
-#end proc;
 
-
-#pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq)
-#    local rInExp, rWhileExp, assigns, stmt, unroll;
-#    rInExp := ReduceExp(inExp);
-#
-#    unroll := proc(expr) local unroller, i;
-#        unroller := StaticLoopUnroller(loopVar, statseq, whileExp);
-#        for i in expr do
-#            if not unroller:-unrollOnce(i) then break end if;
-#        end do;
-#        return unroller:-result();
-#    end proc;
-#
-#    if [rInExp]::list(Static) or Header(rInExp) = MList then
-#        unroll(op(rInExp));
-#    #elif Header(rInExp) = MSubst and Header(DynExpr(rInExp)) = MList then
-#    #    unroll(op(DynExpr(rInExp)));
-#    else
-#        # need to do this because unassigned locals are considered static
-#        getEnv(loopVar):-setValDynamic(Name(loopVar));
-#        assigns := op(map(analyzeDynamicLoopBody, [statseq, whileExp]));
-#        stmt := MWhileForIn(loopVar, rInExp, whileExp, peM(statseq));
-#        `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
-#    end if;
-#end proc;
-
+# The m-form code for a static loop is transformed on the fly here.
+# This is done to allow dynamic if statements inside of static loops.
+# Special "driver" statments are inserted at the bottom of the loop
+# that act like gotos, these are eventually removed.
 pe[MWhileForIn] := proc(loopVar, inExp, whileExp, statseq, below)
     local rInExp, env, indexVar, mkDriver, mkDynamicLoop;
     rInExp := ReduceExp(inExp);
@@ -643,7 +658,7 @@ handleStaticLoop := proc(whileExp, statseq, mkDriver::procedure)
     end if;
 end proc;
 
-# follows all paths and inserts drivers at the end
+# Inserts drivers into the body of a loop.
 insertDriver := proc(statseq::mform(StatSeq), driver::mform({ForFromDriver, ForInDriver}))
     local flattened, front, last;
     flattened := M:-FlattenStatSeq(statseq);
@@ -680,6 +695,7 @@ forFromTerminationTest := proc(byVal, toVal, val)
 end proc;
 
 
+# Drivers act like conditional GOTOs
 pe[MForFromDriver] := proc(thunk, below, loopVar, byVal, toVal, whileExp)
     local env, val, rWhileExp;
     env := callStack:-topEnv();
@@ -717,33 +733,14 @@ pe[MForInDriver] := proc(thunk, below, loopVar, indexVar, rInExp, whileExp)
     end if
 end proc;
 
-#pe[MWhileForFrom] := proc(loopVar, fromExp, byExp, toExp, whileExp, statseq)
-#    local rFromExp, rByExp, rToExp, unroller, i, rWhileExp, assigns, stmt;
-#    rFromExp  := ReduceExp(fromExp);
-#    rByExp    := ReduceExp(byExp);
-#    rToExp    := ReduceExp(toExp);
-#
-#    if [rFromExp,rByExp,rToExp]::list(Static) then #unroll loop
-#        unroller := StaticLoopUnroller(loopVar, statseq, whileExp);
-#        for i from SVal(rFromExp) by SVal(rByExp) to SVal(rToExp) do
-#            if not unroller:-unrollOnce(i) then break end if;
-#        end do;
-#        unroller:-result();
-#    else
-#        # need to do this because unassigned locals are considered static
-#        getEnv(loopVar):-setValDynamic(Name(loopVar));
-#        assigns := op(map(analyzeDynamicLoopBody, [statseq, whileExp]));
-#        stmt := MWhileForFrom(loopVar, rFromExp, rByExp, rToExp, whileExp, peM(statseq));
-#        `if`(nops([assigns]) > 0, MStatSeq(assigns, stmt), stmt);
-#    end if;
-#end proc;
 
-
+# Unlike inert form while loops are split out into their own
+# case in m-form.
 pe[MWhile] := proc()
     error "While loops are not supported";
 end proc;
 
-
+# Support for try-catch is extremely limited.
 pe[MTry] := proc(tryBlock, catchSeq, finallyBlock)
     local rtry, stat, q, c, rcat, rfin;
     rtry := peM(tryBlock);
@@ -787,6 +784,23 @@ end proc;
 # Statements that have function calls inside them
 ##########################################################################################
 
+# There are two types of specializable function call, a function call all on its own
+# and a function call where the return value is assigned to a variable.
+# Both of these cases are ultimately handled by the peFunction method but there
+# are some differences, these are handled by passing three functions to the
+# peFunction method.
+#
+# 1) unfold: 
+#        Contains the logic that should be executed is to be unfolded after specialization.
+#        Unfolding MStandaloneFunction is very different from unfolding MAssignToFunction. 
+#        For the MAssignToFunction case any return statements inside the function must
+#        be transformed into assignment statements by the unfolding transformation. 
+# 2) residualize:
+#        Contains the logic to residualize the function call when the function is not unfolded.
+# 3) symbolic:
+#        Used when the function name isn't assigned to a procedure, so the function name
+#        is just a symbol and the result should be a reduced expression.
+
 
 pe[MStandaloneFunction] := proc() local unfold;
     unfold := proc(residualProcedure, redCall, fullCall)
@@ -799,6 +813,8 @@ end proc;
 # no support for assigning to a global variable,
 pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Function))
     local unfold, residualize, symbolic;
+    
+    # This is called if the function is to be unfolded.
     unfold := proc(residualProcedure, redCall, fullCall)
         local res, flattened, assign, expr, env;
         env := callStack:-topEnv(); 
@@ -806,26 +822,17 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
         res := Unfold:-UnfoldIntoAssign(residualProcedure, redCall, fullCall, gen, var);
         
         flattened := M:-RemoveUselessStandaloneExprs(res);
-        #if nops(flattened) = 1 and op([1,0], flattened) = MSingleAssign then
         
-        # TODO, rewrite this piece
+        # If the unfolding results in a single assignment statment then we can 
+        # treat it similar to an assignment statement.
         if nops(flattened) = 1 and member(op([1,0], flattened), {MAssign, MAssignToFunction}) then
             assign := op(flattened);
             expr := op(2, assign);
-            if expr::Static then
-                env:-put(Name(var), SVal(expr));
-                return NULL;
-            elif expr::Both then
-                env:-put(Name(var), SVal(StaticPart(expr)));
-            elif expr::Dynamic and gopts:-getPropagateDynamic() then
-                env:-put(Name(var), expr);
-            end if;
+            return updateVar(var, expr);
         elif nops(flattened) >= 1 and op([-1,0], flattened) = MAssign then
             assign := op(-1, flattened);
             expr := op(2, assign);
-            if expr::Dynamic and gopts:-getPropagateDynamic() then
-                env:-put(Name(var), expr);
-            end if;
+			updateVar(var,expr); # just update the environment
         end if;
 
         flattened;
@@ -844,6 +851,7 @@ pe[MAssignToFunction] := proc(var::mform({Local, SingleUse}), funcCall::mform(Fu
 
     peFunction(op(funcCall), unfold, residualize, symbolic);
 end proc;
+
 
 ###########################################################################################
 # Partial Evaluation of function calls
@@ -905,8 +913,10 @@ transformForCallSig := proc(x) local tbl;
 end proc;
     
     
-# returns an environment where static parameters are mapped to their static values
-# as well as the static calls that will be residualized if the function is not unfolded
+# Computes a record that contains a whole bunch of information before a function is specialized.
+# In particular it computes an environment that contains mappins for the static parameters to the function.
+# It also computes the reduced function call that will be residualized if the function isn't unfolded.
+# It also computes the call signature which is used to reuse specialized procedures.
 peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSeq::mform(ExpSeq))
     local env, fullCall, redCall, numParams, equationArgs, toRemove, i, t, f,
           reduced, staticPart, val, toEnqueue, paramName, paramVal, paramSpec, reducedArgs, eqn,
@@ -1039,7 +1049,11 @@ peArgList := proc(paramSeq::mform(ParamSeq), keywords::mform(Keywords), argExpSe
 end proc;
 
 
-# takes continuations to be applied if f results in a procedure
+# This is where partial evaluation of a function really starts.
+# The passed in procedures contain logic that is different for MStandaloneFunciton and MAssignToFunction.
+# This function just basically filters out the case when the function name is dynamic and therefore
+# the call should be residualized. 
+# If the function is static and is to be specialized it is passed to peFunction_StaticFunction.
 peFunction := proc(funRef,#::Dynamic,
                    argExpSeq::mform(ExpSeq),
                    unfold::procedure,
@@ -1050,14 +1064,15 @@ peFunction := proc(funRef,#::Dynamic,
     PEDebug:-FunctionStart(funRef);
     userinfo(10, PE, "Reducing function call", funRef);
 
-    fun := ReduceExp(funRef);
+    # Start by calling the reducer on the function name (actually it could be a more complex expression too).
+    fun := ReduceExp(funRef); 
     
     if typematch(fun, 'MSubst'(anything, sfun::PseudoStatic)) then
         # need to look up all the names in the environment, put
         # them in, and Reduce that.  This is done by ReduceExp!
         sfun := ReduceExp(sfun);
     elif fun::Dynamic then
-        # don't know what function was called, residualize call
+        # The reducer returned a dynamic value, so we have no choice but to residualize the function call.
         res := residualize(fun, ReduceExp(argExpSeq));
         PEDebug:-FunctionEnd();
         return res;
@@ -1065,7 +1080,6 @@ peFunction := proc(funRef,#::Dynamic,
         sfun := SVal(fun);
     end if;
 
-    # TODO: add case for 'indexed'
     if type(sfun, `procedure`) and not ormap(hasOption, ['builtin'], sfun) then
         # if the procedure is builtin then do what the else clause does
         if type(funRef, mform(Procname)) then
@@ -1076,6 +1090,7 @@ peFunction := proc(funRef,#::Dynamic,
         	newName := gen("unknownFunction_");
         end if;
         
+        # After generating a new name we need to unfold the function and do some other stuff
         peFunction_StaticFunction(funRef, sfun, sfun, argExpSeq, newName, unfold, residualize, symbolic);
 
     elif type(sfun, `indexed`) and type(op(0,sfun), `procedure`) then
@@ -1084,6 +1099,8 @@ peFunction := proc(funRef,#::Dynamic,
     	peFunction_StaticFunction(funRef, op(0,sfun), sfun, argExpSeq, newName, unfold, residualize, symbolic);
     
 	elif type(sfun, `module`) then
+		# if we got a module then thats really a call to ModuleApply
+	
 	    if member(convert("ModuleApply",name), sfun) then
 	        ma := sfun:-ModuleApply;
 	    else
@@ -1094,12 +1111,15 @@ peFunction := proc(funRef,#::Dynamic,
 	    peFunction_StaticFunction(funRef, ma, sfun, argExpSeq, gen("ma"), unfold, residualize, symbolic);
 
     elif type(sfun, `procedure`) and hasOption('builtin', sfun) then
+    	# builtin functions are always residualized, includeing those specified in the options
         residualize(fun, MExpSeq(ReduceExp(argExpSeq)));
-    else
+    else 
         redargs := ReduceExp(argExpSeq);
-        if [redargs]::list(Static) then
+        # if the funciton name was a symbol then residualize it as an expression
+        if [redargs]::list(Static) then 
             symbolic(embed( apply(sfun, SVal(redargs)) ));
         else
+            # Final case, nothing else to do but residualize
             residualize(fun, MExpSeq(redargs));
         end if;
     end if;
@@ -1107,29 +1127,36 @@ end proc;
 
 
 
-# partial evaluation of a known procedure, when the function is static
+# At this point we have a static function and we are going to specialize it.
+# This function basically checks to see if there is an option associated with
+# this function. For example it is possible to pass an option that says to
+# treat a function as intrisic. If there is no option then the function is
+# just passed along to peFunction_SpecializeThenDecideToUnfold.
 peFunction_StaticFunction := proc(funRef::Dynamic,
                                   fun::procedure,
                                   funName, # procname must be bound to the name used to invoke the procedure
                                   argExpSeq::mform(ExpSeq),
                                   newName, unfold, residualize, symbolic)
-    local funOption, rcall, s, r, tmp;
+    local funOption, rcall, executeTheFunction, tmp;
     if gopts:-hasFuncOpt(fun) then
         funOption := gopts:-funcOpt(fun);
         userinfo(5, PE, "StaticFunction: About to reduce", argExpSeq);
+        
         rcall := ReduceExp(ReduceExp(argExpSeq));
         userinfo(5, PE, "StaticFunction: Arguments for call is", rcall);
 
-        s := () -> (symbolic @ embed @ fun @ SVal)(rcall);
-        r := () -> residualize(funRef, rcall);
+        # If a function is PURE or INTRINSIC and the argument sequence is static
+        # then we can just call the function right here and residualize the result.
+        executeTheFunction := () -> (symbolic @ embed @ fun @ SVal)(rcall);
 
-        # if the function should be treated as PURE
+        
         if funOption = PURE then
-            `if`(rcall::Static, s(), peFunction_SpecializeThenDecideToUnfold(args[2..-1]))
-        elif funOption = INTRINSIC then
-            `if`(rcall::Static, s(), r())
+            `if`(rcall::Static, executeTheFunction(), peFunction_SpecializeThenDecideToUnfold(args[2..-1]))
+        elif funOption = INTRINSIC then 
+             # intrinsic functions are always residualized
+            `if`(rcall::Static, executeTheFunction(), residualize(funRef, rcall))
         elif funOption = DYNAMIC then
-            r()
+            residualize(funRef, rcall)
         else
             error "unknown function option %1", funOption;
         end if;
@@ -1139,7 +1166,11 @@ peFunction_StaticFunction := proc(funRef::Dynamic,
 end proc;
 
 
-# specialize the function
+# Prepares for specializing the function by:
+#  - computing an new environment for the function and pushing it on the call stack
+#  - computes the call signature
+#  - generates a name for the new function
+# Then after the function is specialized it decides weather to unfold it or not.  
 peFunction_SpecializeThenDecideToUnfold :=
     proc(fun::procedure, funName, argExpSeq::mform(ExpSeq), generatedName, unfold, residualize, symbolic)
     local m, argListInfo, newProc, newName, rec, signature, call;
@@ -1195,7 +1226,6 @@ end proc;
 
 
 isUnfoldable := proc(p) local unfold, hasReturn;
-    #return false;
     # a function cannot be unfolded if there is a return inside a loop
     unfold := true;
     hasReturn := proc()
@@ -1208,8 +1238,8 @@ isUnfoldable := proc(p) local unfold, hasReturn;
 end proc;
 
 
-# takes inert specializedProcs and assumes static variables are on top of callStack
-# called before unfold
+# This is where the body of the function is actually specialized.
+# A new specialized procedure is returned.
 peFunction_GenerateNewSpecializedProc := proc(m::mform(Proc), argListInfo) :: mform(Proc);
     local env, lexMap, loc, varName, body, newProc, p, newParams, newKeywords, toParamSpec;
     # attach lexical environment

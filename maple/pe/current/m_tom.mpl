@@ -496,7 +496,14 @@ ToM := module()
     end proc;
 
 
-    # assumes splitter has already been run on tr
+    # MAssignToTable is a special M-form used to handle the case where 
+    # a multi-dimensional table reference is used as an lvalue.
+	# For example
+	#   T[1][2] := x;
+	# becomes
+	#   m1 := T[1];
+	#   m1[2] := x
+    # Assumes splitter has already been run on tr.
     splitTableRef := proc(tr::mform(Tableref)) local tbl, assigns, n, newName, new;
         tbl := Tbl(tr);
         if Header(tbl) = MTableref then
