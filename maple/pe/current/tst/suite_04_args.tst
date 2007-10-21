@@ -88,21 +88,47 @@ goal := proc() p1(1) end proc;
 ped := OnPE(goal);
 got := ToInert(eval(ped:-ModuleApply));
 expected := ToInert(proc() (1)[1] end proc); # important case
-Try(501, got, expected);
+Try(502, got, expected);
 
 
 goal := proc() p2(1,2,3) end proc;
 ped := OnPE(goal);
 got := ToInert(eval(ped:-ModuleApply));
 expected := ToInert(proc() 1 end proc);
-Try(501, got, expected);
+Try(503, got, expected);
 
 
 goal := proc() p2(1) end proc;
 ped := OnPE(goal);
 got := ToInert(eval(ped:-ModuleApply));
 expected := ToInert(proc() 1 end proc);
-Try(501, got, expected);
+Try(504, got, expected);
+
+
+########################################################################
+# test using ranges to access args
+
+p1 := proc()
+	args[2..4];
+end proc;
+
+p2 := proc()
+	args[2..-2];
+end proc;
+
+
+goal := proc() p1(1,2,3,4,5) end proc;
+ped := OnPE(goal);
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 2,3,4 end proc);
+Try(601, got, expected);
+
+
+goal := proc() p2(1,2,3,4,5) end proc;
+ped := OnPE(goal);
+got := ToInert(eval(ped:-ModuleApply));
+expected := ToInert(proc() 2,3,4 end proc);
+Try(602, got, expected);
 
 #######################################################################################
 #end test

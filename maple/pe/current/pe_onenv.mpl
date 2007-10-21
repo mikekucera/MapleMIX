@@ -13,7 +13,7 @@ OnENV := module()
                 lex, nargsVal, isTblVal, isSetting,
                 hasDynamicPart, isAlreadyDynamic,
                 putStatic, putDynamic, putTable, putPseudoStatic,
-                doMerge, createAssign, addToMask;
+                doMerge, createAssign, addToMask, convertIndex;
             export 
                 setLink, grow, pop, equalsTop, merge,
                 get, put, setLoopVar,
@@ -374,8 +374,16 @@ OnENV := module()
             end proc;
             
             
-            getArgsVal := proc(index::posint)
-                get(ArgKey(index));
+            getArgsVal := proc(index::Or(integer,range)) local x,y;
+            	if type(index, 'integer') then
+            		get(ArgKey(convertIndex(index)));
+            	elif type(index, 'range') then
+	            	x := convertIndex(op(1,index));
+                	y := convertIndex(op(2,index));
+                	op(map(get@ArgKey, [seq(i, i=x..y)]));
+	            else
+                	error "invalid argument to hasArgsVal: %1", index;
+                end if;
             end proc;
             
             getArgs := proc()
@@ -385,8 +393,28 @@ OnENV := module()
                 seq(get(ArgKey(i)), i = 1..nargsVal)
             end proc;
             
-            hasArgsVal := proc(index::posint)
-                isStatic(ArgKey(index));
+            hasArgsVal := proc(index::Or(integer,range)) local x,y;
+            	if type(index, 'integer') then
+                	isStatic(ArgKey(convertIndex(index)));
+                elif type(index, 'range') then
+                	x := convertIndex(op(1,index));
+                	y := convertIndex(op(2,index));
+                	andmap(isStatic@ArgKey, [seq(i, i=x..y)]);
+                else
+                	error "invalid argument to hasArgsVal: %1", index;
+                end if;
+            end proc;
+            
+            # if the index is negative it is converted to positive
+            convertIndex := proc(index::integer)::integer;
+            	if index >= 0 then
+            		index;
+            	else 
+            		if not hasNargs() then
+                   		error "nargs must be static to use negative index";
+                	end if; 
+                	nargsVal + index + 1;
+                end if;
             end proc;
             
             putArgsVal := proc(index::posint, x)
