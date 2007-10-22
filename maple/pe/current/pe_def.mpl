@@ -431,9 +431,11 @@ pe[MAssign] := proc(n::Or(mname,specfunc(mname,MExpSeq)), expr::mform)
 	if nops(vars) = 1 then
 	    updateVar(op(vars), reduced);
 	else
-		if nops(reduced) <> nops(vars) then
-	    	error "unmatched multiple assignment";
-	    end if;
+		#if nops(reduced) <> nops(vars) then
+		#	print("MAssign", args);
+		#	print("reduced", reduced, "vars", vars);
+	    #	error "unmatched multiple assignment";
+	    #end if;
 	    if reduced::Static then # something like MStatic(1,2,3);
 	    	exprList := [op(map(MStatic,reduced))];
 	    	MStatSeq(op(zip(updateVar, vars, exprList)));
@@ -556,10 +558,19 @@ analyzeDynamicLoopBody := proc(body::mform)
     #end proc;
     #readLocal  := n -> readVar(n, callStack:-topEnv());
     #readGlobal := n -> readVar(n, genv);
-    readTableref := proc(var)
-        if not getEnv(var):-isDynamic(Name(var)) then # the entire table must be dynamic
-            error "possibly static table lookup in dynamic loop, not supported yet";
+    readTableref := proc(var) local env, val, i, inds;
+    	env := getEnv(var);
+        if not env:-isDynamic(Name(var)) then # the entire table must be made dynamic
+            # Get all the static indicies, generate an assignment for each
+            # TODO, this is a quick way of implementing this, it probably has bad performance and can be rewritten
+            inds := env:-getStaticIndices(Name(var)); # inds is a set of lists
+            for i in inds do
+            	val := env:-getTblVal(Name(var), MStatic(op(i)));
+            	q:-enqueue(MAssignTableIndex(MTableref(var,MStatic(op(i))),MStatic(val)));
+            	env:-setValDynamic(Name(var));
+            end do;
         end if;
+        args;
     end proc;
     writeVar := proc(var) local env, n;
         n := Name(var);
@@ -572,14 +583,16 @@ analyzeDynamicLoopBody := proc(body::mform)
             env:-setValDynamic(n);
         end if;
     end proc;
-    writeTable := tblref -> writeVar(Var(tblref));
+    writeTable := proc(tblref)
+    	writeVar(Var(tblref));
+	end proc;    	
 
     eval(body, [#MAssignToFunction   = notImplemented,
                 #MStandaloneFunction = notImplemented,
                 MAssign = writeVar,
                 MAssignToTable = writeVar,
-                MAssignTableIndex = writeTable
-                #MTableref = readTableref
+                MAssignTableIndex = writeTable,
+                MTableref = readTableref
                 #MName = readGlobal,
                 #MLocal = readLocal,
                 #MParam = readLocal,

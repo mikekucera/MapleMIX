@@ -71,3 +71,27 @@ at least until it causes us a real problem.  Perhaps create a TODO.txt
 file in an appropriate place and record our email exchange in it?
 
 
+- When a dynamic loop is encountered any static variables in the loop
+that are detected as becoming dynamic are residualized before the loop.
+This doesn't work well with the fact that unassigned locals are mapped
+in the environment to themselves. Variables that are assigned in the loop
+but aren't used until the loop are unnecessarily residualized before the loop.
+
+For example this code:
+
+p := proc(d) local x,i;
+     for i from 1 to d do
+     	x := i
+     end do;
+     x;
+ end proc;
+ 
+Becomes:
+
+proc(d) local x, i; 
+	x := x;            <-- unnecessary
+ 	for i to d do 
+   		x := i 
+   	end do; 
+   	x 
+end proc

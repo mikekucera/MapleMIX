@@ -23,7 +23,7 @@ OnENV := module()
                 putTblVal, getTblVal, setTblValDynamic, 
                 getLex, attachLex, removeLex, hasLex, setNargs, getNargs, hasNargs,
                 display, displayNames,
-                findSetting;
+                findSetting, getStaticIndices;
             
 ##########################################################################################
 
@@ -200,7 +200,6 @@ OnENV := module()
             
             getTblVal := proc(tableName::Not(mform), index::MStatic)
                 local err, setting, rec, val;
-                #print("getTblVal", args);
                 ASSERT( nargs = 2, "getTblVal expected 2 args" );
                 
                 err   := "table value is dynamic %1[%2]", tableName, index;
@@ -363,6 +362,7 @@ OnENV := module()
                 end if;
                 
                 setting:-vals[tableName] := 'setting:-vals[tableName]';
+                setting:-mask := setting:-mask minus {tableName};
                 NULL;
             end proc;
             
@@ -544,6 +544,34 @@ OnENV := module()
             end if;
             end proc;
             
+            getStaticIndices := proc(tblName) ::set(list);
+            	local foundsetting, rec, dyn, inds, i;
+            	try
+                    foundsetting := ss:-find( fr -> assigned(fr:-tbls[tblName]) );
+                    rec := foundsetting:-tbls[tblName];
+                    # TODO, don't use sets, they have bad complexity
+                    dyn, inds := {}, {};
+                    
+                    do
+                        for i in indices(rec:-elts) do
+                        	if rec:-elts[op(i)] = OnENV:-DYN or i in dyn then
+                        		dyn := dyn union {i};
+                        	else
+                        		inds := inds union {i}
+                        	end if;
+                        end do;
+                        
+                        if assigned(rec:-link) then
+                            rec := rec:-link;
+                        else
+                            return inds;
+                        end if;
+                    end do;
+                    
+                catch "not found" :
+                    {}
+                end try;
+            end proc;
             
             # Creates a new record to store part of a table.
             # A record will initially be empty.
@@ -664,6 +692,7 @@ OnENV := module()
                         print("level");
                         print("vals", op(setting:-vals));
                         print("dyn", op(setting:-dyn));
+                        print("mask", op(setting:-mask));
                         for tblName in keys(setting:-tbls) do
                             rec := setting:-tbls[tblName];
                             print("display: rec", tblName, eval(rec:-elts,2), 
