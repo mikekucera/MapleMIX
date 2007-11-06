@@ -47,10 +47,13 @@ end proc:
 goal1();
 
 goal2 := proc(x) local A;
-    A := table([
-        (1,1) = 1, (1, 2)=-2, (1,3)=3, (1,4)=1,
-        (2,1) = 2, (2, 2)=x,  (2,3)=6, (2,4)=6,
-        (3,1) =-1, (3, 2)=3, (3,3)=x-3, (3,4)=0]);
+    A := rtable(1..3, 1..4, 
+        [ [1, -2, 3, 1],
+          [2, x, 6, 6],
+          [-1, 3, x-3, 0] ]);
+        #(1,1) = 1, (1, 2)=-2, (1,3)=3, (1,4)=1,
+        #(2,1) = 2, (2, 2)=x,  (2,3)=6, (2,4)=6,
+        #(3,1) =-1, (3, 2)=3, (3,3)=x-3, (3,4)=0]);
     GE(A, 3, 4);
 end proc:
 
@@ -68,8 +71,9 @@ Try(203, got[2,1], 0);
 Try(204, got[2,2], 16);
 
 
-# res2 := OnPE(goal2, opts): # the one we really care about
-# got := ToInert(eval(res2:-ModuleApply));
+res2 := OnPE(goal2, opts): # the one we really care about
+rr   := eval(res2:-ModuleApply);
+got := ToInert(eval(rr));
 
 expected := ToInert(
 proc(x) local B1;
@@ -122,7 +126,7 @@ proc(x) local B1;
 end proc
 );
 
-# Try(210, got, expected);
+Try(210, got, expected);
 
 #######################################################################
 #end test
