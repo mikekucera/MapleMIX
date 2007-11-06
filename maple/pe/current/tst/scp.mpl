@@ -109,10 +109,21 @@ goal2 := proc() local A;
 end proc:
 goal2();
 
-infolevel[PE] := 10;
+#infolevel[PE] := 10;
 res2 := OnPE(goal2, opts); # fully static, easy
 
 got := eval(res2:-ModuleApply());
+
+goal3 := proc(x) local A;
+    A := rtable(1..3, 1..4, 
+        [ [1, -2, 3, 1],
+          [2, x, 6, 6],
+          [-1, 3, x-3, 0] ]);
+        #(1,1) = 1, (1, 2)=-2, (1,3)=3, (1,4)=1,
+        #(2,1) = 2, (2, 2)=x,  (2,3)=6, (2,4)=6,
+        #(3,1) =-1, (3, 2)=3, (3,3)=x-3, (3,4)=0]);
+    GE(A, 3, 4);
+end proc:
 
 #######################################################################
 #end test
