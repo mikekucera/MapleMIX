@@ -234,7 +234,7 @@ Try(210, got, expected);
 
 #######################################################################
 
-
+res1 := 'res1':
 int_pow := proc(i,var)
     if op(1,i)=var then
         if op(2,i)=-1 then
@@ -262,23 +262,23 @@ goal := proc(n) local x; int_sum([[5,x^2], [-7,x^n], [2,x^(-1)]], x); end proc:
 opts := PEOptions();
 opts:-setPropagateDynamic(true);
 opts:-addFunction(PEOptions:-INTRINSIC, ln);
-res1 := OnPE(goal, opts):
+res3 := OnPE(goal, opts):
 
-got := ToInert(eval(res1:-ModuleApply));
-expected := ToInert(
-proc(n) local m1, res1;
+got := (eval(res3:-ModuleApply));
+expected := 
+proc(n) local m2, res1, x;
     if n = -1 then 
-        m1 := ln(x) 
+        m2 := ln(x) 
     else 
-        m1 := x^(n + 1)/(n + 1) 
+        m2 := x^(n + 1)/(n + 1) 
     end if;
-    res1 := 5 * x^3/3 - 7 * m1;
+    res1 := 5 * x^3/3 - 7 * m2;
     res1 := res1 + 2 * ln(x);
     res1
-end proc
-);
+end proc;
 
-#Try(300, got, expected);
+# This is failing right now, but I will assume it is a trivial bug to fix
+Try(300, ToInert(eval(got)), ToInert(eval(expected)));
 
 #######################################################################
 #end test
