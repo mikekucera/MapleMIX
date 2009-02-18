@@ -1,3 +1,7 @@
+# This file is part of MapleMIX, and licensed under the BSD license.
+# Copyright (c) 2007, Jacques Carette and Michael Kucera
+# All rights reserved.  See file COPYING for details.
+
 ToM := module()
     export ModuleApply;
     local

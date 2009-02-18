@@ -1,3 +1,6 @@
+# This file is part of MapleMIX, and licensed under the BSD license.
+# Copyright (c) 2007, Jacques Carette and Michael Kucera
+# All rights reserved.  See file COPYING for details.
 
 # the central idea of INF is that there is never code beneath a return
 # this way I know that I can replace a return with an assignment and not change the meaning of the code
