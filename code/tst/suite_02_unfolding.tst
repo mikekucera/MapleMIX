@@ -124,10 +124,10 @@ goal := proc(d) p(3,d) end proc;
 
 ped := OnPE(goal);
 
-got := ToInert(eval(ped:-ModuleApply));
-expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("d")), _Inert_LOCALSEQ(_Inert_NAME("l1")), _Inert_OPTIONSEQ(), _Inert_EXPSEQ(), _Inert_STATSEQ(_Inert_ASSIGN(_Inert_LOCAL(1), _Inert_PROD(_Inert_INTPOS(9), _Inert_PARAM(1), _Inert_PARAM(1))), _Inert_LOCAL(1)), _Inert_DESCRIPTIONSEQ(), _Inert_GLOBALSEQ(), _Inert_LEXICALSEQ(), _Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1))));
+got := eval(ped:-ModuleApply);
+expected := proc(d) local l1; l1 := 9*d*d; l1 end proc;
 
-Try(501, got, expected);
+Try(501, ToInert(eval(got)), ToInert(eval(expected)));
 
 
 #######################################################################
