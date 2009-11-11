@@ -34,11 +34,11 @@ end proc:
 
 ped := OnPE(goal):
 
-got := ToInert(eval(ped[ModuleApply])):
+got := eval(ped[ModuleApply]):
 
-expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")),_Inert_LOCALSEQ(),_Inert_OPTIONSEQ(),_Inert_EXPSEQ(),_Inert_STATSEQ(_Inert_PROD(_Inert_PARAM(1),_Inert_PARAM(1),_Inert_PARAM(1))),_Inert_DESCRIPTIONSEQ(),_Inert_GLOBALSEQ(),_Inert_LEXICALSEQ(),_Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1)))):
+expected := proc(x) x*x*x end proc;
 
-Try(100, got, expected);
+Try(100, ToInert(eval(got)), ToInert(eval(expected)));
 
 
 # TEST 2 ##############################################################
@@ -49,10 +49,10 @@ end proc:
 
 ped := OnPE(goal):
 
-got := ToInert(eval(ped:-ModuleApply)):
-expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")),_Inert_LOCALSEQ(),_Inert_OPTIONSEQ(),_Inert_EXPSEQ(),_Inert_STATSEQ(_Inert_PARAM(1)),_Inert_DESCRIPTIONSEQ(),_Inert_GLOBALSEQ(),_Inert_LEXICALSEQ(),_Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1)))):
+got := (eval(ped:-ModuleApply)):
+expected := proc(x) x end;
 
-Try(200, got, expected);
+Try(200, ToInert(eval(got)), ToInert(eval(expected)));
 
 # TEST 3 ##############################################################
 
@@ -63,10 +63,10 @@ end proc:
 
 ped := OnPE(goal):
 
-got := ToInert(eval(ped:-ModuleApply)):
-expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")),_Inert_LOCALSEQ(),_Inert_OPTIONSEQ(),_Inert_EXPSEQ(),_Inert_STATSEQ(_Inert_INTPOS(1)),_Inert_DESCRIPTIONSEQ(),_Inert_GLOBALSEQ(),_Inert_LEXICALSEQ(),_Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1)))):
+got := (eval(ped:-ModuleApply)):
+expected := proc(x) 1 end:
 
-Try(300, got, expected);
+Try(300, ToInert(eval(got)), ToInert(eval(expected)));
 
 # TEST 4 ##############################################################
 
@@ -76,10 +76,10 @@ end proc:
 
 ped := OnPE(goal):
 
-got := ToInert(eval(ped:-ModuleApply)):
-expected := _Inert_PROC(_Inert_PARAMSEQ(_Inert_NAME("x")), _Inert_LOCALSEQ(_Inert_NAME("y1"), _Inert_NAME("y2")), _Inert_OPTIONSEQ(), _Inert_EXPSEQ(), _Inert_STATSEQ(_Inert_ASSIGN(_Inert_LOCAL(1), _Inert_PARAM(1)), _Inert_ASSIGN(_Inert_LOCAL(2), _Inert_PROD(_Inert_PARAM(1), _Inert_LOCAL(1), _Inert_LOCAL(1))), _Inert_PROD(_Inert_LOCAL(2), _Inert_LOCAL(2))), _Inert_DESCRIPTIONSEQ(), _Inert_GLOBALSEQ(), _Inert_LEXICALSEQ(), _Inert_EOP(_Inert_EXPSEQ(_Inert_INTPOS(1)))):
+got := eval(ped:-ModuleApply);
+expected := proc (x) local y1, y2; y1 := x; y2 := x*y1*y1; y2*y2 end proc;
 
-Try(400, got, expected);
+Try(400, ToInert(eval(got)), ToInert(eval(expected)));
 
 # Test 5: nothing to do with bp #######################################
 
@@ -106,11 +106,16 @@ end proc;
 
 ped := OnPE(goal);
 
-got := op(5, ToInert(eval(ped:-pow_1)));
+expected := module () local pow_1; export ModuleApply; 
+   pow_1 := proc (n) if n = 0 then return 1 else return 6*pow_1(n-1) end if end proc; 
+   ModuleApply := proc (n) pow_1(n) end proc; 
+end module;
 
-expected := _Inert_STATSEQ(_Inert_IF(_Inert_CONDPAIR(_Inert_EQUATION(_Inert_PARAM(1), _Inert_INTPOS(0)), _Inert_STATSEQ(_Inert_RETURN(_Inert_INTPOS(1)))), _Inert_STATSEQ(_Inert_RETURN(_Inert_PROD(_Inert_FUNCTION(_Inert_LEXICAL_LOCAL(1), _Inert_EXPSEQ(_Inert_SUM(_Inert_PARAM(1), _Inert_INTNEG(1)))), _Inert_INTPOS(6))))));
-
-Try(600, got, expected);
+# helper routine
+clean := proc(x) 
+    eval(ToInert(eval(x)),_Inert_ASSIGNEDLOCALNAME =
+        (proc(a,b,c) procname(a,b) end)) end:
+Try(600, clean(ped), clean(expected));
 
 #######################################################################
 
