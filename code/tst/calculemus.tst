@@ -278,6 +278,7 @@ proc(n) local m2, res1, x;
 end proc;
 
 # This is failing right now, but I will assume it is a trivial bug to fix
+#  (the issue is that x is supposed to be a local, and it's not)
 Try(300, ToInert(eval(got)), ToInert(eval(expected)));
 
 #######################################################################
