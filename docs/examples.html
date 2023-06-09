@@ -86,7 +86,7 @@ following parameters:
 </p><ul>
 <li>A pivot function that returns the index of the last element of the section
 array that is being sorted.
-</li><li>Maple�s own built-in �&lt;=� function for use as a compare function.
+</li><li>Maple's own built-in '&lt;=' function for use as a compare function.
 </li></ul>
 <p></p>
 
@@ -134,15 +134,15 @@ end proc
 Several things are of note:
 </p><li>All non-recursive function calls have been inlined, including the functional parameters
 which have been integrated into the specialized program at their points
-of use. This is a result of MapleMIX�s aggressive approach toward function unfolding.
+of use. This is a result of MapleMIX's aggressive approach toward function unfolding.
 </li><li>The swap function has been specialized three times and inlined in each of the
 three places where it was called in the original program. This is an example of
 function-point polyvariance.
 </li><li>The local variables used by the various functions have been renamed to avoid
 name clash.
-</li><li>MapleMIX recognized the use of a built-in function �&lt;=� and residualized it as
+</li><li>MapleMIX recognized the use of a built-in function '&lt;=' and residualized it as
 an operator application (A[i1] &lt;= pivotValue1) instead of a function application
-(�&lt;=�(A[i1], pivotValue1)).
+('&lt;='(A[i1], pivotValue1)).
 </li></a><li><a name="quicksort">MapleMIX terminated and produced a correct result in the face of a recursive
 algorithm.
 <p></p>
