@@ -1,0 +1,196 @@
+<!DOCTYPE html PUBLIC "-//w3c//dtd html 4.0 transitional//en">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>MapleMIX</title>
+<link rel="StyleSheet" href="./styles.css" title="Contemporary">
+
+</head>
+<body text="#000000">
+
+    <h1>MapleMIX</h1>
+    <h2>Partial Evaluation of Maple</h2>
+
+<p>
+  <a class="nav" href="./index.html">Home</a>
+| <a class="nav" href="./examples.html">Examples</a>
+| <b>Documentation</b>
+| <a class="nav" href="./publications.html">Publications</a>
+| <a class="nav" href="https://github.com/mikekucera/MapleMIX">GitHub</a>
+</p>
+<hr>
+
+
+<h2>Running MapleMIX</h2>
+
+<p>
+The input to MapleMIX is a user supplied "goal" function. MapleMIX will
+treat this function as the starting point of execution. The parameters
+of the goal function will become the parameters of the resulting
+specialized program. The goal function typically just calls the
+function for which specialization is desired supplying static inputs
+and using the goal function parameters as dynamic inputs.
+</p>
+
+<p>
+Here we will use a simple powering function as an example of how
+to invoke MapleMIX. This simple function just computes x<sup>n</sup>
+for n &gt;= 0;
+</p>
+
+<pre>
+&gt; pow := proc(x, n)
+&gt;     if n = 0 then
+&gt;         1
+&gt;     else
+&gt;         x * pow(x, n - 1)
+&gt;     end if
+&gt; end proc;
+
+</pre>
+
+<p>
+In order to specialize this function with respect to a fixed value for
+n we write a simple goal function that calls <tt>pow</tt>.
+</p>
+
+<pre>
+&gt; goal := proc(x)
+&gt;     pow(x, 3)
+&gt; end proc;
+
+</pre>
+
+<p>
+MapleMIX is then invoked by calling the <tt>OnPE</tt> function
+passing the goal function.
+</p>
+
+<pre>
+&gt; cube := OnPE(goal);
+
+</pre>
+
+The result is a specialized version of <tt>pow</tt> that always
+computes x<sup>3</sup>.
+
+<pre>
+&gt; print(cube:-ModuleApply);
+
+proc (x) x*x*x end proc
+
+</pre>
+
+<p>
+It is often the case that
+MapleMIX will generate several residual functions, these are packaged
+together and returned as a Maple module. The specialized goal function
+becomes the special <tt>ModuleApply</tt> function of the returned module.
+In Maple a <tt>ModuleApply</tt> function is implicitly called when
+a module value is used in a function call.
+</p>
+
+<pre>
+&gt; cube(2);
+
+8
+
+&gt; cube:-ModuleApply(2);
+
+8
+
+</pre>
+
+<p>
+It is possible to generate alternate specializations by fixing
+different parameters to static values. For example we could
+fix <tt>x</tt> to a specific value as well.
+</p>
+
+<pre>
+&gt; goal2 := proc(n)
+&gt;     pow(10, n)
+&gt; end proc;
+
+&gt; pow10 := OnPE(goal2);
+
+</pre>
+
+<p>
+In this case MapleMIX returns a module with two functions, <tt>pow_1</tt> and <tt>ModuleApply</tt>.
+Only the <tt>ModuleApply</tt> function is "public" by being exported by the module.
+</p>
+
+<pre>
+&gt; print(pow10);
+
+module() local pow_1; export ModuleApply;  end module
+
+</pre>
+
+<p>
+In this case the specialized code mostly resides in the <tt>pow_1</tt> function.
+In this example less specialization is possible because the expression that
+terminates the recursion is dynamic, therefore MapleMIX cannot safely unfold
+the recursive calls without risking non-termination.
+</p>
+
+<pre>
+&gt; print(pow10:-pow_1);
+
+proc(n)
+    if n = 0 then
+        1
+    else
+        10 * pow_1(n-1)
+    end if
+end proc
+
+</pre>
+
+<br>
+<h2>Supplying Options</h2>
+
+<p>
+MapleMIX is designed to be fully automatic, meaning that the subject program does
+not need to be annotated in order to help the partial evaluator. However sometimes
+it may be advantageous to provide some extra options.
+</p>
+
+<p>
+MapleMIX allows partial evaluation to be directed by supplying an option
+object that tells MapleMIX how to treat certain functions that it may encounter.
+The following example tells MapleMIX not to specialize the <tt>foo</tt> function.
+The residual code then contains an explicit call to <tt>foo</tt> even though
+MapleMIX normally would have specialized away the call. This can
+be quite useful if a function contains constructs not supported by MapleMIX.
+</p>
+
+<pre>
+&gt; foo := proc(x,y) x + y end proc;
+
+&gt; goal := proc(a)  a + foo(2,3) end proc;
+
+&gt; opts := PEOptions();
+&gt; opts:-addFunction(PEOptions:-DYNAMIC, foo);
+
+&gt; ps := OnPE(goal, opts);
+
+&gt; print(ps:-ModuleApply);
+
+proc(a) a + foo(2, 3) end proc
+
+</pre>
+
+
+
+
+
+<hr>
+
+<p>
+  <a class="nav" href="./index.html">Home</a>
+| <a class="nav" href="./examples.html">Examples</a>
+| <b>Documentation</b>
+| <a class="nav" href="./publications.html">Publications</a>
+| <a class="nav" href="https://github.com/mikekucera/MapleMIX">GitHub</a>
+</p></body></html>

@@ -1,0 +1,22 @@
+body
+{ background-color: #DDDDDD;
+text-align: justify;
+line-height: 1.1;
+margin: 2%;
+}
+
+h1 {font-size: 180%; color: #0080CF }
+h2 {font-size: 130%; color: #BF0000 }
+h3 {font-size: 120%}
+h4 {font-size: 110%}
+h5 {font-size: 105%}
+h6 {font-size: 100%}
+
+dt {font-weight: bold; padding-top: 2pt }
+
+li { margin-bottom: 5pt; }
+
+a.nav:link {color: blue; text-decoration: none; }
+a.nav:visited {color: blue; text-decoration: none; }
+a.nav:hover {color: blue; text-decoration: underline; }
+a.nav:active {color: blue; }

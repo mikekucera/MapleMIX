@@ -1,0 +1,816 @@
+<!DOCTYPE html PUBLIC "-//w3c//dtd html 4.0 transitional//en">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>MapleMIX</title>
+<link rel="StyleSheet" href="./styles.css" title="Contemporary">
+
+</head>
+<body text="#000000">
+
+    <h1>MapleMIX</h1>
+    <h2>Partial Evaluation of Maple</h2>
+
+<p>
+  <a class="nav" href="./index.html">Home</a>
+| <b>Examples</b>
+| <a class="nav" href="./doc.html">Documentation</a>
+| <a class="nav" href="./publications.html">Publications</a>
+| <a class="nav" href="https://github.com/mikekucera/MapleMIX">GitHub</a>
+</p>
+<hr>
+
+Examples:<br>
+<ul>
+<li><a href="#quicksort">Quicksort</a>
+</li><li><a href="#residual">Residual Theorems</a>
+</li><li><a href="#complex">Complexity of Algorithms</a>
+</li><li><a href="#futamura">First Futamura Projection</a>
+</li><li><a href="#gla">Generic Linear Algebra</a>
+</li><li><a href="#berkowitz">Berkowitz Algorithm</a>
+</li></ul>
+<br><br>
+
+
+
+<a name="quicksort"><h2>Quicksort</h2>
+
+<p>
+To show the power of partial evauation in action this example shows the results
+of running MapleMIX on a parameterized in-place quicksort algorithm.
+The algorithm has been written with extensibility, reusability and readability in mind. Two design
+decisions have been abstracted as function parameters using the strategy design pattern.
+First the choice of pivot,
+which effects the complexity properties of the algorithm, and second the choice of comparison
+function. This allows sorting behavior to be customized (for example the
+code can be used to sort ascending or descending) as well as providing extensibility
+as a new comparison function can be provided for user defined data-types.
+</p>
+
+<pre>
+swap := proc(A, x, y) local temp;
+    temp := A[x];
+    A[x] := A[y];
+    A[y] := temp;
+end proc:
+
+partition := proc(A, m, n, pivot, compare)
+    local pivotIndex, pivotValue, storeIndex, i, temp;
+    pivotIndex := pivot(A, m, n);
+    pivotValue := A[pivotIndex];
+    swap(A, pivotIndex, n);
+    storeIndex := m;
+    for i from m to n-1 do
+        if compare(A[i], pivotValue) then
+            swap(A, storeIndex, i);
+            storeIndex := storeIndex + 1;
+        end if;
+    end do;
+    swap(A, n, storeIndex);
+    return storeIndex;
+end proc:
+
+quicksort := proc(A, m, n, pivot, compare) local p;
+    if m &lt; n then
+        p := partition(A, m, n, pivot, compare);
+        quicksort(A, m, p-1, pivot, compare);
+        quicksort(A, p+1, n, pivot, compare);
+    end if;
+end proc:
+
+</pre>
+
+
+<p>
+A goal function qs1 is provided which calls the quicksort function with the
+following parameters:
+</p><ul>
+<li>A pivot function that returns the index of the last element of the section
+array that is being sorted.
+</li><li>Maple�s own built-in �&lt;=� function for use as a compare function.
+</li></ul>
+<p></p>
+
+<pre>
+qs1 := proc(A, m, n) local p, c;
+    p := (A, m, n) -&gt; n;
+    c := `&lt;=`;
+    quicksort(A, m, n, p, c)
+end proc:
+
+</pre>
+
+The following is the specialized result of running MapleMIX on qs1.
+
+<pre>
+quicksort_1 := proc(A, m, n)
+    local pivotIndex1, pivotValue1, temp1, storeIndex1, i1, temp2, temp3, p;
+    if m &lt; n then
+        pivotIndex1 := n;
+        pivotValue1 := A[pivotIndex1];
+        temp1 := A[pivotIndex1];
+        A[pivotIndex1] := A[n];
+        A[n] := temp1;
+        storeIndex1 := m;
+        for i1 from m to n - 1 do
+            if A[i1] &lt;= pivotValue1 then
+                temp2 := A[storeIndex1];
+                A[storeIndex1] := A[i1];
+                A[i1] := temp2;
+                storeIndex1 := storeIndex1 + 1
+            end if
+        end do;
+        temp3 := A[n];
+        A[n] := A[storeIndex1];
+        A[storeIndex1] := temp3;
+        p := storeIndex1;
+        quicksort_1(A, m, p - 1);
+        quicksort_1(A, p + 1, n)
+    end if
+end proc
+
+</pre>
+
+<p>
+Several things are of note:
+</p><li>All non-recursive function calls have been inlined, including the functional parameters
+which have been integrated into the specialized program at their points
+of use. This is a result of MapleMIX�s aggressive approach toward function unfolding.
+</li><li>The swap function has been specialized three times and inlined in each of the
+three places where it was called in the original program. This is an example of
+function-point polyvariance.
+</li><li>The local variables used by the various functions have been renamed to avoid
+name clash.
+</li><li>MapleMIX recognized the use of a built-in function �&lt;=� and residualized it as
+an operator application (A[i1] &lt;= pivotValue1) instead of a function application
+(�&lt;=�(A[i1], pivotValue1)).
+</li></a><li><a name="quicksort">MapleMIX terminated and produced a correct result in the face of a recursive
+algorithm.
+<p></p>
+<br>
+
+
+
+
+
+</a><a name="residual"><h2>Residual Theorems in Computer Algebra</h2>
+
+<p>
+All Computer Algebra Systems (CAS) use generic solutions in their approach to
+certain problems. For example when asked <tt>degree(a*x^2 + b*x + c)</tt> Maple will
+respond with 2 as an answer. However this answer ignores the case where a = 0.
+</p>
+
+<p>
+In particular we are looking for a precise answer of the following form:
+</p>
+
+<pre>                          /
+                          | 2    when a &lt;&gt; 0
+degree(a*x^2 + b*x + c) = | 1    when a = 0  and  b &lt;&gt; 0
+                          | 0    otherwise
+                          \
+
+</pre>
+
+<p>
+In order to use partial evaluation toward this goal one must first be willing to change
+the representation of answers. In our case we will use a residual program to represent
+the answer to a parametric problem.
+We will use the power of partial evaluation to extract so called residual theorems from
+existing code written to provide generic solutions. The first example is of a small
+program that computes the degree of a polynomial.
+</p>
+
+<pre>
+coefflist := proc(p) local d, i;
+    d := degree(p,x);
+    return  [seq(coeff(p, x, d-i), i=0..d)];
+end proc:
+
+mydegree := proc(p, v) local lst, i, s;
+    lst := coefflist(p, v);
+    s := nops(lst);
+    for i from 1 to s do
+        if lst[i] &lt;&gt; 0 then
+            return s-i
+       end if;
+   end do;
+   return -infinity;
+end proc:
+
+</pre>
+
+<p>
+In order to use PE to extract the cases we must treat the polynomial coefficients as
+dynamic variables. Here most of the structure of the polynomial is static so a large
+amount of specialization is possible.
+</p>
+
+<pre>
+goal := proc(a, b, c) local p;
+    p := a*x^2+b*x+c;
+    mydegree(p, x)
+end proc;
+
+</pre>
+
+
+<p>
+When called directly with symbols provided for the polynomial coefficients the goal
+function will return 2. However, when it is partially evaluated with no inputs given
+the result is a residual program representation of the desired result.
+</p>
+
+
+<pre>
+proc(a, b, c)
+    if a &lt;&gt; 0 then 2
+    elif b &lt;&gt; 0 then 1
+    elif c &lt;&gt; 0 then 0
+    else -infinity
+    end if
+end proc
+
+</pre>
+
+
+
+
+<br>
+
+
+</a><a name="complex"><h2>Complexity of Algorithms</h2>
+
+Powering is a classic example in partial evaluation.
+
+<pre>
+pow := proc(x, n)
+    if n = 0 then
+        1
+    else
+        x * pow(x, n-1)
+    end if
+end proc
+
+</pre>
+
+<p>
+However it is naive to implement powering in this way because the complexity
+is linear. It is illustrative to demonstrate how the complexity of an algorithm has
+a direct relation to the number of computations performed by the residual program. For example when
+the simple powering example is specialized with respect to n = 72 the
+result has 71 multiplications. (The 72nd multiplication is a multiplication by 1 and
+was removed by the Maple automatic simplifier).
+</p>
+
+<pre>
+pow_72 := proc(x)
+    x*x*x*x*x*x*x*x*x*x*
+    x*x*x*x*x*x*x*x*x*x*
+    x*x*x*x*x*x*x*x*x*x*
+    x*x*x*x*x*x*x*x*x*x*
+    x*x*x*x*x*x*x*x*x*x*
+    x*x*x*x*x*x*x*x*x*x*
+    x*x*x*x*x*x*x*x*x*x*x*x
+end proc
+
+</pre>
+
+<p>
+Below is a powering algorithm with much better complexity
+known as binary powering or fast powering.
+</p>
+
+<pre>
+bin_pow := proc(x, n) local y;
+    if n=0 then 1
+    elif n=1 then x
+    elif (n mod 2 = 0) then
+        y := pow2(x, n/2);
+        y*y;
+    else x*pow2(x, n-1)
+    end if;
+end proc
+
+</pre>
+
+<p>
+Binary powering tests for the case when the exponent is even and recursively
+splits the computation in half. For example x^72 will result in the computations ((((((x^2)^2)^2)*x)^2)^2)^2
+When the algorithm is specialized with respect to n = 72
+the result contains only seven multiplications.
+(Again, all multiplications by 1 are removed by the Maple automatic simplifier.)
+It is easy to see that the structure of the residual program matches exactly
+the expected computations.
+</p>
+
+<pre>
+bin_pow_72 := proc(x) local y1, y2, y3, y4, y5, y6;
+    y1 := x;
+    y2 := y1 * y1;
+    y3 := y2 * y2;
+    y4 := x * y3 * y3;
+    y5 := y4 * y4;
+    y6 := y5 * y5;
+    y6 * y6
+end proc
+
+</pre>
+<br>
+
+
+</a><a name="futamura"><h2>First Futamura Projection</h2>
+
+The first Futamura projection states that compilation can be
+achieved given a partial evaluator, an interpreter and a source program
+written for the interpreter.
+This projection states nothing about the quality of the
+resulting compiled program, intuitively it is essentially the interpreter
+specialized to run just one program. Therefore
+the compiled program will contain pieces of the interpreter,
+however its structure will resemble that of the source program. Since
+most interpreters tend to contain a great deal of computational overhead
+the compiled program is likely to be clunky and inefficient compared
+to a functionally equivalent program written directly in the language that the interpreter is
+written in. Running the compiled program directly will however be more
+efficient than running the original source program on the interpreter.
+
+Below is a simple interpreter written in Maple for a minimal
+language consisting of if-expressions, binary operators, function definitions,
+function calls and simple bindings.
+
+
+<pre>
+MiniMapleInterpreter := module() option package;
+    export ModuleApply;  local evalStat, evalExpr, evalBin;
+
+    ModuleApply := proc(prog, input) local defs, d;
+        defs := table();
+        for d in prog do defs[op(1,d)] := d end do;
+        evalStat(op(3,op(1,prog)), input, defs);
+    end proc;
+
+    evalStat := proc(s, env, defs) local h, t, c, var, e1;
+        h := op(0, s);
+        if h = mmIfElse then
+            c := evalExpr(op(1,s), env, defs);
+            if c then evalStat(op(2,s), env, defs);
+            else evalStat(op(3,s), env, defs);
+            end if;
+        elif h = mmExpr then
+            evalExpr(op(1,s), env, defs);
+        else error "unknown statement form: %1", h;
+        end if;
+    end proc;
+
+    evalExpr := proc(e, env, defs)
+        local h, e1, e2, o, def, ags, newEnv, param, i;
+        h := op(0, e);
+        if h = mmInt or h = mmString or h = mmName then
+            op(1,e);
+        elif h = mmVar then
+            env[op(1,e)]
+        elif h = mmBin then
+            o := op(1,e);
+            e1 := evalExpr(op(2,e), env, defs);
+            e2 := evalExpr(op(3,e), env, defs);
+            evalBin(o, e1, e2);
+        elif h = mmUn then
+            o := op(1,e);
+            e1 := evalExpr(op(2,e), env, defs);
+            evalUn(o, e1);
+        elif h = mmCall then
+            def := defs[op(1,e)];
+            ags := op(2,e); i := 1; newEnv := table();
+            for param in op(2,def) do
+                newEnv[param] := evalExpr(op(i,ags), env, defs);
+                i := i + 1;
+            end do;
+            evalStat(op(3,def), newEnv, defs);
+        else error "unknown expression form: %1", h;
+        end if;
+    end proc;
+
+    evalBin := proc(mm, e1, e2)
+        if   mm = mmEq    then evalb(e1 = e2)
+        elif mm = mmPlus  then e1 + e2
+        elif mm = mmTimes then e1 * e2
+        elif mm = mmAnd   then e1 and e2
+        elif mm = mmOr    then e1 or e2
+        else error "unknown binary operator: %1", mm;
+        end if;
+    end proc;
+end module:
+
+</pre>
+
+Below is the classic powering function example coded in the
+language of our simple interpreter. This may seem like a simple example
+however the termination properties of MapleMIX will be tested as this
+is a recursive program and all of the program's variables will be dynamic.
+Even this simple example uses almost all the functionality of the interpreter
+(which would involve a great deal of overhead when executed on the interpreter).
+
+<pre>
+power := mmProgram(
+  mmDef("pow", mmParams("x", "n"),
+    mmIfElse(mmBin(mmEq, mmVar("n"), mmInt(0)),
+      mmExpr(mmInt(1)),
+      mmExpr(
+        mmBin(mmTimes,
+          mmVar("x"),
+          mmCall("pow",
+                 mmArgs(mmVar("x"), mmBin(mmPlus, mmVar("n"), mmInt(-1)))
+          ))))))
+
+</pre>
+
+Below is a goal function that calls the interpreter on
+the example program. Note that the interpreter requires the program's
+input to be passed as a table.
+
+
+<pre>
+goal := proc(x, n) local t;
+    t := table(["x" = x, "n" = n]);
+    MiniMapleInterpreter(power, t);
+end proc;
+
+</pre>
+
+
+Below is the "compiled" program that is the result of running
+the partial evaluator on the interpreter and the example program.
+As expected pieces of the interpreter are left over, in particular
+there are several residual statements that are concerned with passing
+around the environment.
+
+
+<pre>
+compiled_pow := module()
+    ModuleApply := proc(x, n) local t;
+        t["x"] := x;
+        t["n"] := n;
+        evalStat_1(t)
+    end proc;
+
+    evalStat_1 := proc(env) local e12, c, e16, newEnv1, e14, e22;
+        e12 := env["n"];
+        c := evalb(e12 = 0);
+        if c then
+            1
+        else
+            e16 := env["x"];
+            newEnv1["x"] := env["x"];
+            e14 := env["n"];
+            newEnv1["n"] := e14 - 1;
+            e22 := evalStat_1(newEnv1);
+            e16*e22
+        end if
+    end proc
+end module;
+
+</pre>
+
+
+
+As a further example we provide a goal function which provides
+a static value 5 for n. The purpose is to show that compilation and specialization
+of the source program can be achieved at the same time.
+
+<pre>
+goal := proc(x) local t;
+    t := table(["x" = x, "n" = 5]);
+    MiniMapleInterpreter(power, t);
+end proc;
+
+</pre>
+
+
+The resulting program
+computes x^5. Again the environment passing
+behavior of the interpreter has been residualized.
+
+
+<pre>
+proc(x)
+    local t, e110, newEnv5, e18, newEnv4, e16, newEnv3,
+    e14, newEnv2, e12, e22, e24, e26, e28, e210;
+    t["x"] := x;
+    e110 := t["x"];
+    newEnv5["x"] := t["x"];
+    e18 := newEnv5["x"];
+    newEnv4["x"] := newEnv5["x"];
+    e16 := newEnv4["x"];
+    newEnv3["x"] := newEnv4["x"];
+    e14 := newEnv3["x"];
+    newEnv2["x"] := newEnv3["x"];
+    e12 := newEnv2["x"];
+    e22 := 1;
+    e24 := e12*e22;
+    e26 := e14*e24;
+    e28 := e16*e26;
+    e210 := e18*e28;
+    e110*e210
+end proc;
+
+</pre>
+
+<br>
+
+
+</a><a name="gla"><h2>Generic Linear Algebra</h2>
+
+<p>
+Below is an implementation of a generic matrix multiplication algorithm.
+It is capable of handling matrices of any data type as long
+as the user provides implementations for the zero, addition and multiplication
+functions.
+This is an example of what real-world Maple code looks like.
+The advantage of this approach is a high level of genericity, one
+procedure works with matrices of any data type. But the tradeoff
+is that this procedure is not optimized for any data type, and there
+is a great deal of overhead just for error checking.
+</p>
+
+
+<pre>
+MatrixMatrixMultiplyOperations := [`0`,`+`::procedure,`*`::procedure]:
+
+HasOperation := proc(D,f)
+  if type(D,table) then assigned(D[f]) else member(f,[exports(D)]) fi;
+end:
+
+# Type check
+GenericCheck := proc(P,T) local D,f,n,t;
+  if not type(P,indexed) or nops(P)&lt;&gt;1 then
+    error "\%1 is not indexed by a domain",P fi;
+  D := op(1,P);
+  if not type(D,{table,`module`}) then
+    error "domain must be a table or module" fi;
+  for f in T do
+    if type(f,`::`) then n := op(1,f); t := op(2,f);
+    elif type(f,symbol) then n := f; t := false;
+    else error "invalid operation name: \%1", f;
+    fi;
+    if not HasOperation(D,n) then error "missing operation: \%1",n; fi;
+    if t &lt;&gt; false and not type(D[n],t) then
+      error "operation has wrong type: \%1", f fi;
+  od;
+  D
+end:
+
+MatrixMatrixMultiply := proc(A::Matrix,B::Matrix)
+  local D,n,p,m,C,i,j,k;
+  D := GenericCheck( procname, MatrixMatrixMultiplyOperations );
+  if op(1,A)[2]&lt;&gt;op(1,B)[1] then error
+     "first matrix column dimension (\%1)
+     &lt;&gt; second matrix row dimension (\%2)",
+         op(1,A)[2], op(1,B)[1]; fi;
+  n,p := op(1,A);
+  m := op(1,B)[2];
+  C := Matrix(n,m);
+  for i to n do
+     for j to m do
+        C[i,j] := D[`+`](seq(D[`*`](A[i,k],B[k,j]),k=1..p))
+     od
+  od;
+  C
+end:
+
+</pre>
+
+<p>
+Multiplying matrices of integers is a very common operation, so
+it would be nice to be able to automatically generate
+a version of this procedure specialized to work only with integers.
+To do this we must first set up the procedures for the
+standard operations on integers.
+</p>
+
+<pre>
+(Z[`0`],Z[`+`],Z[`*`]) := (0,`+`,`*`);
+
+</pre>
+
+<p>
+And provide a goal function...
+</p>
+
+
+<pre>
+goal := proc(x,y)
+  MatrixMatrixMultiply[Z](x,y);
+end proc;
+
+</pre>
+
+The result is a highly optimized version derived from the original algorithm.
+It should be clear that all the overhead has been eliminated.  For
+example, on 200x200 matrices, the specialized version was 2.1 times
+faster, and used 5 times less memory;
+this gets asymptotically better as the sizes of the matrices is increased.
+
+<pre>
+proc (x, y) local n1, p1, m6, C1, i1, j1;
+  if op(1,x)[2] &lt;&gt; op(1,y)[1] then
+    error "first matrix column dimension (\%1)
+           &lt;&gt; second matrix row dimension (\%2)",
+               op(1,x)[2], op(1,y)[1]
+  end if;
+  n1, p1 := op(1,x);
+  m6 := op(1,y)[2];
+  C1 := Matrix(n1,m6);
+  for i1 to n1 do
+    for j1 to m6 do
+      C1[i1,j1] := `+`(seq(x[i1,k]*y[k,j1],k = 1..p1))
+    end do
+  end do;
+  C1
+end proc;
+
+</pre>
+
+
+
+</a><a name="berkowitz"><h2>Berkowitz Algorithm</h2>
+
+
+<p>
+For another example from generic linear algebra we can look to the Berkowitz Algorithm.
+Given an n x n Matrix A of values from a commutative ring R,
+BerkowitzAlgorithm[R](A) returns a Vector V of dimension n+1 of values in R with the coefficients of the characteristic polynomial of A.
+The characteristic polynomial is the polynomial V[1]*x^n + V[2]*x^(n-1) + ... + V[n]*x + V[n+1].
+The Berkowitz algorithm does O(n^4) multiplications and additions in R.
+</p>
+
+<pre>
+RingOperations := [`+`::procedure,`-`::procedure,`*`::procedure,`0`,`1`,`=`::procedure]:
+BerkowitzAlgorithmOperations := RingOperations:
+
+BerkowitzAlgorithm := proc(A::Matrix)
+ local D,m,n,Vect,r,C,S,Q,i,j,k,one,zero,minusone;
+
+   D := GenericCheck( procname, RingOperations );
+   m,n := LinearAlgebra:-Dimensions(A);
+   if m&lt;&gt;n then error "Matrix must be square" fi;
+   one := D[`1`];
+   zero := D[`0`];
+   minusone := D[`-`](one);
+     if n=1 then return Vector([one,D[`-`](A[1,1])]);
+     elif n=2 then return Vector([one,
+                              D[`-`](D[`+`](A[1,1],A[2,2])),
+                              D[`-`](D[`*`](A[1,1],A[2,2]),D[`*`](A[2,1],A[1,2]))]);
+     else
+       Vect := Vector(n+1,'fill'=zero);
+       Vect[1] := minusone;
+       Vect[2] := A[1,1];
+       C[1] := minusone;
+       for r from 2 to n do
+         for i to r-1 do S[i]:=A[i,r] od;
+         C[2] := A[r,r];
+         for i from 1 to r-2 do
+           C[i+2] := D[`+`](seq(D[`*`](A[r,j],S[j]),j=1..r-1));
+           for j to r-1 do
+             Q[j] := D[`+`](seq(D[`*`](A[j,k],S[k]),k=1..r-1));
+           od;
+           for j to r-1 do S[j] := Q[j] od;
+         od;
+         C[r+1] := D[`+`](seq(D[`*`](A[r,j],S[j]),j=1..r-1));
+         for i to r+1 do
+           Q[i] := D[`+`](seq(D[`*`](C[i+1-j],Vect[j]),j=1..min(r,i)));
+         od;
+         for i to r+1 do Vect[i] := Q[i] od;
+       od;
+       if type(n,odd) then for i to n+1 do Vect[i] := D[`-`](Vect[i]) od fi;
+       return Vect
+     fi;
+end:
+
+</pre>
+
+<p>
+Like with the matrix multiplication example we would like to specialize
+this algorithm to work only on integers.
+</p>
+
+
+<pre>
+(Z[`0`],Z[`1`],Z[`+`],Z[`-`],Z[`*`],Z[`=`]) := (0,1,`+`,`-`,`*`,`=`):
+
+</pre>
+
+
+<p>
+A bit of extra care must be taken to avoid some code that MapleMIX can't handle.
+Its possible to supply some options to control the specialization process.
+The following options tell MapleMIX to avoid specializing the Vector and simplify procedures.
+</p>
+
+
+<pre>
+opts := PEOptions():
+opts:-addFunction(PEOptions:-INTRINSIC, Vector):
+opts:-addFunction(PEOptions:-INTRINSIC, 'simplify');
+
+goal := proc(X) BerkowitzAlgorithm[Z](X) end proc;
+
+</pre>
+
+
+<p>
+And the result is....
+</p>
+
+
+<pre>
+bkz_s := proc(X)
+	local m27, largs1, m1, n1, x4, x6, x8, y1, Vect1, S1, C1, Q1, r1, i1, j1, x10;
+
+	if hastype(X,{Matrix, Vector}) then
+		if type(X,list) then
+			m27 := map(simplify,X,rtable)
+		elif type(X,set) then
+			m27 := map(simplify,X,rtable)
+		else
+			m27 := simplify(X,rtable)
+		end if
+	else
+		m27 := X
+	end if;
+
+	largs1 := [`if`(type(X,{Matrix, Vector}),X,m27)];
+
+	if not type(largs1[1],{Matrix, Vector}) then
+		error "expects its %-1 argument, A, to be of type {Matrix,Vector}, but received %2", 1, largs1[1]
+	end if; m1, n1 := op(1,largs1[1]);
+
+	if m1 &lt;&gt; n1 then
+		error "Matrix must be square"
+	end if;
+
+	if n1 = 1 then
+		x4 := X[1,1];
+		Vector([1, -x4])
+	elif n1 = 2 then
+		x6 := X[1,1]+X[2,2];
+		x8 := X[1,1]*X[2,2];
+		y1 := X[2,1]*X[1,2];
+		Vector([1, -x6, x8-y1])
+	else
+		Vect1 := Vector(n1+1,fill = 0);
+		Vect1[2] := X[1,1];
+		S1 := S;
+		C1[1] := -1;
+		Q1 := Q;
+		Vect1[1] := -1;
+		for r1 from 2 to n1 do
+			for i1 to r1-1 do
+				S1[i1] := X[i1,r1]
+			end do;
+			C1[2] := X[r1,r1];
+			for i1 to r1-2 do
+				C1[i1+2] := `+`(seq(X[r1,j]*S1[j],j = 1 .. r1-1));
+				for j1 to r1-1 do
+					Q1[j1] := `+`(seq(X[j1,k]*S1[k],k = 1 .. r1-1))
+				end do;
+				for j1 to r1-1 do
+					S1[j1] := Q1[j1]
+				end do
+			end do;
+			C1[r1+1] := `+`(seq(X[r1,j1]*S1[j1],j1 = 1 .. r1-1));
+			for i1 to r1+1 do
+				Q1[i1] := `+`(seq(C1[i1+1-j1]*Vect1[j1],j1 = 1 .. min(r1,i1)))
+			end do;
+			for i1 to r1+1 do
+				Vect1[i1] := Q1[i1]
+			end do
+		end do;
+
+		if type(n1,odd) then
+			for i1 to n1+1 do
+				x10 := Vect1[i1];
+				Vect1[i1] := -x10
+			end do
+		end if;
+
+		Vect1
+	end if
+end proc;
+
+</pre>
+
+
+<br>
+
+<hr>
+</a><p><a name="berkowitz">
+  </a><a class="nav" href="./index.html">Home</a>
+| <b>Examples</b>
+| <a class="nav" href="./doc.html">Documentation</a>
+| <a class="nav" href="./publications.html">Publications</a>
+| <a class="nav" href="https://github.com/mikekucera/MapleMIX">GitHub</a>
+</p>
+
+
+</li></body></html>
